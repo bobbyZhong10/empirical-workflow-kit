@@ -167,8 +167,9 @@ validate_contract <- function(contract_path) {
 contract_path <- resolve_path(args[[1]])
 panel <- validate_contract(contract_path)
 
+sunab <- getFromNamespace("sunab", "fixest")
 model <- fixest::feols(
-  outcome ~ fixest::sunab(cohort, quarter_index, ref.p = -1) | firm_id + year_qtr,
+  outcome ~ sunab(cohort, quarter_index, ref.p = -1) | firm_id + year_qtr,
   cluster = ~firm_id,
   data = panel
 )
