@@ -94,3 +94,19 @@ def test_adapters_and_records():
         assert [handoff.index(item) for item in continuation_order] == sorted(
             handoff.index(item) for item in continuation_order
         )
+
+
+def test_stage_contracts():
+    stages = sorted((ROOT / "skills/empirical-workflow/stages").glob("stage*.md"))
+    assert len(stages) == 8
+    headings = (
+        "## Inputs",
+        "## Automatic actions",
+        "## Required artifacts",
+        "## Red lines",
+        "## Exit condition",
+    )
+    for stage in stages:
+        body = stage.read_text(encoding="utf-8")
+        for heading in headings:
+            assert heading in body, f"{stage.name} lacks {heading}"

@@ -6,6 +6,31 @@ produce counterfactuals whose limits are stated. The gate logic differs from
 estimation, because estimation cannot reveal that a parameter was never
 identified.
 
+## Inputs
+
+The approved structural branch, locked Stage 3 commitments, Stage 4 and 5
+construction records, and current project-state records.
+
+## Automatic actions
+
+Specify primitives and identification, estimate with documented convergence,
+assess fit and sensitivity, and report bounded counterfactuals.
+
+## Required artifacts
+
+The parameter-identification table, estimation and fit logs, sensitivity and
+counterfactual records, Checkpoint C record, Evidence cards, and updated status.
+
+## Red lines
+
+Do not label a calibrated parameter as estimated or use a counterfactual beyond
+its disclosed support. Pause before changing the approved structural design.
+
+## Exit condition
+
+The structural Checkpoint C record is complete and all reported claims trace to
+identified parameters, documented fit, and bounded counterfactual evidence.
+
 ## 6b.1 Primitives and justification
 
 State the model: agents, choice sets, information, timing, objective functions,

@@ -4,6 +4,31 @@ Goal: produce a baseline estimate whose identification is defensible, and a
 robustness set that a referee would recognize as complete. This stage ends at
 Checkpoint C.
 
+## Inputs
+
+The locked Stage 3 hypothesis-to-estimate map, Stage 4 construction plan, Stage
+5 measurement record, approved design, and current project-state records.
+
+## Automatic actions
+
+Execute the precommitted reduced-form design, its identifying diagnostics, and
+the required robustness and mechanism evidence; record all outcomes.
+
+## Required artifacts
+
+The identification memo, estimation outputs, diagnostic and robustness records,
+Checkpoint C record, Evidence cards, decision-log entries, and updated status.
+
+## Red lines
+
+Do not reinterpret a failed identifying diagnostic as robustness. Pause for a
+recorded decision before changing a locked specification or identifying design.
+
+## Exit condition
+
+Checkpoint C is recorded as pass, revise, or authorized pause, with the result
+traceable to the locked hypothesis-to-estimate map.
+
 Read `references/identification-decision-tree.md` before 6a.1 and
 `references/robustness-checklists.md` before 6a.4.
 

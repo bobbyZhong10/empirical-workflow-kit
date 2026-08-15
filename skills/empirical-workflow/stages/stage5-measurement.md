@@ -1,58 +1,51 @@
 # Stage 5: Measurement and Validity
 
-Goal: establish that the variables measure the constructs, and lock the
-functional forms. This stage ends at Checkpoint B.
+## Inputs
 
-## 5.1 Proxy justification
+- Router prerequisites; Stage 1 quality reports, Stage 2 measurement precedent,
+  Stage 3 locked hypothesis-to-estimate map, and Stage 4 variables, timeline,
+  attrition, and inference plan.
+- Versioned derived data and construction scripts subject to the project data
+  contract.
 
-For every core construct, write a short paragraph: what the proxy captures, what
-it misses, in which direction the mismatch would bias the estimate, and at least
-one citation of prior use. A proxy whose bias direction is unknown is a
-limitation that must appear in the paper.
+## Automatic actions
 
-## 5.2 Functional form, declared and locked
+- Write a proxy justification for every core construct: what it captures and
+  misses, expected bias direction, limits, and prior-use citation.
+- Choose the main treatment and outcome functional forms on substantive grounds
+  and lock them before estimation; mark alternatives as predeclared robustness
+  checks rather than result-selection options.
+- Execute data-contract validation in code: unique keys, expected row counts,
+  required fields, missingness, value ranges, timing, and nonmissing clustering
+  identifiers.
+- Produce and adversarially review descriptives, missingness, outliers, mass
+  points, pre-period comparability, and within-fixed-effect variation.
 
-Consider the plausible forms of the treatment and of the dependent variable
-(level, log, inverse hyperbolic sine, binary, share) and choose the main form on
-substantive grounds, before estimation. Record the choice and the reason.
+## Required artifacts
 
-Two rules that prevent a common referee objection:
+- `docs/measurement_validity.md`: proxy justifications, citations, limitations,
+  bias-direction assessment, and validity conclusions.
+- `docs/functional_form_lock.md`: locked treatment and outcome forms, rationale,
+  date, and predeclared alternative forms.
+- `docs/data_contract_validation.md`: executable validation results, input data
+  version, assertions, failures, remediation, and rerun status.
+- `docs/descriptive_integrity_record.md`: descriptive statistics, balance or
+  pre-period checks, anomalies, missingness, outliers, and resolution status.
+- `docs/checkpoints/checkpoint_b.md`, relevant Evidence cards, decision-log
+  entries, and an updated `_status.md`.
 
-- For a skewed non negative outcome with zeros, prefer Poisson pseudo maximum
-  likelihood on the level over a log of one plus the variable. The coefficient
-  from a log of one plus transformation depends on the units of the variable and
-  is not an elasticity.
-- For a treatment that is a dose, do not discretize without a stated reason.
+## Red lines
 
-Alternative forms are robustness checks in Stage 6, reported in full. They are
-never a menu presented for selection after the results are known.
+- Do not choose a proxy or functional form after inspecting the main estimate,
+  or replace a failed validation assertion with a manual visual check.
+- Never hide anomalous descriptives, missingness related to treatment, or a
+  proxy limitation with an unknown or material bias direction.
+- Pause for a recorded decision before changing the main outcome, treatment
+  form, specification, estimation sample, clustering, or identifying strategy.
 
-## 5.3 Descriptive statistics
+## Exit condition
 
-Produce the descriptive table that will go into the paper: N, mean, standard
-deviation, and the relevant percentiles for every variable, split by treatment
-status where applicable.
-
-Then read it adversarially. Look for: impossible values, mass points, unexpected
-zeros, variables with near zero variance within the fixed effect structure,
-missingness that correlates with treatment, and any moment that disagrees with
-what the source documentation implies.
-
-## 5.4 Balance and pre period comparability
-
-Where the design has a treated and a comparison group, report pre treatment
-balance on the covariates and on the outcome level and trend. Imbalance is not
-disqualifying by itself, but it must be visible and addressed.
-
-## 5.5 Integrity checks in code
-
-Write assertions into the construction script rather than checking by eye:
-unique keys, expected row counts, no missing values in the treatment or outcome,
-value ranges, and the clustering variable never missing. See
-`references/r-standards.md` for the helper pattern.
-
-## Checkpoint B
-
-Run the Checkpoint B table from `SKILL.md`. Write the result to
-`docs/checkpoints/checkpoint_b.md`. Do not begin Stage 6 until this is signed
-off.
+Checkpoint B passes or has an explicitly authorized recorded waiver. Every core
+proxy is justified, functional forms are locked, the data contract validates,
+and the descriptive integrity record resolves or exposes material anomalies.
+The status record identifies the selected Stage 6 branch and remaining risks.

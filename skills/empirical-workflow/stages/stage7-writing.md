@@ -3,6 +3,31 @@
 Goal: a draft whose claims match its results. The writing order is the
 mechanism that enforces this.
 
+## Inputs
+
+The completed analysis artifacts, checkpoint records, Evidence cards,
+decision-log tail, target-outlet requirements, and current status.
+
+## Automatic actions
+
+Assemble the draft in the prescribed order, trace each claim to evidence, and
+run the selected independent review ladder.
+
+## Required artifacts
+
+The versioned draft, claim-to-evidence trace, review records, revision log,
+submission checks, relevant Evidence cards, and updated status.
+
+## Red lines
+
+Do not write claims unsupported by recorded evidence, conceal failed checks, or
+submit or circulate externally without the protocol-required recorded decision.
+
+## Exit condition
+
+The draft, traceability record, required reviews, and publication decision are
+complete, with remaining limitations and post-review actions documented.
+
 ## 7.1 Mandatory writing order
 
 Phase 1: Sections 2 to 6. Theory, then data, then results, then robustness.

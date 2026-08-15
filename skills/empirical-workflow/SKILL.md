@@ -1,170 +1,121 @@
 ---
 name: empirical-workflow
-description: End to end pipeline for panel data empirical research targeting ISR, MISQ, and Management Science, covering reduced form designs (OLS, fixed effects, IV, DID, DDD, event study, RDD) and structural models, with staged checkpoints, identification decision trees, robustness checklists, and a status log for context management. Use this skill whenever the user is working with panel or quasi experimental data, mentions identification, causal estimation, an empirical paper, a first year paper, a journal submission, robustness checks, or asks for help analyzing a dataset with a research question attached, even if they do not name a specific method.
+description: Contract-driven workflow for panel-data empirical research, from source inventory through paper review. Use for empirical papers, causal identification, quasi-experiments, estimation, robustness, and research-stage planning.
 ---
 
 # Empirical Workflow
 
-This skill runs a full empirical paper from raw data to a submission ready
-draft. It exists because the failure mode of AI assisted empirical work is not
-bad code, it is a fluent paper built on an identification strategy nobody
-examined and a specification that drifted while nobody was watching. The stage
-gates and the status log are there to make drift visible.
+This skill runs empirical research as a chain of documented contracts. The
+repository, not the conversation, is the source of truth. Write user-facing
+conversation in Chinese and durable repository artifacts in English.
 
-## Pipeline
+## Router
 
-```
-[1] Dataset Infra  ->  [2] Literature Map  ->  [3] Theory & Hypotheses
-                                                        |
-                                                  CHECKPOINT A
-                                                        |
-[4] Variables Map  ->  [5] Measurement & Validity
-                                                        |
-                                                  CHECKPOINT B
-                                                        |
-                        +-------------------------------+
-                        |                               |
-              [6a] Reduced Form                [6b] Structural
-                        |                               |
-                        +-------------------------------+
-                                                        |
-                                                  CHECKPOINT C
-                                                        |
-                                              [7] Paper Writing & Review
-```
+Before selecting a stage, read in this order:
 
-Stages 1, 2, 4, 5, and 7 are shared. The branch at Stage 6 is decided at the
-end of Stage 3 and recorded in the status log. A project may run 6a only, 6b
-only, or 6a followed by 6b (structural work almost always needs reduced form
-companion evidence, see `stages/stage6b-structural.md`).
+1. `RESEARCH_PROTOCOL.md`.
+2. Active `research.yaml`, or `research.example.yaml` when no project
+   configuration exists.
+3. Project-root `_status.md`.
+4. The current or most relevant Evidence card.
+5. The tail of `decision-log.md`.
 
-## How to run a stage
+If a required project-state artifact does not yet exist, record that absence in
+the next status artifact; do not invent its contents. Use `research.yaml` to
+confirm the current stage, approved designs, authority level, languages, and
+artifact conventions. Then load only the selected stage file immediately before
+performing that stage; do not preload the stage directory.
 
-Read one stage file at a time, immediately before running that stage. Do not
-preload the whole directory: the point of splitting the files is to keep the
-working context on the stage at hand.
-
-| Stage | File |
+| Stage | Contract file |
 |---|---|
-| 1 Dataset Infra | `stages/stage1-data-infra.md` |
-| 2 Literature Map | `stages/stage2-lit-map.md` |
-| 3 Theory & Hypotheses | `stages/stage3-theory-hypotheses.md` |
-| 4 Variables Map | `stages/stage4-variables.md` |
-| 5 Measurement & Validity | `stages/stage5-measurement.md` |
-| 6a Reduced Form | `stages/stage6a-reduced-form.md` |
-| 6b Structural | `stages/stage6b-structural.md` |
-| 7 Paper Writing & Review | `stages/stage7-writing.md` |
+| 1. Dataset infrastructure | `stages/stage1-data-infra.md` |
+| 2. Literature map | `stages/stage2-lit-map.md` |
+| 3. Theory and hypotheses | `stages/stage3-theory-hypotheses.md` |
+| 4. Variables map | `stages/stage4-variables.md` |
+| 5. Measurement and validity | `stages/stage5-measurement.md` |
+| 6a. Reduced form | `stages/stage6a-reduced-form.md` |
+| 6b. Structural | `stages/stage6b-structural.md` |
+| 7. Paper writing and review | `stages/stage7-writing.md` |
 
-Reference files, read when the stage tells you to:
+## Mandatory-pause routing
 
-- `references/identification-decision-tree.md`: design choice and estimator choice
-- `references/robustness-checklists.md`: what each design owes the reader
-- `references/r-standards.md`: project layout, packages, verification helpers
-- `references/blindspot-audit.md`: the four quadrant self audit and its verdict rule
-- `templates/status-template.md`: the status log
+Proceed automatically through routine, reversible work that stays within the
+approved design. Pause and request a recorded decision before a material design
+change, failed identifying diagnostic, post-result specification, or external
+publication or submission. The pause note must name the trigger, affected
+artifacts, options, and decision needed to resume. Do not ask for confirmation
+before every sub-step.
 
-## Sub-step confirmation
+Changes to the main specification, estimation sample, clustering level, or
+identifying strategy always require a Mandatory pause and a `decision-log.md`
+entry before execution. A failed exit condition returns work to the responsible
+earlier stage; it cannot be converted into a final caveat.
 
-Every stage is divided into numbered sub-steps. Before each one, state what you
-will do, what the output will be, and what inputs are needed, then wait. This
-is the single most important behavioral rule in the workflow, because most
-irrecoverable errors in empirical work are cheap to prevent and expensive to
-detect after the fact.
+## Reference files
 
-## Checkpoints
+Read a reference only when the selected stage calls for it:
 
-A checkpoint is a hard gate. Do not enter the next stage until every item passes
-or the user explicitly waives it, and record any waiver in the Decision Log.
-Present the checkpoint as a table with a pass, fail, or waived mark per item.
+- `references/identification-decision-tree.md`: design and estimator choice.
+- `references/robustness-checklists.md`: design-specific reader obligations.
+- `references/r-standards.md`: project layout and verification helpers.
+- `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
+- `templates/status-template.md`: project status record.
+
+## Shared recordkeeping
+
+At each stage exit, update `_status.md` with outputs, validations, remaining
+risks, next stage, and unresolved pause. Create an Evidence card for each
+material factual claim, data source, design choice, diagnostic, and result.
+Record decisions, deviations, waivers, and their timing in `decision-log.md`.
+Raw data remains read-only; write cleaned and derived data separately. Keep
+numbered research scripts direct and single-purpose, and document Python-to-R
+data exchanges through stable artifacts such as Parquet.
+
+## Checkpoint routing
+
+Checkpoint A follows Stage 3, Checkpoint B follows Stage 5, and Checkpoint C
+follows Stage 6. A checkpoint requires its stated evidence, a status update,
+and a recorded proceed, revise, or pause decision. Run independent review where
+the protocol or project configuration requires it.
 
 ### Checkpoint A: research design is answerable
 
-1. The question can be answered with the data actually in hand, not data the
-   project hopes to obtain.
-2. The identification strategy is named, and its central assumption is stated in
-   one sentence a skeptical reader could attack.
-3. Every hypothesis has a pre-committed specification, sample, and expected sign.
-4. At least two competing explanations are named, with a stated plan to
-   distinguish them empirically.
-5. The contribution claim is one sentence, and the paper remains interesting if
-   the primary hypothesis returns a null. If it does not, the design is a bet on
-   a result rather than on a question.
+1. The question can be answered with data actually in hand.
+2. The identification strategy and its central assumption are stated in one
+   sentence a skeptical reader could attack.
+3. Each hypothesis has a precommitted specification, sample, and expected sign.
+4. At least two competing explanations have a plan for empirical distinction.
+5. The contribution remains interesting if the primary hypothesis is null.
 
 ### Checkpoint B: construction quality
 
-1. Every core construct has a proxy justification with at least one citation to
-   prior use.
-2. Sample attrition is documented step by step with N at each step, and each
-   drop has a stated reason.
-3. The main functional form of the treatment and of the dependent variable is
-   locked and recorded in the status log.
-4. Descriptive statistics show no unexplained anomalies: missingness patterns,
-   outliers, duplicate keys, calendar gaps, and unit entry and exit are all
-   either explained or flagged.
-5. Treatment timing is verified against the raw source, not against the
-   constructed panel.
-6. The clustering level and the number of clusters are fixed and justified.
+1. Every core construct has a cited proxy justification.
+2. Sample attrition is documented step by step, with counts and reasons.
+3. The main treatment and outcome functional forms are locked and recorded.
+4. Duplicate keys, coverage gaps, entry/exit, missingness, and outliers are
+   explained or flagged in the descriptive integrity record.
+5. Treatment timing is verified against the raw source.
+6. The clustering level and number of clusters are fixed and justified.
 
 ### Checkpoint C: results are defensible
 
-1. The identification assumption is stated together with the evidence offered
-   for it, not merely asserted.
-2. The baseline coefficient is stable across the diagnostic set required by the
-   design.
-3. Every hypothesis maps to a specific table and column.
-4. The robustness pass rate is reported honestly, including the checks that
-   failed and what they imply.
-5. The blindspot audit has been run and its verdict is CLEAR or CONDITIONAL with
-   the flags recorded.
-6. There is an explicit statement of what evidence would change the conclusion.
+1. The identification assumption is paired with diagnostic evidence.
+2. The baseline estimate is stable across the required diagnostic set.
+3. Each hypothesis maps to a specific table and column.
+4. The robustness record reports its pass rate and failures honestly.
+5. The blindspot audit verdict and flags are recorded.
+6. The draft states what evidence would change the conclusion.
 
 ## Backtracking
 
-| Trigger | Action |
+| Trigger | Required action |
 |---|---|
-| Parallel trends rejected | Return to Stage 4 or 5. Reconsider the comparison group, the window, or the treatment definition. Do not proceed with the DID. |
-| First stage F below the relevant threshold | Report it. Do not proceed to 2SLS as if nothing happened. Consider weak instrument robust inference or a different design. |
-| Density or covariate continuity fails at the cutoff | The RDD is not valid at this cutoff. Stop and report. |
-| Structural model fails to match a targeted moment | Return to 6b.1. Do not reparameterize until the fit is acceptable and call it a result. |
-| A review pass flags an issue | Stabilize the current result before adding anything new. |
-| The result is null | Report it. Consider whether the null is itself the paper. Do not search. |
+| Parallel trends rejected | Return to Stage 4 or 5; reconsider comparison group, window, or treatment definition. Do not proceed with DID. |
+| Weak first stage | Report it; use weak-instrument-robust inference or reconsider the design. |
+| RDD density or covariate continuity fails | Stop and report; the cutoff is not valid. |
+| Structural fit fails a targeted moment | Return to Stage 6b primitives before reparameterizing. |
+| Review flags a material issue | Stabilize the current result before adding new work. |
+| Primary result is null | Report it and assess the null as a contribution; do not search for a preferred result. |
 
-Theory defines the search space of specifications. Data mining inside a
-theory driven space is legitimate exploration. Data mining without theory is
-not, and the difference is whether the specification was justifiable before the
-result was seen.
-
-## Status log
-
-At the end of every stage, and immediately before any long running task, write
-or update `_status.md` at the project root using `templates/status-template.md`.
-The Decision Log and the Abandoned Approaches sections are the two that actually
-save time later: without them a long session will circle back to options that
-were already rejected and the reason for the rejection will be gone.
-
-## Project layout
-
-```
-project/
-├── _status.md
-├── data/
-│   ├── raw/          read only, never written to
-│   └── derived/
-├── code/             numbered scripts, see references/r-standards.md
-├── results/
-│   ├── tables/
-│   ├── figures/
-│   └── logs/         one markdown summary per results batch
-├── docs/
-│   ├── data_inventory.md
-│   ├── lit_map.md
-│   ├── theory_hypotheses.md
-│   ├── variables_map.md
-│   └── checkpoints/
-└── paper/
-```
-
-## Language
-
-Talk to the user in Chinese. Write every file, including code comments and this
-project's documentation, in English.
+Theory defines the justifiable specification search space. Result-dependent
+selection outside that space is prohibited by the Mandatory-pause routing.
