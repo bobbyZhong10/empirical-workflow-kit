@@ -19,6 +19,18 @@ fail_contract <- function() {
   stop("Data contract validation failed", call. = FALSE)
 }
 
+contract_assert <- function(condition) {
+  if (!isTRUE(condition)) fail_contract()
+}
+
+is_nonempty_string <- function(value) {
+  is.character(value) && length(value) == 1 && !is.na(value) && nzchar(value)
+}
+
+is_count <- function(value) {
+  is.numeric(value) && length(value) == 1 && !is.na(value) && is.finite(value) && value >= 0 && value == floor(value)
+}
+
 resolve_path <- function(path) {
   if (grepl("^(/|[A-Za-z]:[/\\\\])", path)) path else file.path(project_root, path)
 }
@@ -44,74 +56,112 @@ matches_contract_type <- function(value, expected) {
 }
 
 validate_contract <- function(contract_path) {
-  tryCatch({
-    contract <- yaml::read_yaml(contract_path)
-    required_contract_fields <- c(
-      "data_version", "produced_at_utc", "producing_script", "dataset_path", "data_hash",
-      "source_versions", "observation_unit", "time_granularity", "primary_key", "row_count",
-      "unit_count", "period_count", "required_fields", "field_types", "missingness",
-      "value_ranges", "merge_audit", "merge_rates"
-    )
-    if (!all(required_contract_fields %in% names(contract))) fail_contract()
-    if (!is.character(contract$data_version) || !nzchar(contract$data_version) ||
-        !is.character(contract$produced_at_utc) || !nzchar(contract$produced_at_utc) ||
-        !is.character(contract$producing_script) || !nzchar(contract$producing_script) ||
-        length(contract$source_versions) == 0 || !is.character(contract$observation_unit) ||
-        !nzchar(contract$observation_unit) || !is.character(contract$time_granularity) ||
-        !nzchar(contract$time_granularity)) fail_contract()
-    if (contract$data_hash$algorithm != "sha256" || contract$merge_audit$data_hash$algorithm != "sha256") fail_contract()
+  contract <- tryCatch(yaml::read_yaml(contract_path), error = function(error) fail_contract())
+  required_contract_fields <- c(
+    "data_version", "produced_at_utc", "producing_script", "dataset_path", "data_hash",
+    "source_versions", "observation_unit", "time_granularity", "primary_key", "row_count",
+    "unit_count", "period_count", "required_fields", "field_types", "missingness",
+    "value_ranges", "merge_audit", "merge_rates"
+  )
+  contract_assert(is.list(contract) && all(required_contract_fields %in% names(contract)))
+  contract_assert(is_nonempty_string(contract$data_version) && is_nonempty_string(contract$produced_at_utc) &&
+    is_nonempty_string(contract$producing_script) && is_nonempty_string(contract$dataset_path) &&
+    length(contract$source_versions) > 0 && is_nonempty_string(contract$observation_unit) &&
+    is_nonempty_string(contract$time_granularity) && is_count(contract$row_count))
+  contract_assert(is.list(contract$data_hash) && identical(contract$data_hash$algorithm, "sha256") && is_nonempty_string(contract$data_hash$value))
+  contract_assert(is.list(contract$merge_audit) && is_nonempty_string(contract$merge_audit$path) &&
+    identical(contract$merge_audit$data_version, contract$data_version) &&
+    is.list(contract$merge_audit$data_hash) && identical(contract$merge_audit$data_hash$algorithm, "sha256") &&
+    is_nonempty_string(contract$merge_audit$data_hash$value))
 
-    panel_path <- resolve_path(contract$dataset_path)
-    if (!file.exists(panel_path) || sha256(panel_path) != contract$data_hash$value) fail_contract()
-    panel <- as.data.frame(arrow::read_parquet(panel_path))
+  panel_path <- resolve_path(contract$dataset_path)
+  contract_assert(file.exists(panel_path) && sha256(panel_path) == contract$data_hash$value)
+  panel <- as.data.frame(arrow::read_parquet(panel_path))
 
-    required_fields <- unlist(contract$required_fields, use.names = FALSE)
-    if (!all(required_fields %in% names(panel)) || any(vapply(panel[required_fields], anyNA, logical(1)))) fail_contract()
-    if (!all(vapply(names(contract$field_types), function(field) field %in% names(panel) && matches_contract_type(panel[[field]], contract$field_types[[field]]), logical(1)))) fail_contract()
+  contract_assert(is.character(contract$required_fields) && length(contract$required_fields) > 0 &&
+    all(contract$required_fields %in% names(panel)))
+  required_fields <- unlist(contract$required_fields, use.names = FALSE)
+  contract_assert(!any(vapply(panel[required_fields], anyNA, logical(1))))
+  contract_assert(is.list(contract$field_types) && all(required_fields %in% names(contract$field_types)) &&
+    all(vapply(contract$field_types, is_nonempty_string, logical(1))) && all(names(contract$field_types) %in% names(panel)) &&
+    all(vapply(names(contract$field_types), function(field) matches_contract_type(panel[[field]], contract$field_types[[field]]), logical(1))))
 
-    key_columns <- unlist(contract$primary_key$columns, use.names = FALSE)
-    duplicated_count <- sum(duplicated(panel[key_columns]) | duplicated(panel[key_columns], fromLast = TRUE))
-    if (!all(key_columns %in% names(panel)) || duplicated_count != contract$primary_key$duplicate_row_count ||
-        isTRUE(contract$primary_key$is_unique) != (duplicated_count == 0)) fail_contract()
-    if (nrow(panel) != contract$row_count || length(unique(panel[[contract$unit_count$field]])) != contract$unit_count$value ||
-        length(unique(panel[[contract$period_count$field]])) != contract$period_count$value) fail_contract()
+  contract_assert(is.list(contract$primary_key) && is.character(contract$primary_key$columns) &&
+    length(contract$primary_key$columns) > 0 && all(contract$primary_key$columns %in% names(panel)) &&
+    is.logical(contract$primary_key$is_unique) && length(contract$primary_key$is_unique) == 1 &&
+    is_count(contract$primary_key$duplicate_row_count))
+  key_columns <- unlist(contract$primary_key$columns, use.names = FALSE)
+  duplicated_count <- sum(duplicated(panel[key_columns]) | duplicated(panel[key_columns], fromLast = TRUE))
+  contract_assert(duplicated_count == contract$primary_key$duplicate_row_count &&
+    isTRUE(contract$primary_key$is_unique) == (duplicated_count == 0))
+  contract_assert(is.list(contract$unit_count) && is_nonempty_string(contract$unit_count$field) &&
+    contract$unit_count$field %in% names(panel) && is_count(contract$unit_count$value) &&
+    is.list(contract$period_count) && is_nonempty_string(contract$period_count$field) &&
+    contract$period_count$field %in% names(panel) && is_count(contract$period_count$value))
+  contract_assert(nrow(panel) == contract$row_count && length(unique(panel[[contract$unit_count$field]])) == contract$unit_count$value &&
+    length(unique(panel[[contract$period_count$field]])) == contract$period_count$value)
 
-    for (field in names(contract$missingness)) {
-      observed_count <- sum(is.na(panel[[field]]))
-      observed_share <- observed_count / nrow(panel)
-      expected <- contract$missingness[[field]]
-      if (observed_count != expected$count || !isTRUE(all.equal(observed_share, expected$share))) fail_contract()
+  contract_assert(is.list(contract$missingness) && all(names(contract$missingness) %in% names(panel)))
+  for (field in names(contract$missingness)) {
+    expected <- contract$missingness[[field]]
+    contract_assert(is.list(expected) && is_count(expected$count) && is.numeric(expected$share) &&
+      length(expected$share) == 1 && expected$share >= 0 && expected$share <= 1)
+    observed_count <- sum(is.na(panel[[field]]))
+    observed_share <- observed_count / nrow(panel)
+    contract_assert(observed_count == expected$count && isTRUE(all.equal(observed_share, expected$share)))
+  }
+  contract_assert(is.list(contract$value_ranges) && all(names(contract$value_ranges) %in% names(panel)))
+  for (field in names(contract$value_ranges)) {
+    rule <- contract$value_ranges[[field]]
+    values <- panel[[field]]
+    contract_assert(is.list(rule))
+    if (!is.null(rule$minimum)) {
+      contract_assert(is.numeric(rule$minimum) && length(rule$minimum) == 1 && is.numeric(values) && !any(values < rule$minimum))
     }
-    for (field in names(contract$value_ranges)) {
-      rule <- contract$value_ranges[[field]]
-      values <- panel[[field]]
-      if (!is.null(rule$minimum) && any(values < rule$minimum)) fail_contract()
-      if (!is.null(rule$maximum) && any(values > rule$maximum)) fail_contract()
-      if (!is.null(rule$allowed_pattern) && any(!grepl(rule$allowed_pattern, values))) fail_contract()
+    if (!is.null(rule$maximum)) {
+      contract_assert(is.numeric(rule$maximum) && length(rule$maximum) == 1 && is.numeric(values) && !any(values > rule$maximum))
     }
+    if (!is.null(rule$allowed_pattern)) {
+      contract_assert(is_nonempty_string(rule$allowed_pattern) && is.character(values) && !any(!grepl(rule$allowed_pattern, values)))
+    }
+  }
 
-    audit_path <- resolve_path(contract$merge_audit$path)
-    if (!file.exists(audit_path) || sha256(audit_path) != contract$merge_audit$data_hash$value) fail_contract()
-    audit <- yaml::read_yaml(audit_path)
-    if (audit$data_version != contract$data_version || contract$merge_audit$data_version != contract$data_version ||
-        !is.character(audit$producing_script) || !nzchar(audit$producing_script) ||
-        !is.character(audit$produced_at_utc) || !nzchar(audit$produced_at_utc) ||
-        audit$output_dataset$path != contract$dataset_path || audit$output_dataset$row_count != contract$row_count) fail_contract()
-    for (step in audit$merge_steps) {
-      if (step$matched_left_row_count + step$unmatched_left_row_count != step$left_source$input_row_count ||
-          !isTRUE(all.equal(step$left_match_rate, step$matched_left_row_count / step$left_source$input_row_count)) ||
-          is.null(step$right_source$name) || is.null(step$right_source$version) ||
-          is.null(step$left_source$name) || is.null(step$left_source$version)) fail_contract()
-      matching_rate <- Filter(function(rate) identical(rate$merge_name, step$merge_name), contract$merge_rates)
-      if (length(matching_rate) != 1) fail_contract()
-      rate <- matching_rate[[1]]
-      if (rate$left_row_count != step$left_source$input_row_count ||
-          rate$matched_row_count != step$matched_left_row_count ||
-          rate$unmatched_left_row_count != step$unmatched_left_row_count ||
-          !isTRUE(all.equal(rate$match_rate, step$left_match_rate))) fail_contract()
+  audit_path <- resolve_path(contract$merge_audit$path)
+  contract_assert(file.exists(audit_path) && sha256(audit_path) == contract$merge_audit$data_hash$value)
+  audit <- tryCatch(yaml::read_yaml(audit_path), error = function(error) fail_contract())
+  contract_assert(is.list(audit) && identical(audit$data_version, contract$data_version) &&
+    is_nonempty_string(audit$producing_script) && is_nonempty_string(audit$produced_at_utc) &&
+    is.list(audit$output_dataset) && identical(audit$output_dataset$path, contract$dataset_path) &&
+    is_count(audit$output_dataset$row_count) && audit$output_dataset$row_count == contract$row_count &&
+    is.list(audit$merge_steps) && length(audit$merge_steps) > 0 && is.list(contract$merge_rates))
+  for (step in audit$merge_steps) {
+    contract_assert(is.list(step) && is_nonempty_string(step$merge_name) && is_nonempty_string(step$join_type) &&
+      is.list(step$left_source) && is_nonempty_string(step$left_source$name) && is_nonempty_string(step$left_source$version) &&
+      is_count(step$left_source$input_row_count) && is.list(step$right_source) &&
+      is_nonempty_string(step$right_source$name) && is_nonempty_string(step$right_source$version) &&
+      is_count(step$right_source$input_row_count) && is_count(step$matched_left_row_count) &&
+      is_count(step$unmatched_left_row_count) && is.numeric(step$left_match_rate) && length(step$left_match_rate) == 1 &&
+      step$left_match_rate >= 0 && step$left_match_rate <= 1 && is_count(step$output_row_count) &&
+      is_nonempty_string(step$unmatched_disposition))
+    contract_assert(step$matched_left_row_count + step$unmatched_left_row_count == step$left_source$input_row_count)
+    if (step$left_source$input_row_count == 0) {
+      contract_assert(step$left_match_rate == 0)
+    } else {
+      contract_assert(isTRUE(all.equal(step$left_match_rate, step$matched_left_row_count / step$left_source$input_row_count)))
     }
-    panel
-  }, error = function(error) fail_contract())
+    matching_rate <- Filter(function(rate) is.list(rate) && identical(rate$merge_name, step$merge_name), contract$merge_rates)
+    contract_assert(length(matching_rate) == 1)
+    rate <- matching_rate[[1]]
+    contract_assert(is_count(rate$left_row_count) && is_count(rate$matched_row_count) &&
+      is_count(rate$unmatched_left_row_count) && is.numeric(rate$match_rate) && length(rate$match_rate) == 1 &&
+      rate$match_rate >= 0 && rate$match_rate <= 1 && is_nonempty_string(rate$unmatched_disposition) &&
+      rate$left_row_count == step$left_source$input_row_count && rate$matched_row_count == step$matched_left_row_count &&
+      rate$unmatched_left_row_count == step$unmatched_left_row_count && isTRUE(all.equal(rate$match_rate, step$left_match_rate)))
+  }
+  final_step <- audit$merge_steps[[length(audit$merge_steps)]]
+  contract_assert(final_step$output_row_count == audit$output_dataset$row_count &&
+    final_step$output_row_count == contract$row_count)
+  panel
 }
 
 contract_path <- resolve_path(args[[1]])
