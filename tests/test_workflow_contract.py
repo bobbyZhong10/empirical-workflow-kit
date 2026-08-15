@@ -120,3 +120,22 @@ def test_causal_platform_risks_and_traceability():
     assert "Evidence card" in reduced
     writing = read("skills/empirical-workflow/stages/stage7-writing.md").lower()
     assert "three-line" in writing
+
+
+def test_data_contract_template():
+    path = ROOT / "skills/empirical-workflow/templates/data-contract-template.yaml"
+    assert path.is_file()
+    body = path.read_text(encoding="utf-8")
+    for key in (
+        "data_version:",
+        "producing_script:",
+        "observation_unit:",
+        "time_granularity:",
+        "primary_key:",
+        "row_count:",
+        "unit_count:",
+        "period_count:",
+        "missingness:",
+        "merge_rates:",
+    ):
+        assert key in body

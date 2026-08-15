@@ -1,0 +1,53 @@
+# Python Coding Standards
+
+Python owns ingestion, cleaning, entity resolution, cross-source merging, and
+the export of analysis-ready data to R. Its purpose is transparent research
+data work, not a reusable software product.
+
+## Script layout
+
+Use direct, numbered, linear scripts in `code/py/`, for example:
+
+```
+code/py/
+├── 01_ingest.py
+├── 02_clean.py
+├── 03_merge.py
+└── 04_export.py
+```
+
+Each script has one plainly stated purpose and can be run in sequence without
+a package, class hierarchy, or deep abstraction layer. Small local functions
+are appropriate for repeated checks or transformations, but do not hide the
+research logic behind frameworks, generic pipelines, or clever indirection.
+Keep paths repository-relative and parameters visible near the top of the
+script. Do not write raw data: treat `data/raw/` as read-only and write cleaned
+or derived outputs under `data/intermediate/` or `data/analysis/`.
+
+## Exports and the R boundary
+
+`04_export.py` writes analysis data as Parquet and writes its versioned YAML
+contract beside it. The contract must follow
+`references/data-contract.md` and start from
+`templates/data-contract-template.yaml`. It reports facts computed from the
+final Parquet export: data and source versions, file hash, producing script,
+observation unit, time granularity, ordered primary key and uniqueness result,
+row/panel counts, field types, missingness, value ranges, and merge rates.
+
+Export only stable, analysis-ready column names. Include the primary-key
+columns, all required analysis fields, and a variable dictionary that defines
+each field's source, transformation, unit, and time availability. Do not
+silently replace a prior export: create a new data version and matching YAML
+contract.
+
+## Checks and comments
+
+Assert source schemas, key uniqueness, expected coverage, merge rates, and
+value bounds in the script that creates or changes them. Fail loudly before an
+invalid dataset reaches `data/analysis/`. Record row changes and merge losses
+in the contract or linked attrition record.
+
+Write concise English comments only where a research or technical decision is
+not obvious from the code. Explain why a non-obvious match rule, exclusion, or
+transformation is used; do not narrate routine syntax. Use meaningful concise
+names such as `firm_id`, `year_qtr`, `ai_adopt`, and `sales_ln`.

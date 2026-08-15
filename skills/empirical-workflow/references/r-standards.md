@@ -23,6 +23,25 @@ code/
 Multiple scripts, never one file. Each script runs standalone after
 `00_setup.R`. No script writes to `data/raw/`.
 
+## Python-to-R data-contract gate
+
+Python supplies the analysis input as a Parquet file and a versioned YAML
+contract beside it. The exact schema and required fields are defined in
+`data-contract.md` and its `data-contract-template.yaml`.
+
+Before `01_construct.R` reads or constructs analysis variables, it must load
+the YAML contract and Parquet input, then abort on any failed key, count, or
+required-field check. It must also verify the recorded file hash, declared
+types, missingness, value ranges, and merge-rate arithmetic. Recompute the
+primary-key uniqueness result and the row, unit, and period counts from the
+Parquet file; do not trust a stale YAML value.
+
+The validation is a hard gate: no formal analysis, descriptives, or estimation
+may proceed after a failed check. Stop with a descriptive error, correct or
+replace the Python export, create a new data version and contract if needed,
+and rerun validation. Record the contract path, data version, assertions, and
+result in `docs/data_contract_validation.md`.
+
 ## Packages
 
 - `fixest` for ordinary least squares, high dimensional fixed effects, IV, event
