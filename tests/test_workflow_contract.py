@@ -52,6 +52,13 @@ def test_portable_protocol_contract():
         assert phrase in normalized_body
 
 
+def test_v21_spec_has_per_evaluation_post_hoc_and_figure_revalidation():
+    body = read("docs/superpowers/specs/2026-08-15-claim-governance-v2.1-design.md")
+    assert "first_formal_batch_at" in body
+    assert "target: {kind: claim_revision | reported_figure, id: ...}" in body
+    assert "Checkpoint C reports post-hoc evaluations" in body
+
+
 def test_example_config_values():
     config = yaml.safe_load(read("research.example.yaml"))
     assert config == {
