@@ -26,19 +26,24 @@ or derived outputs under `data/intermediate/` or `data/analysis/`.
 
 ## Exports and the R boundary
 
-`04_export.py` writes analysis data as Parquet and writes its versioned YAML
-contract beside it. The contract must follow
+`04_export.py` writes analysis data as Parquet, writes its versioned YAML
+contract beside it, and retains a versioned merge audit at
+`data/analysis/audits/<data_version>.merge-audit.yaml`. The contract must follow
 `references/data-contract.md` and start from
 `templates/data-contract-template.yaml`. It reports facts computed from the
 final Parquet export: data and source versions, file hash, producing script,
 observation unit, time granularity, ordered primary key and uniqueness result,
-row/panel counts, field types, missingness, value ranges, and merge rates.
+row/panel counts, field types, missingness, value ranges, and merge-audit
+reference. The audit records each merge's source versions and totals,
+matched/unmatched counts, match rate, output count, and unmatched disposition.
+Assert the audit arithmetic and its final output path and count against the
+contract before writing the artifacts.
 
 Export only stable, analysis-ready column names. Include the primary-key
 columns, all required analysis fields, and a variable dictionary that defines
 each field's source, transformation, unit, and time availability. Do not
 silently replace a prior export: create a new data version and matching YAML
-contract.
+contract and merge audit.
 
 ## Checks and comments
 

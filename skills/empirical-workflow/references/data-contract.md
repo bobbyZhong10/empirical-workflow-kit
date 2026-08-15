@@ -7,6 +7,7 @@ formal analysis. The contract belongs beside the exported dataset, for example:
 ```
 data/analysis/firm_quarter.parquet
 data/analysis/firm_quarter.contract.yaml
+data/analysis/audits/firm_quarter_v2026_08_15.merge-audit.yaml
 ```
 
 The YAML template is
@@ -35,11 +36,38 @@ Every contract must contain the following populated fields.
 | `field_types` | Expected type for every exported analysis field. |
 | `missingness` | Missing count and share for every exported analysis field. |
 | `value_ranges` | Permitted lower and upper values (or an explicit categorical rule) for bounded fields. |
-| `merge_rates` | One record per merge, including left rows, matched rows, match rate, unmatched rows, and disposition. |
+| `merge_audit` | Versioned merge-audit path, hash, and data version. |
+| `merge_rates` | Summary of merge rates copied from the audit for quick inspection. |
 
-`data_hash`, `row_count`, all field statistics, and merge rates describe the
-actual Parquet export, not an intermediate object. Counts use integer values;
-shares are decimal fractions from 0 through 1.
+`data_hash`, `row_count`, and field statistics describe the actual Parquet
+export, not an intermediate object. Counts use integer values; shares are
+decimal fractions from 0 through 1.
+
+## Versioned merge-audit artifact
+
+Python creates and retains one immutable merge audit for every data version at
+`data/analysis/audits/<data_version>.merge-audit.yaml`. The contract's
+`merge_audit.path`, `merge_audit.data_version`, and `merge_audit.data_hash`
+identify that file. The audit is produced by the numbered Python export script
+with the Parquet and contract; it is never reconstructed or edited by R.
+
+The audit must contain its `data_version`, `producing_script`,
+`produced_at_utc`, and an `output_dataset` record with the final Parquet path
+and row count. Each `merge_steps` entry must identify the merge and state its
+join type, left and right source names and versions, left and right input row
+counts, matched-left and unmatched-left row counts, left match rate, output row
+count, and disposition of unmatched rows. The Python producer must assert:
+
+1. `matched_left_row_count + unmatched_left_row_count = left_input_row_count`.
+2. `left_match_rate = matched_left_row_count / left_input_row_count` when the
+   left input is nonempty.
+3. The audit's `output_dataset.path` and `output_dataset.row_count` equal the
+   contract's `dataset_path` and `row_count`.
+
+The standalone audit template is
+`skills/empirical-workflow/templates/merge-audit-template.yaml`. Retaining the
+source totals and match outcomes makes every merge auditable even though the
+final Parquet cannot reproduce the raw matching inputs.
 
 ## R validation gate
 
@@ -50,20 +78,23 @@ Before `code/r/01_construct.R` reads or constructs analysis variables, it must:
    granularity against the planned analysis input.
 3. Confirm that every required field is present; validate declared field types.
 4. Recompute the ordered primary-key uniqueness check, row count, unit count,
-   period count, missingness, value ranges, and each merge-rate arithmetic
-   identity against the recorded contract.
-5. Abort with a descriptive error on any failed key, count, required-field,
+   period count, missingness, and value ranges from the Parquet file.
+5. Read the versioned merge audit and validate its hash, data version, source
+   totals, matched/unmatched identities, match-rate arithmetic, and identity
+   of its documented output path and row count with the contract. Do not try
+   to reconstruct raw matching from final Parquet rows.
+6. Abort with a descriptive error on any failed key, count, required-field,
    hash, type, missingness, range, or merge-rate check. A visual inspection or
    manual override is not a substitute for a passing validation.
 
-Record the validation command, contract path, data version, assertions, and
-result in `docs/data_contract_validation.md`. If source data must change,
-produce a new Parquet export and a new versioned contract, then rerun the
-validation gate.
+Record the validation command, contract and merge-audit paths, data version,
+assertions, and result in `docs/data_contract_validation.md`. If source data
+must change, produce a new Parquet export, contract, and merge audit, then
+rerun the validation gate.
 
 ## Change discipline
 
-The producer updates both Parquet and contract in the same export step. The R
-consumer does not edit either artifact. A changed schema, key, observation
-unit, time granularity, or required analysis field is a data-contract change
-and must be recorded before R analysis resumes.
+The producer updates Parquet, contract, and merge audit in the same export
+step. The R consumer does not edit any of these artifacts. A changed schema,
+key, observation unit, time granularity, required analysis field, or merge
+logic is a data-contract change and must be recorded before R analysis resumes.

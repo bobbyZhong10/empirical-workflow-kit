@@ -9,19 +9,21 @@ its own output rather than parse a log file.
 ```
 code/
 ├── 00_setup.R        packages, paths, options, seed
-├── 01_ingest.R       raw sources to a single storage format, read only inputs
-├── 02_clean.R        cleaning, one section per source
-├── 03_construct.R    variable construction, the attrition log lives here
-├── 04_descriptives.R
-├── 05_main.R         baseline and specification ladder
-├── 06_diagnostics.R  design specific evidence for identification
-├── 07_robustness.R
-├── 08_mechanism_het.R
-└── 09_tables.R       export only, no estimation
+├── 01_validate_contract.R  validates Python's Parquet, contract, and merge audit
+├── 02_construct.R    analysis-variable construction; the attrition log lives here
+├── 03_descriptives.R
+├── 04_main.R         baseline and specification ladder
+├── 05_diagnostics.R  design specific evidence for identification
+├── 06_robustness.R
+├── 07_mechanism_het.R
+└── 08_tables.R       export only, no estimation
 ```
 
-Multiple scripts, never one file. Each script runs standalone after
-`00_setup.R`. No script writes to `data/raw/`.
+Python owns raw ingestion, cleaning, entity resolution, and merging. It exports
+the analysis-ready Parquet data, YAML contract, and merge audit before R begins.
+R starts with contract validation, then analysis construction. Multiple scripts,
+never one file. Each script runs standalone after `00_setup.R`. No script
+writes to `data/raw/`.
 
 ## Python-to-R data-contract gate
 
@@ -29,18 +31,23 @@ Python supplies the analysis input as a Parquet file and a versioned YAML
 contract beside it. The exact schema and required fields are defined in
 `data-contract.md` and its `data-contract-template.yaml`.
 
-Before `01_construct.R` reads or constructs analysis variables, it must load
-the YAML contract and Parquet input, then abort on any failed key, count, or
-required-field check. It must also verify the recorded file hash, declared
-types, missingness, value ranges, and merge-rate arithmetic. Recompute the
-primary-key uniqueness result and the row, unit, and period counts from the
-Parquet file; do not trust a stale YAML value.
+`01_validate_contract.R` must run before `02_construct.R` reads or constructs
+analysis variables. It loads the YAML contract, Parquet input, and versioned
+merge-audit artifact, then aborts on any failed key, count, or required-field
+check. It also verifies the recorded file hash, declared types, missingness,
+and value ranges, and recomputes the primary-key uniqueness result and the row,
+unit, and period counts from the Parquet file; do not trust a stale YAML value.
+
+R does not attempt to reconstruct raw matching from the final Parquet file.
+Instead, it validates the merge-audit artifact's source totals, matched and
+unmatched counts, match-rate arithmetic, and identity with the contract's
+documented output path and row count.
 
 The validation is a hard gate: no formal analysis, descriptives, or estimation
 may proceed after a failed check. Stop with a descriptive error, correct or
 replace the Python export, create a new data version and contract if needed,
-and rerun validation. Record the contract path, data version, assertions, and
-result in `docs/data_contract_validation.md`.
+and rerun validation. Record the contract and merge-audit paths, data version,
+assertions, and result in `docs/data_contract_validation.md`.
 
 ## Packages
 

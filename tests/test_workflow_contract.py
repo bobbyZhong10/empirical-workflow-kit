@@ -137,5 +137,25 @@ def test_data_contract_template():
         "period_count:",
         "missingness:",
         "merge_rates:",
+        "merge_audit:",
     ):
         assert key in body
+    contract = yaml.safe_load(body)
+    audit_path = ROOT / "skills/empirical-workflow/templates/merge-audit-template.yaml"
+    assert audit_path.is_file()
+    audit = yaml.safe_load(audit_path.read_text(encoding="utf-8"))
+    assert contract["merge_audit"]["data_version"] == audit["data_version"]
+    assert audit["output_dataset"]["path"] == contract["dataset_path"]
+    assert audit["output_dataset"]["row_count"] == contract["row_count"]
+    step = audit["merge_steps"][0]
+    assert step["matched_left_row_count"] + step["unmatched_left_row_count"] == step["left_source"]["input_row_count"]
+    assert step["left_match_rate"] == step["matched_left_row_count"] / step["left_source"]["input_row_count"]
+
+
+def test_r_standards_start_after_python_etl():
+    body = read("skills/empirical-workflow/references/r-standards.md")
+    assert "01_validate_contract.R" in body
+    assert "02_construct.R" in body
+    assert "01_ingest.R" not in body
+    assert "02_clean.R" not in body
+    assert "Python owns raw ingestion, cleaning, entity resolution, and merging." in body

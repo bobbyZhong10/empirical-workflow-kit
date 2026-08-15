@@ -52,6 +52,12 @@ value_ranges:
   employees: {minimum: 1, maximum: 500000}
   year_qtr:
     allowed_pattern: "^[0-9]{4}Q[1-4]$"
+merge_audit:
+  path: "data/analysis/audits/firm_quarter_v2026_08_15.merge-audit.yaml"
+  data_version: "firm_quarter_v2026_08_15"
+  data_hash:
+    algorithm: "sha256"
+    value: "d5d936164316b41de73b6e9a1be790401470edb0a0e3c8c67a8cd6041a08cb28"
 merge_rates:
   - merge_name: "financials_to_adoption_events"
     left_row_count: 4800
