@@ -13,7 +13,11 @@ are append only.
 - Target outlet:
 - Data sources and versions:
 - Repository path:
+- Project configuration path:
 - Analysis language and key package versions:
+- Runtime last used:
+- Current evidence card:
+- Open mandatory-pause item:
 - Last updated:
 
 ## 2. Research context

@@ -68,3 +68,18 @@ def test_example_config_values():
         "conversation_language": "Chinese",
         "artifact_language": "English",
     }
+
+
+def test_adapters_and_records():
+    required = (
+        "CLAUDE.md", "AGENTS.md",
+        "skills/empirical-workflow/templates/decision-log-template.md",
+        "skills/empirical-workflow/templates/evidence-card-template.md",
+        "skills/empirical-workflow/templates/literature-map-template.md",
+    )
+    for path in required:
+        assert (ROOT / path).is_file()
+    for path in ("CLAUDE.md", "AGENTS.md"):
+        body = read(path)
+        assert "RESEARCH_PROTOCOL.md" in body
+        assert len(body.splitlines()) < 140
