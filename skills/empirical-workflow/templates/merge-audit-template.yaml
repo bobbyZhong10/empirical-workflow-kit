@@ -1,0 +1,23 @@
+# Example only. Produced and retained by the Python export for each data version.
+data_version: "firm_quarter_v2026_08_15"
+produced_at_utc: "2026-08-15T14:30:00Z"
+producing_script: "code/py/04_export.py"
+output_dataset:
+  path: "data/analysis/firm_quarter.parquet"
+  row_count: 4800
+merge_steps:
+  - merge_name: "financials_to_adoption_events"
+    join_type: "left"
+    left_source:
+      name: "firm_financials"
+      version: "2026-08-01"
+      input_row_count: 4800
+    right_source:
+      name: "platform_adoption_events"
+      version: "2026-08-05"
+      input_row_count: 1120
+    matched_left_row_count: 4704
+    unmatched_left_row_count: 96
+    left_match_rate: 0.98
+    output_row_count: 4800
+    unmatched_disposition: "Retained with ai_adopt set to 0 after source coverage check."

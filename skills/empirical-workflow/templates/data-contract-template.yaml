@@ -1,0 +1,68 @@
+# Example only. Replace all values with the actual exported dataset facts.
+project_name: "example_platform_adoption"
+data_version: "firm_quarter_v2026_08_15"
+produced_at_utc: "2026-08-15T14:30:00Z"
+producing_script: "code/py/04_export.py"
+dataset_path: "data/analysis/firm_quarter.parquet"
+data_hash:
+  algorithm: "sha256"
+  value: "3d99e3697d7a0b0e30c44cefe4caed33f2449248a9d1a9ad1ba5b94f3c77ec08"
+source_versions:
+  - source: "firm_financials"
+    version: "2026-08-01"
+    retrieved_at_utc: "2026-08-02T10:15:00Z"
+  - source: "platform_adoption_events"
+    version: "2026-08-05"
+    retrieved_at_utc: "2026-08-06T09:00:00Z"
+observation_unit: "firm_quarter"
+time_granularity: "quarter"
+primary_key:
+  columns: [firm_id, year_qtr]
+  is_unique: true
+  duplicate_row_count: 0
+row_count: 4800
+unit_count:
+  field: "firm_id"
+  value: 400
+period_count:
+  field: "year_qtr"
+  value: 12
+required_fields:
+  - firm_id
+  - year_qtr
+  - ai_adopt
+  - sales_ln
+  - industry_code
+field_types:
+  firm_id: "string"
+  year_qtr: "string"
+  ai_adopt: "integer"
+  sales_ln: "float"
+  industry_code: "string"
+  employees: "integer"
+missingness:
+  firm_id: {count: 0, share: 0.0}
+  year_qtr: {count: 0, share: 0.0}
+  ai_adopt: {count: 0, share: 0.0}
+  sales_ln: {count: 0, share: 0.0}
+  industry_code: {count: 0, share: 0.0}
+  employees: {count: 18, share: 0.00375}
+value_ranges:
+  ai_adopt: {minimum: 0, maximum: 1}
+  sales_ln: {minimum: 0.0, maximum: 20.0}
+  employees: {minimum: 1, maximum: 500000}
+  year_qtr:
+    allowed_pattern: "^[0-9]{4}Q[1-4]$"
+merge_audit:
+  path: "data/analysis/audits/firm_quarter_v2026_08_15.merge-audit.yaml"
+  data_version: "firm_quarter_v2026_08_15"
+  data_hash:
+    algorithm: "sha256"
+    value: "d5d936164316b41de73b6e9a1be790401470edb0a0e3c8c67a8cd6041a08cb28"
+merge_rates:
+  - merge_name: "financials_to_adoption_events"
+    left_row_count: 4800
+    matched_row_count: 4704
+    match_rate: 0.98
+    unmatched_left_row_count: 96
+    unmatched_disposition: "Retained with ai_adopt set to 0 after source coverage check."

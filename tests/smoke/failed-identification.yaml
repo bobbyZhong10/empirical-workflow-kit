@@ -1,0 +1,10 @@
+diagnostic_name: pre_treatment_joint_test
+status: failed
+severity: high
+return_stage: stage_4_variables
+affected_artifacts:
+  - tests/smoke/output/smoke_table.md
+options:
+  - Revisit the comparison group and treatment window.
+  - Pause the DID branch and choose a supported design.
+decision_needed: Select a backtracking option before formal estimation resumes.

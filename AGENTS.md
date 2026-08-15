@@ -1,4 +1,4 @@
-# Claude Runtime Adapter
+# Codex Runtime Adapter
 
 This repository uses [RESEARCH_PROTOCOL.md](RESEARCH_PROTOCOL.md) as its
 portable research contract. Before acting, read it and the active
@@ -8,9 +8,9 @@ project configuration exists).
 Speak with the user in Chinese. Write all repository artifacts in English.
 
 For empirical research work, load the `empirical-workflow` skill, use its stage
-router, and read only the stage file needed for the current stage. Claude keeps
-its reasoning in the conversation; durable decisions, evidence, and status
-belong in the repository templates referenced by the protocol.
+router, and read only the stage file needed for the current stage. Keep project
+state in repository artifacts rather than in Codex task context; preserve
+unrelated working-tree changes while implementing the assigned task.
 
 ## Cross-runtime handoff
 

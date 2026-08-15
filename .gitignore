@@ -6,6 +6,9 @@
 .superpowers/
 __pycache__/
 .pytest_cache/
+.venv/
 tests/smoke/output/
 tests/smoke/*.parquet
 tests/smoke/invalid-contract.yaml
+tests/smoke/invalid-identity-contract.yaml
+tests/smoke/audits/

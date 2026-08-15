@@ -1,55 +1,56 @@
 # Stage 1: Dataset Infrastructure
 
-Goal: know exactly what the data can and cannot support, before any research
-question is committed to. Most identification failures are visible at this stage
-and are cheap to fix here.
+## Inputs
 
-Output: `docs/data_inventory.md`, plus a build script that produces a clean
-panel from raw sources.
+- `RESEARCH_PROTOCOL.md`, active `research.yaml` (or `research.example.yaml`),
+  `_status.md`, the current Evidence card, and the tail of `decision-log.md`.
+- Read-only raw sources, their provenance and license terms, and the approved
+  observation unit and data-format conventions.
 
-## 1.1 Inventory
+Read `references/python-standards.md` before creating or changing numbered
+Python data scripts. Read `references/data-contract.md` before producing an
+analysis-ready export, its contract, or its merge audit.
 
-List every source, its provenance, its coverage window, and its access method.
-For a database, report the table count and stop. Ask which tables to profile
-rather than profiling everything.
+## Automatic actions
 
-Record for each source: owner, license or terms of use, whether it can be
-redistributed, and whether the version is frozen. A moving data source that
-refreshes under the analysis is a replication failure waiting to happen.
+- Inventory every source and version; record owner, access method, coverage,
+  license, refresh behavior, checksum or version identifier, and raw path.
+- Profile the claimed observation key and panel structure: unit count, period
+  count, balancedness, observations per unit, duplicates, calendar gaps, and
+  coverage breaks.
+- Validate every merge in both directions and characterize unmatched records.
+  Tabulate unit entry and exit by period and investigate material changes.
+- Preserve raw inputs, write reproducible numbered build scripts, and create
+  Evidence cards for material source and quality findings.
 
-## 1.2 Unit of observation and panel structure
+## Required artifacts
 
-State the unit precisely: firm by quarter, listing by day, user by session.
-Then verify it. Check that the claimed key is unique, and report duplicates
-rather than silently deduplicating.
+- `docs/data_inventory.md`: source/version inventory, provenance, coverage,
+  caveats, and reproducible raw-to-derived lineage.
+- `docs/panel_dimensions.md`: observation unit, unit and period counts,
+  balance, duplicate-key evidence, calendar coverage, and structural breaks.
+- `docs/key_integrity_and_merge_rates.md`: key tests, merge-rate evidence in
+  both directions, unmatched-record characterization, and remediation.
+- `docs/entry_exit_report.md`: entry/exit tables or figures, coverage changes,
+  and implications for the usable panel.
+- Numbered build scripts that follow `references/python-standards.md`, a
+  derived-data manifest, and, for every analysis-ready export, the Parquet,
+  versioned contract, and merge audit required by `references/data-contract.md`.
+- Relevant Evidence cards and an updated `_status.md`.
 
-Report the panel dimensions: number of units, number of periods, whether the
-panel is balanced, and the distribution of the number of observations per unit.
+## Red lines
 
-## 1.3 Coverage, entry, and exit
+- Never overwrite raw data, silently deduplicate keys, or discard unmatched
+  records without recording the rate, reason, and effect on the sample.
+- Do not call the panel usable when key integrity, source versioning, or merge
+  quality is unverified.
+- Pause for a recorded decision if source changes alter the observation unit,
+  coverage, proposed sample, or feasible identifying design.
 
-Plot or tabulate units per period. Unit entry and exit is not a nuisance, it is
-often the source of the identifying variation or of the bias. Report:
+## Exit condition
 
-- when units enter and leave, and whether entry and exit correlate with anything
-- calendar gaps, including gaps that come from the data provider rather than
-  from the world
-- any structural break in coverage, for example a change in reporting rules
-
-## 1.4 Key integrity and merge quality
-
-For every merge, report match rates in both directions, and characterize the
-unmatched records. A merge that drops 12 percent of observations is a research
-design decision, not a technical detail.
-
-## 1.5 Known caveats
-
-Write a caveats section that a referee would read. Include measurement changes,
-definitional changes over time, top coding, censoring, and anything the data
-provider documents as a limitation. This section is reused verbatim in the data
-section of the paper.
-
-## Handoff
-
-`docs/data_inventory.md` contains: sources, unit of observation, panel
-dimensions, coverage, merge diagnostics, caveats. Update `_status.md`.
+The source/version inventory, panel dimensions, key-integrity evidence,
+merge-rate evidence, and entry-exit report all exist and are reproducible.
+Known limitations are documented, the intended data can support the next-stage
+question, and `_status.md` records validation, risks, and Stage 2 as the next
+action.

@@ -1,71 +1,75 @@
 # Stage 7: Paper Writing and Review
 
-Goal: a draft whose claims match its results. The writing order is the
-mechanism that enforces this.
+## Inputs
 
-## 7.1 Mandatory writing order
+- Router prerequisites, completed analysis artifacts, Checkpoint records,
+  Evidence cards, decision-log tail, and current status.
+- Verified bibliography and literature map, selected target-outlet row from
+  `references/outlet-positioning.md`, and all current tables, figures, and
+  audit records.
 
-Phase 1: Sections 2 to 6. Theory, then data, then results, then robustness.
-Phase 2: Section 7, discussion and limitations.
-Phase 3: Introduction and conclusion, written last.
+## Automatic actions
 
-The introduction is written last because a hook written first becomes a
-constraint that the results are then bent to satisfy. Written last, the
-contribution claim is a summary of what was found rather than a promise the
-paper must keep.
+- Write in evidence-first order: theory, data, results, robustness, discussion
+  and limitations, then introduction and conclusion. The last-written
+  introduction summarizes observed results rather than constraining them.
+- Render economics-style **three-line** tables: coefficients, parenthesized
+  standard errors, notation defined in self-contained notes, fixed effects,
+  clustering and cluster count, N, dependent-variable mean where useful, and
+  a specification ladder for main results. Put required identification
+  diagnostics in the main paper.
+- Maintain a claim-to-evidence audit. Every abstract, introduction, result,
+  mechanism, and contribution claim names its table/figure, Evidence card,
+  estimate record, identifying assumption, and limitation. Distinguish
+  descriptive, causal, structural, and exploratory claims.
+- Verify every citation's bibliographic facts, stable source, and purpose label
+  before it supports text. Match the outlet framing to the verified
+  theory-source, empirical-analogue, and method-authority roles.
+- Run the selected review ladder: internal consistency, full review, referee
+  simulation, then an independent-runtime identification review before
+  submission. Record CLEAR, CONDITIONAL, or HOLD, findings, and resolution in
+  the review record and decision log.
 
-Write in full paragraphs. Bullet lists do not belong in the body of a journal
-submission.
+## Required artifacts
 
-## 7.2 Section conventions
+- Versioned manuscript and source, journal-format adapter output only after
+  scientific content is stable, and a table/figure inventory with source paths.
+- `docs/claim_to_evidence_audit.md` (or versioned equivalent) with columns:
 
-- Data section: reuse the caveats from Stage 1.5 and the attrition table from
-  Stage 4.3 rather than rewriting them from memory.
-- Results section: describe what the table shows and what it means in
-  substantive units. Do not restate coefficients that the reader can see.
-- Robustness section: report failures. A robustness section in which everything
-  passes reads as a robustness section in which nothing was tried.
-- Limitations: name the binding limitation. Decorative limitations that no
-  referee would raise weaken the paper by signalling that the real one is being
-  avoided.
+  | Claim and location | Claim type | Table/figure and column | Evidence card | Assumption or scope | Limitation | Audit status |
+  |---|---|---|---|---|---|---|
 
-## 7.3 Six item self check
+- Citation-verification record, selected outlet-positioning record, review
+  requests and findings, revision log, submission checks, relevant Evidence
+  cards, decision-log entries, and updated status.
 
-Run before any review pass:
+## Red lines
 
-1. Every hypothesis maps to a specific table and column.
-2. Every contribution claimed in the introduction corresponds to an actual
-   finding, with the table that supports it named.
-3. Every competing explanation from Stage 3.4 is addressed in the text.
-4. Every number in the abstract and the introduction is traceable to a table.
-5. The identifying assumption appears in the text as a sentence, not only as an
-   implication of the method name.
-6. The stated effect size is interpreted in units a reader outside the subfield
-   would understand.
+- Do not write a claim whose claim-to-evidence row is incomplete, conceal
+  failed diagnostics or robustness dispositions, or report a causal claim
+  broader than its identifying assumption and interference/selection scope.
+- Do not use unverified citations, reformat tables in ways that change
+  estimates, or allow a target outlet to determine the empirical conclusion.
+- A HOLD from independent-runtime identification review blocks circulation or
+  submission until resolved. External circulation or submission requires the
+  protocol-required recorded decision.
 
-## 7.4 Review ladder
+## Exit condition
 
-Choose the depth deliberately. Deeper review on an unstable result wastes the
-review.
+The manuscript has complete three-line economics tables, verified citations,
+and a claim-to-evidence audit in which each substantive claim traces to a
+recorded result and limitation. Independent-runtime identification review is
+CLEAR or CONDITIONAL with tracked resolution; no unresolved HOLD remains; and
+the publication decision and remaining limitations are documented.
 
-| Level | Scope | Use when |
-|---|---|---|
-| Light | Internal consistency, claim to evidence mapping | After a first complete draft |
-| Full | Framing, theory, identification, measurement, results, writing, contribution, positioning | Before circulating to coauthors |
-| Referee simulation | Adversarial reading plus a simulated revision request | Before submission |
-| Cross model | A second model reviews independently | Before submission, to catch same model blind spots |
+## 7 operating sequence
 
-Cross model review matters because the audit in
-`references/blindspot-audit.md` is run by the same model that wrote the
-analysis, and shares its priors. Run at least one cross model pass on the
-identification section.
-
-## 7.5 Assembly
-
-Convert markdown to the submission format when the content is final, not before.
-Three line tables, Times New Roman 12 point, double spacing, continuous line
-numbers if the outlet requires them.
-
-Verify before export: all cross references resolve, all tables are referenced in
-the text in order, all figures have self contained notes, and the reference list
-matches the citations.
+1. Assemble evidence-backed sections and tables before drafting the
+   introduction and conclusion.
+2. Complete the claim-to-evidence and citation-verification audits, including
+   every number in the abstract and introduction.
+3. Run review at the required depth; give the independent runtime the
+   identification memo, diagnostic evidence, Evidence cards, and relevant
+   manuscript section rather than an executor summary.
+4. Resolve findings, verify cross-references and table order, document the
+   publication decision, then apply the outlet formatting adapter.

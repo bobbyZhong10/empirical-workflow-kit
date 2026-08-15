@@ -1,0 +1,93 @@
+project_name: smoke_panel_handoff
+data_version: smoke_panel_v2026_08_15
+produced_at_utc: '2026-08-15T00:00:00Z'
+producing_script: tests/smoke/generate_panel.py
+dataset_path: tests/smoke/panel.parquet
+data_hash:
+  algorithm: sha256
+  value: e39ae667cec9c9002d297350413288804ca428319b9a3eabd23a0227aefb8f44
+source_versions:
+- source: simulated_panel
+  version: '2026-08-15'
+  retrieved_at_utc: '2026-08-15T00:00:00Z'
+observation_unit: firm-quarter
+time_granularity: quarter
+primary_key:
+  columns:
+  - firm_id
+  - year_qtr
+  is_unique: true
+  duplicate_row_count: 0
+row_count: 96
+unit_count:
+  field: firm_id
+  value: 12
+period_count:
+  field: year_qtr
+  value: 8
+required_fields:
+- firm_id
+- year_qtr
+- treated
+- event_time
+- outcome
+- cohort
+- quarter_index
+field_types:
+  firm_id: string
+  year_qtr: string
+  treated: integer
+  event_time: integer
+  outcome: float
+  cohort: integer
+  quarter_index: integer
+missingness:
+  firm_id:
+    count: 0
+    share: 0.0
+  year_qtr:
+    count: 0
+    share: 0.0
+  treated:
+    count: 0
+    share: 0.0
+  event_time:
+    count: 0
+    share: 0.0
+  outcome:
+    count: 0
+    share: 0.0
+  cohort:
+    count: 0
+    share: 0.0
+  quarter_index:
+    count: 0
+    share: 0.0
+value_ranges:
+  treated:
+    minimum: 0
+    maximum: 1
+  event_time:
+    minimum: -99
+    maximum: 5
+  cohort:
+    minimum: 3
+    maximum: 1000
+  quarter_index:
+    minimum: 1
+    maximum: 8
+  year_qtr:
+    allowed_pattern: ^[0-9]{4}Q[1-4]$
+merge_audit:
+  path: tests/smoke/audits/smoke_panel_v2026_08_15.merge-audit.yaml
+  data_version: smoke_panel_v2026_08_15
+  data_hash:
+    algorithm: sha256
+    value: 2291a1e22ce5ef426e8afffde5e3d1e8ce49e950dd7cdc1cad91620e2a0fcc73
+merge_rates:
+- merge_name: simulated_firms_to_treatment_schedule
+  left_row_count: 12
+  matched_row_count: 12
+  match_rate: 1.0
+  unmatched_left_row_count: 0
+  unmatched_disposition: No unmatched simulated firms.

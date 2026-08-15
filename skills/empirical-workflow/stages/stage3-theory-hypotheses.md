@@ -1,50 +1,50 @@
 # Stage 3: Theory and Hypotheses
 
-Goal: commit to a mechanism and to a set of hypotheses whose specifications are
-fixed before any estimate is seen. This stage ends at Checkpoint A.
+## Inputs
 
-Output: `docs/theory_hypotheses.md`.
+- Router prerequisites and the Stage 1 feasibility record and Stage 2
+  literature map, verified bibliography, and outlet-positioning memo.
+- The proposed research question, available variation, and allowed designs.
 
-## 3.1 Primary theoretical lens
+## Automatic actions
 
-Choose one primary lens and name it. A paper that gestures at three theories
-explains nothing. Secondary theories may enter as competing explanations in 3.4.
+- Select one primary theoretical lens, state the causal mechanism, and mark
+  which links are observed versus inferred.
+- Write the identifying-assumption sentence in language a skeptical reader can
+  challenge, and map evidence and diagnostics that could support or fail it.
+- Define hypotheses before estimates: claim, expected sign, boundary condition,
+  sample, specification, coefficient, and expected output.
+- Run a null-interest test: state why the question and contribution matter if
+  the primary estimate is null. Name at least two competing explanations and
+  a discriminating empirical implication for each.
+- Select the Stage 6 branch (reduced form, structural, or both) based on the
+  question, not on anticipated results.
 
-## 3.2 Mechanism
+## Required artifacts
 
-Write the causal chain in prose: the treatment changes A, which changes B, which
-changes the outcome. Each arrow is a claim. Mark which arrows the data can
-observe directly and which are inferred. The observable arrows become the
-mechanism tests in Stage 6.
+- `docs/theory_hypotheses.md`: primary lens, mechanism diagram or prose,
+  identifying-assumption sentence, diagnostics plan, null-interest test,
+  alternatives, and Stage 6 branch decision.
+- `docs/hypothesis_estimate_map.md`: locked hypothesis-to-estimate map with
+  each hypothesis, specification, sample, coefficient, and expected table or
+  figure.
+- `docs/checkpoints/checkpoint_a.md`: complete Checkpoint A record with
+  evidence and a pass, revise, or pause outcome.
+- Evidence cards for material theory and design claims, decision-log entries
+  for commitments or deviations, and an updated `_status.md`.
 
-## 3.3 Hypotheses
+## Red lines
 
-For each hypothesis state, in a single table row: the claim, the expected sign,
-the boundary condition, the specification that will test it, the sample, and the
-coefficient that carries the test.
+- Do not inspect or interpret estimates before the hypothesis-to-estimate map
+  and primary specification are locked.
+- Never substitute a method label for an identifying-assumption sentence, or
+  omit alternatives merely because they are inconvenient.
+- Pause for a recorded decision before changing the question, identification
+  strategy, main specification, estimation sample, or Stage 6 branch.
 
-| H | Claim | Sign | Boundary | Specification | Sample | Coefficient of interest |
+## Exit condition
 
-This table is the pre-commitment. Any later change to it is a Decision Log entry
-with a reason.
-
-## 3.4 Competing explanations
-
-Name at least two alternative accounts that would produce the same sign on the
-main coefficient. For each, state the empirical implication that differs from
-the proposed mechanism, and how it will be tested. Papers are rejected far more
-often for an unaddressed alternative than for a small effect size.
-
-## 3.5 Branch decision
-
-Decide whether Stage 6 runs reduced form, structural, or both, and record the
-reason. Structural is warranted when the question requires a counterfactual
-outside the observed support, a welfare quantity, or a parameter with an
-economic interpretation that no regression coefficient carries. If a reduced
-form estimate answers the question, use it.
-
-## Checkpoint A
-
-Run the Checkpoint A table from `SKILL.md`. Write the result to
-`docs/checkpoints/checkpoint_a.md` including any waivers and their reasons.
-Do not begin Stage 4 until this is signed off.
+Checkpoint A passes. A revise or pause outcome does not authorize Stage 4. The
+identifying assumption, null-interest test, alternatives, and locked
+hypothesis-to-estimate map are complete, and the status record authorizes Stage
+4 with outstanding risks visible.

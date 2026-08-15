@@ -1,67 +1,50 @@
 # Stage 4: Variables Map
 
-Goal: turn constructs into variables, and fix the estimation sample, the fixed
-effects, and the clustering level before anything is estimated.
+## Inputs
 
-Output: `docs/variables_map.md`, plus construction scripts.
+- Router prerequisites, Stage 1 data-quality artifacts, Stage 2 measurement
+  precedents, and the locked Stage 3 hypothesis-to-estimate map.
+- Raw timing evidence, available source columns, and the approved observation
+  unit, sample rules, fixed effects, and clustering authority.
 
-## 4.1 Construct to variable table
+## Automatic actions
 
-| Construct | Variable | Definition and formula | Source columns | Unit | Precedent |
+- Map each construct to a variable, formula, source column, unit, and Stage 2
+  precedent; identify measures requiring Stage 5 validity support.
+- Verify treatment timing against raw sources and produce an
+  announcement/effective/actual treatment timeline. Tabulate cohorts, never-
+  treated units, treatment reversals, and each treatment exit.
+- Build the estimation sample as sequential filters with unit and observation
+  counts. Test controls for post-treatment determination and identify variables
+  that create a post-treatment-selection warning.
+- State fixed effects, clustering level, cluster count, and the variation each
+  choice preserves or absorbs; freeze the approved construction plan.
 
-Every row needs a precedent from the Stage 2 construct table, or an explicit
-note that this measure is new and therefore needs its own validity argument in
-Stage 5.
+## Required artifacts
 
-## 4.2 Treatment definition and timing
+- `docs/variables_map.md`: construct-to-variable table, formulas, sources,
+  units, precedent, controls, fixed effects, and clustering plan.
+- `docs/treatment_timeline.md`: announcement, effective, and actual treatment
+  timing; raw-source evidence; cohort structure; treatment exits and estimator
+  implications.
+- `docs/sample_attrition.md`: ordered sample filters, reasons, unit and
+  observation counts, and post-treatment-selection warnings.
+- Versioned construction scripts, relevant Evidence cards, decision-log entries
+  for frozen choices, and an updated `_status.md`.
 
-State the treatment variable, the exact date or threshold that defines it, and
-the source of that date. Verify the timing against the raw source rather than
-against a constructed variable.
+## Red lines
 
-For staggered settings, tabulate the cohort structure: how many units are
-treated in each period, how many are never treated, and whether any unit exits
-treatment. Units that turn treatment off require a different estimator family
-and this must be caught here rather than in Stage 6.
+- Never infer treatment timing from a constructed panel when raw timing
+  evidence is available, or ignore a treatment exit or reversal.
+- Do not condition the main sample or controls on a post-treatment variable;
+  flag the post-treatment-selection warning and move the choice to a mechanism
+  test or pause for a decision.
+- Pause for a recorded decision before changing the estimation sample, primary
+  treatment, clustering level, fixed effects, or identifying strategy.
 
-## 4.3 Sample construction and attrition log
+## Exit condition
 
-Build the estimation sample as an explicit sequence of filters, and log N after
-each one:
-
-| Step | Filter | Reason | N units | N observations |
-
-The last row is the estimation sample. This table goes into the paper. A filter
-whose reason is "to make the sample cleaner" is not a reason.
-
-Flag any filter that conditions on a variable realized after treatment. Sample
-selection on a post treatment variable induces bias exactly like a bad control.
-
-## 4.4 Controls
-
-For each control, state why it belongs and confirm it is determined before
-treatment. Run the bad control check explicitly:
-
-- Is this variable plausibly affected by the treatment? If yes, it is a bad
-  control. Move it to a mechanism test or drop it.
-- Is this variable a proxy for the outcome? If yes, drop it.
-- Would the coefficient of interest be interpreted differently with and without
-  it? If yes, report both.
-
-Controls that survive go into the main specification. The set is then frozen.
-
-## 4.5 Fixed effects and clustering
-
-State the fixed effects and what variation each one absorbs. Verify that the
-treatment variable is not absorbed by the fixed effect structure.
-
-Clustering: cluster at the level at which treatment is assigned, not at the
-level of observation. Report the number of clusters. Below roughly 40 clusters,
-plan for wild cluster bootstrap inference and say so now. Two way clustering
-requires a stated reason.
-
-## Handoff
-
-`docs/variables_map.md` contains: variable table, treatment definition and
-cohort structure, attrition log, control justification, fixed effects and
-clustering plan. Update `_status.md`.
+Every core construct maps to a documented variable, the announcement/effective/
+actual timeline and treatment exits are verified, attrition is reproducible, and
+the post-treatment-selection review is resolved or paused. The construction and
+inference plan is locked for Stage 5 and recorded in `_status.md`.
