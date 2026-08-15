@@ -154,8 +154,11 @@ def test_data_contract_template():
 
 def test_r_standards_start_after_python_etl():
     body = read("skills/empirical-workflow/references/r-standards.md")
+    contract = read("skills/empirical-workflow/references/data-contract.md")
     assert "01_validate_contract.R" in body
     assert "02_construct.R" in body
     assert "01_ingest.R" not in body
     assert "02_clean.R" not in body
     assert "Python owns raw ingestion, cleaning, entity resolution, and merging." in body
+    assert "`code/r/01_validate_contract.R` is the prerequisite" in contract
+    assert "before `code/r/02_construct.R`" in contract

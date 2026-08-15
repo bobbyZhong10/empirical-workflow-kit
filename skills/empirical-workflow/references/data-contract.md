@@ -71,7 +71,9 @@ final Parquet cannot reproduce the raw matching inputs.
 
 ## R validation gate
 
-Before `code/r/01_construct.R` reads or constructs analysis variables, it must:
+`code/r/01_validate_contract.R` is the prerequisite for analysis construction;
+contract validation must complete before `code/r/02_construct.R` reads or
+constructs analysis variables. `01_validate_contract.R` must:
 
 1. Read the YAML contract and the referenced Parquet file.
 2. Confirm the data version, hash, dataset path, observation unit, and time
