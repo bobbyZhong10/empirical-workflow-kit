@@ -51,6 +51,22 @@ Install test dependencies (`pytest` and PyYAML) in a repository-local environmen
 Run the workflow contract tests with
 `.venv/bin/python -m pytest tests/test_workflow_contract.py -q`.
 
+### Python-R smoke test
+
+The cross-runtime smoke test requires Python 3 with PyArrow and R with the
+`arrow`, `yaml`, `fixest`, and `modelsummary` packages. It generates a
+deterministic 96-row staggered-treatment panel, validates its Python-to-R
+contract (including its versioned merge audit), estimates a fixed-effects
+event-study model, and writes a simulated-results table.
+
+```bash
+bash tests/smoke/run_smoke.sh
+```
+
+The command intentionally invokes the R verifier a second time with an invalid
+contract. That invocation must stop with `Data contract validation failed`; the
+shell runner treats that expected failure as a passing mandatory-stop check.
+
 ## Design decisions worth knowing before editing
 
 1. **Checkpoints are gates, not summaries.** Their value comes entirely from
