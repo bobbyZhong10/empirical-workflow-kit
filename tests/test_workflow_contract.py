@@ -162,3 +162,15 @@ def test_r_standards_start_after_python_etl():
     assert "Python owns raw ingestion, cleaning, entity resolution, and merging." in body
     assert "`code/r/01_validate_contract.R` is the prerequisite" in contract
     assert "before `code/r/02_construct.R`" in contract
+
+
+def test_readme_cross_runtime_quickstart():
+    body = read("README.md")
+    for phrase in (
+        "Claude Code",
+        "Codex",
+        "RESEARCH_PROTOCOL.md",
+        "research.yaml",
+        "tests/smoke/run_smoke.sh",
+    ):
+        assert phrase in body

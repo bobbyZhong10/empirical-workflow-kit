@@ -1,8 +1,9 @@
 # Empirical Workflow Kit
 
-A thin `CLAUDE.md` plus a staged skill for panel data empirical research in
-information systems economics. Reduced form and structural, targeting ISR,
-MISQ, and Management Science.
+A portable, staged workflow for panel-data empirical research in information
+systems economics. It supports reduced-form and structural work targeting ISR,
+MISQ, and Management Science, and can move cleanly between Claude Code and
+Codex.
 
 ## Contents
 
@@ -10,6 +11,7 @@ MISQ, and Management Science.
 RESEARCH_PROTOCOL.md                     portable execution rules and red lines
 research.example.yaml                    project start card; rename to research.yaml
 CLAUDE.md                                Claude Code adapter, always loaded
+AGENTS.md                                Codex adapter
 skills/empirical-workflow/
 ├── SKILL.md                             stage router, checkpoints, backtracking
 ├── stages/                              one file per stage, loaded on demand
@@ -17,18 +19,36 @@ skills/empirical-workflow/
 └── templates/status-template.md         the status log
 ```
 
+## Architecture
+
+```text
+Claude Code adapter (CLAUDE.md) ─┐
+                                 ├─> RESEARCH_PROTOCOL.md ─> stage contracts
+Codex adapter (AGENTS.md) ───────┘              │                   │
+                                                v                   v
+                         research.yaml, _status.md, decision-log.md, evidence cards
+                                                │
+                                                v
+                              Python ETL ─ Parquet + contract ─ R estimation
+```
+
+The protocol contains the research rules. The runtime adapters only route
+Claude Code or Codex into those rules. Durable artifacts—not a chat
+conversation—are the project source of truth.
+
 ## Install
 
 At the project level, copy the portable protocol, one or both adapters,
 `research.example.yaml` renamed to `research.yaml`, and the skill directory.
-The same project can move between Claude Code and Codex: retain the protocol,
-configuration, decision records, and skills, then use the adapter for the tool
-currently running it.
+Choose `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex, or both for a
+cross-runtime project. Retain the protocol, configuration, decision records,
+and skills when changing runtimes.
 
 ```
 cp RESEARCH_PROTOCOL.md /path/to/project/RESEARCH_PROTOCOL.md
 cp research.example.yaml /path/to/project/research.yaml
 cp CLAUDE.md /path/to/project/CLAUDE.md  # Claude Code adapter
+cp AGENTS.md /path/to/project/AGENTS.md  # Codex adapter
 cp -r skills/empirical-workflow /path/to/project/.claude/skills/
 ```
 
@@ -43,6 +63,21 @@ files are loaded only when the stage runs. This is the reason the kit is split
 rather than written as one large instruction file: a long always loaded file
 dilutes attention across the whole session and pays a context cost on every
 turn.
+
+## Bootstrap and handoff
+
+1. Fill out `research.yaml`, then create `_status.md` and `decision-log.md`
+   from the supplied templates.
+2. Start the appropriate staged workflow and complete its required artifacts.
+3. Create an evidence card for every material source, decision, diagnostic, and
+   result. Each card links a claim to its source artifact and states its method,
+   limitation, and unresolved uncertainty.
+4. Before a new runtime continues the work, it reads `RESEARCH_PROTOCOL.md`,
+   `research.yaml`, `_status.md`, the most relevant/current evidence card, and
+   the tail of `decision-log.md`, in that order.
+
+See [the v2 migration guide](docs/v2-migration-guide.md) for moving an existing
+project and converting a v1 `_status.md` record.
 
 ## Development
 
