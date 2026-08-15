@@ -102,7 +102,8 @@ the protocol or project configuration requires it.
 1. The identification assumption is paired with diagnostic evidence.
 2. The baseline estimate is stable across the required diagnostic set.
 3. Each hypothesis maps to a specific table and column.
-4. The robustness record reports its pass rate and failures honestly.
+4. The robustness evidence matrix reports every required, omitted, and failed
+   check with its identifying threat, implication, severity, and disposition.
 5. The blindspot audit verdict and flags are recorded.
 6. The draft states what evidence would change the conclusion.
 

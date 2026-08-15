@@ -1,106 +1,84 @@
-# Stage 6a: Reduced Form Analysis
-
-Goal: produce a baseline estimate whose identification is defensible, and a
-robustness set that a referee would recognize as complete. This stage ends at
-Checkpoint C.
+# Stage 6a: Reduced-Form Analysis
 
 ## Inputs
 
-The locked Stage 3 hypothesis-to-estimate map, Stage 4 construction plan, Stage
-5 measurement record, approved design, and current project-state records.
+- Router prerequisites: portable protocol, active configuration, status,
+  current Evidence card, and decision-log tail.
+- Locked Stage 3 hypothesis-to-estimate map and identification commitments;
+  Stage 4 treatment timeline and variable map; Stage 5 measurement record and
+  validated data contract.
+- The approved reduced-form design, estimation sample, clustering level, and
+  current literature/method authorities.
+
+Read `references/identification-decision-tree.md` before choosing an estimator
+and `references/robustness-checklists.md` before planning diagnostics.
 
 ## Automatic actions
 
-Execute the precommitted reduced-form design, its identifying diagnostics, and
-the required robustness and mechanism evidence; record all outcomes.
+- Create an identification memo before the first formal estimation batch. It
+  records Tree-0 dates (announcement, effective, actual treatment, and
+  outcome), anticipation, intensity/repeat/exit rules, interference,
+  entry/exit and selection risks, assignment-consistent aggregation, source of
+  variation, one-sentence assumption, estimator, comparison group, clustering,
+  diagnostics, and backtracking trigger.
+- Execute only the locked baseline and pre-committed diagnostic plan. For
+  staggered adoption, use a heterogeneity-robust estimator as the main result;
+  label TWFE reference-only and run the mandatory negative-weight diagnostic.
+- Build a specification ladder: minimal controls, committed controls, fixed
+  effects, and locked full specification. Report coefficient, parenthesized
+  standard error, N, clusters, fixed effects, dependent-variable mean, units,
+  and substantive magnitude for each formal estimate.
+- Run design diagnostics in the main paper and record all applicable
+  robustness checks in the evidence matrix. Distinguish pre-committed from
+  exploratory checks, preserve failures, and apply their stated disposition.
+- Test pre-committed mechanisms and heterogeneity. Report interactions rather
+  than visually comparing subsample coefficients; label post-result subgroups
+  exploratory.
+- Run the blindspot audit after the first complete table set and follow any
+  backtracking or pause requirement before producing further causal claims.
 
 ## Required artifacts
 
-The identification memo, estimation outputs, diagnostic and robustness records,
-Checkpoint C record, Evidence cards, decision-log entries, and updated status.
+- `docs/identification_memo.md` (or a versioned equivalent) for the selected
+  design and the formal-batch identifier.
+- A machine-readable estimate record and human-readable markdown summary for
+  every formal batch, each linked to code, data-contract version, outputs,
+  locked sample rule, and the hypothesis-to-estimate map.
+- An **Evidence card** for every formal 6a batch, including the identification
+  memo path, estimate record, observation versus inference, conclusion,
+  limitation, audit status, and decision-log reference.
+- Economics-style three-line tables and figures, the design-specific evidence
+  matrix, mechanism/heterogeneity records, blindspot-audit verdict,
+  `docs/checkpoints/checkpoint_c.md`, decision-log entries, and updated status.
 
 ## Red lines
 
-Do not reinterpret a failed identifying diagnostic as robustness. Pause for a
-recorded decision before changing a locked specification or identifying design.
+- Do not redefine treatment from announcement to actual adoption (or reverse),
+  change the main specification, sample, clustering, aggregation, or
+  identifying strategy without the protocol-required recorded decision.
+- Do not treat a failed identifying diagnostic as a robustness result, trade a
+  high-severity failure for a collection of passing checks, or conceal omitted
+  and failed checks.
+- Do not use absorbing-treatment DID when treatment exit occurs, use TWFE as a
+  staggered-adoption main result, or claim SUTVA while known spillovers remain
+  unaddressed.
+- Do not convert exploratory analyses into confirmatory evidence after seeing
+  results; label them and retain their output paths.
 
 ## Exit condition
 
-Checkpoint C is recorded as pass, revise, or authorized pause, with the result
-traceable to the locked hypothesis-to-estimate map.
+Checkpoint C records proceed, revise, or authorized pause. It links each
+hypothesis and manuscript claim to a table/column, identification memo,
+Evidence card, evidence-matrix disposition, and blindspot verdict. A failed
+identification diagnostic returns work to the responsible earlier stage; a
+qualified result names the evidence that would change its conclusion.
 
-Read `references/identification-decision-tree.md` before 6a.1 and
-`references/robustness-checklists.md` before 6a.4.
+## 6a operating sequence
 
-## 6a.1 Identification and estimator
-
-Walk the decision tree. Output a short identification memo:
-
-- what creates variation in the treatment
-- which design that variation supports
-- the central identifying assumption in one sentence
-- the estimator, and why this estimator rather than the obvious alternative
-- what would violate the assumption, and whether the data can detect it
-
-For staggered adoption, the memo must state explicitly whether the main estimate
-is a heterogeneity robust estimator. Two way fixed effects with staggered timing
-is a reference specification, not a main specification.
-
-## 6a.2 Baseline
-
-Estimate the specification that was pre committed in Stage 3. Report the
-coefficient, standard error, N, number of clusters, fixed effects, and the mean
-of the dependent variable in the estimation sample.
-
-Build the baseline table as a specification ladder: no controls, plus controls,
-plus fixed effects, full specification. The reader learns more from how the
-coefficient moves across the ladder than from any single column.
-
-Interpret the magnitude in substantive units before moving on. A coefficient
-that is statistically significant and economically trivial is a finding that
-should be named as such.
-
-## 6a.3 Design specific diagnostics
-
-Run the diagnostics that the chosen design requires. These are not robustness
-checks, they are the evidence for the identifying assumption, and they belong in
-the main body. See the design sections of
-`references/robustness-checklists.md`.
-
-If a diagnostic fails, apply the backtracking rule in `SKILL.md`. Do not proceed
-to robustness checks on an identification strategy that has already failed.
-
-## 6a.4 Robustness
-
-Derive the checklist automatically from the identification strategy, then run
-it. Report every check that was run, including the ones that failed, with the
-coefficient and standard error, not merely a statement that results are robust.
-
-The robustness pass rate is a reported number at Checkpoint C.
-
-## 6a.5 Mechanism
-
-Test the observable arrows identified in Stage 3.2. A mechanism test is
-persuasive only when it also discriminates against the competing explanations
-from Stage 3.4. Report the discriminating implication explicitly.
-
-Mediation analysis on observational data identifies a causal mechanism only
-under assumptions that are usually indefensible here. Prefer heterogeneity that
-the mechanism predicts and the alternatives do not, or a direct test on an
-intermediate outcome.
-
-## 6a.6 Heterogeneity
-
-Subgroups come from theory, stated in advance. Report the interaction, not two
-separate subsample coefficients compared by eye. If subgroups were chosen after
-seeing results, label them exploratory in the table note and in the text.
-
-## 6a.7 Blindspot audit
-
-Mandatory once the first complete table set exists. Read
-`references/blindspot-audit.md` and run it. Record the verdict.
-
-## Checkpoint C
-
-Run the Checkpoint C table from `SKILL.md`. Write the result to
-`docs/checkpoints/checkpoint_c.md`.
+1. Lock and archive the identification memo and batch plan before estimation.
+2. Validate the analysis data against its contract, run the baseline ladder,
+   and write the estimate record and Evidence card immediately.
+3. Run diagnostics, then the applicable evidence-matrix rows; pause or
+   backtrack on a high-severity design failure.
+4. Add pre-committed mechanism and heterogeneity evidence, run the blindspot
+   audit, render three-line tables, and complete Checkpoint C.

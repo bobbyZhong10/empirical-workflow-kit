@@ -62,7 +62,7 @@ entry.
 | Hypothesis | Table and column | Coefficient | SE | N | Verdict |
 |---|---|---|---|---|---|
 
-Robustness pass rate:
+Robustness evidence-matrix summary:
 Blindspot audit verdict and open flags:
 
 ## 6. Decision log (append only)

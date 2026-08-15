@@ -110,3 +110,13 @@ def test_stage_contracts():
         body = stage.read_text(encoding="utf-8")
         for heading in headings:
             assert heading in body, f"{stage.name} lacks {heading}"
+
+
+def test_causal_platform_risks_and_traceability():
+    tree = read("skills/empirical-workflow/references/identification-decision-tree.md").lower()
+    for phrase in ("anticipation", "spillover", "treatment exit", "negative weights"):
+        assert phrase in tree
+    reduced = read("skills/empirical-workflow/stages/stage6a-reduced-form.md")
+    assert "Evidence card" in reduced
+    writing = read("skills/empirical-workflow/stages/stage7-writing.md").lower()
+    assert "three-line" in writing
