@@ -83,3 +83,14 @@ def test_adapters_and_records():
         body = read(path)
         assert "RESEARCH_PROTOCOL.md" in body
         assert len(body.splitlines()) < 140
+        handoff = body.split("## Cross-runtime handoff", maxsplit=1)[1].lower()
+        continuation_order = (
+            "research_protocol.md",
+            "research.yaml",
+            "_status.md",
+            "most relevant/current evidence card",
+            "decision-log.md",
+        )
+        assert [handoff.index(item) for item in continuation_order] == sorted(
+            handoff.index(item) for item in continuation_order
+        )

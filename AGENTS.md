@@ -18,5 +18,5 @@ unrelated working-tree changes while implementing the assigned task.
 2. Record decisions and evidence, then update the project status.
 3. Write a handoff with the completed stage, changed artifacts, open risks,
    next action, and unresolved pause.
-4. The receiving runtime reads the protocol, configuration, status, and handoff
-   before continuing.
+4. Before continuing, the receiving runtime reads, in this order:
+   `RESEARCH_PROTOCOL.md`, `research.yaml`, `_status.md`, the most relevant/current evidence card, then the tail of `decision-log.md`.
