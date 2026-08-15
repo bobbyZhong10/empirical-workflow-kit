@@ -1,4 +1,5 @@
 # Example only. Replace all values with the actual exported dataset facts.
+project_name: "example_platform_adoption"
 data_version: "firm_quarter_v2026_08_15"
 produced_at_utc: "2026-08-15T14:30:00Z"
 producing_script: "code/py/04_export.py"
@@ -13,7 +14,7 @@ source_versions:
   - source: "platform_adoption_events"
     version: "2026-08-05"
     retrieved_at_utc: "2026-08-06T09:00:00Z"
-observation_unit: "firm-quarter"
+observation_unit: "firm_quarter"
 time_granularity: "quarter"
 primary_key:
   columns: [firm_id, year_qtr]

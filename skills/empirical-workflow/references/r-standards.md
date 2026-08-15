@@ -34,9 +34,13 @@ contract beside it. The exact schema and required fields are defined in
 `01_validate_contract.R` must run before `02_construct.R` reads or constructs
 analysis variables. It loads the YAML contract, Parquet input, and versioned
 merge-audit artifact, then aborts on any failed key, count, or required-field
-check. It also verifies the recorded file hash, declared types, missingness,
-and value ranges, and recomputes the primary-key uniqueness result and the row,
-unit, and period counts from the Parquet file; do not trust a stale YAML value.
+check. It independently loads `research.yaml` and compares the contract's
+project name and observation unit with the project values, then compares data
+version, dataset path, producing script, time granularity, and ordered primary
+key with the locked `analysis_input_contract`. It also verifies the recorded
+file hash, declared types, missingness, and value ranges, and recomputes the
+primary-key uniqueness result and the row, unit, and period counts from the
+Parquet file; do not trust a stale YAML value.
 
 R does not attempt to reconstruct raw matching from the final Parquet file.
 Instead, it validates the merge-audit artifact's source totals, matched and

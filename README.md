@@ -49,15 +49,16 @@ cp RESEARCH_PROTOCOL.md /path/to/project/RESEARCH_PROTOCOL.md
 cp research.example.yaml /path/to/project/research.yaml
 cp CLAUDE.md /path/to/project/CLAUDE.md  # Claude Code adapter
 cp AGENTS.md /path/to/project/AGENTS.md  # Codex adapter
-mkdir -p /path/to/project/.claude/skills /path/to/project/.codex/skills
+mkdir -p /path/to/project/.claude/skills /path/to/project/.agents/skills
 cp -r skills/empirical-workflow /path/to/project/.claude/skills/
-cp -r skills/empirical-workflow /path/to/project/.codex/skills/
+cp -r skills/empirical-workflow /path/to/project/.agents/skills/
 ```
 
 User level, available in every project:
 
 ```
 cp -r skills/empirical-workflow ~/.claude/skills/
+cp -r skills/empirical-workflow ~/.agents/skills/
 ```
 
 `CLAUDE.md` is loaded on every turn, so it is kept short deliberately. The stage
@@ -67,15 +68,16 @@ dilutes attention across the whole session and pays a context cost on every
 turn.
 
 For Codex, install the repository skill at
-`.codex/skills/empirical-workflow/SKILL.md` using the second copy command
+`.agents/skills/empirical-workflow/SKILL.md` using the second copy command
 above, then start Codex from the project root. `AGENTS.md` instructs Codex to
 load the `empirical-workflow` skill; the discovered skill's router selects the
 current stage. Claude Code uses the corresponding `.claude/skills/` copy.
 
 ## Bootstrap and handoff
 
-1. Fill out `research.yaml`, then create `_status.md` and `decision-log.md`
-   from the supplied templates.
+1. Fill out `research.yaml`, including the locked `analysis_input_contract`
+   before a Python export is consumed by R, then create `_status.md` and
+   `decision-log.md` from the supplied templates.
 2. Start the appropriate staged workflow and complete its required artifacts.
 3. Create an evidence card for every material source, decision, diagnostic, and
    result. Each card links a claim to its source artifact and states its method,
@@ -103,7 +105,10 @@ The cross-runtime smoke test requires Python 3 with PyArrow and R with the
 `arrow`, `yaml`, `fixest`, and `modelsummary` packages. It generates a
 deterministic 96-row staggered-treatment panel, validates its Python-to-R
 contract (including its versioned merge audit), estimates a fixed-effects
-event-study model, and writes a simulated-results table.
+event-study model, and writes a simulated-results table. It also recovers a
+cross-runtime handoff from durable state in the required read order and proves
+that a failed identifying diagnostic writes a mandatory-pause record and blocks
+formal estimation.
 
 ```bash
 bash tests/smoke/run_smoke.sh
@@ -114,17 +119,19 @@ repository-local `.r-lib/` to `R_LIBS` when it exists. This makes the documented
 command work with a project-local R package installation; otherwise install the
 listed R packages in the active R library. Python 3 must provide PyArrow.
 
-The command intentionally invokes the R verifier a second time with an invalid
-contract. That invocation must stop with `Data contract validation failed`; the
-shell runner treats that expected failure as a passing mandatory-stop check.
+The command intentionally invokes the R verifier with a failed identifying
+diagnostic, an invalid row count, and a mismatched project identity. Those
+invocations must stop with their documented errors; the shell runner treats
+the expected failures as passing mandatory-stop checks.
 
 ## Design decisions worth knowing before editing
 
 1. **Checkpoints are gates, not summaries.** Their value comes entirely from
    refusing to proceed. Softening them into progress reports removes the point.
-2. **The main specification is locked before estimation.** Rule 3 in `CLAUDE.md`
-   and section 4 of the status template exist together to make specification
-   drift visible rather than to prohibit exploration.
+2. **The main specification is locked before estimation.** The Specification
+   discipline section of `RESEARCH_PROTOCOL.md` and section 4 of the status
+   template make specification drift visible without prohibiting labeled
+   exploration.
 3. **Staggered adoption gets its own branch in the decision tree.** Without it
    the default output is two way fixed effects, which is the wrong main
    specification for most staggered settings.
@@ -141,4 +148,5 @@ shell runner treats that expected failure as a passing mandatory-stop check.
 - `references/robustness-checklists.md`: add the checks your target outlets and
   your advisors actually demand.
 - `stages/stage6b-structural.md`: language and solver for structural work.
-- `CLAUDE.md` Rule 2 table: add the failure modes you personally hit.
+- `RESEARCH_PROTOCOL.md` Authority levels and Mandatory pause sections: add
+  project-specific decision boundaries without duplicating them in an adapter.

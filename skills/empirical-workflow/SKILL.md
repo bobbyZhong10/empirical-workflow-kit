@@ -57,7 +57,12 @@ Read a reference only when the selected stage calls for it:
 
 - `references/identification-decision-tree.md`: design and estimator choice.
 - `references/robustness-checklists.md`: design-specific reader obligations.
-- `references/r-standards.md`: project layout and verification helpers.
+- `references/python-standards.md`: Python producer layout and export rules;
+  read when a stage creates or changes analysis data.
+- `references/data-contract.md`: shared Python-to-R identity and validation
+  contract; read when a stage produces, validates, or consumes analysis data.
+- `references/r-standards.md`: R consumer layout and verification helpers;
+  read before validation, construction, diagnostics, or estimation in R.
 - `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
 - `templates/status-template.md`: project status record.
 
@@ -66,7 +71,9 @@ Read a reference only when the selected stage calls for it:
 At each stage exit, update `_status.md` with outputs, validations, remaining
 risks, next stage, and unresolved pause. Create an Evidence card for each
 material factual claim, data source, design choice, diagnostic, and result.
-Record decisions, deviations, waivers, and their timing in `decision-log.md`.
+Record decisions and deviations with their timing in `decision-log.md`, the
+sole append-only project history. Treat `_status.md` as a replaceable current
+snapshot rather than a second decision log.
 Raw data remains read-only; write cleaned and derived data separately. Keep
 numbered research scripts direct and single-purpose, and document Python-to-R
 data exchanges through stable artifacts such as Parquet.
@@ -75,8 +82,9 @@ data exchanges through stable artifacts such as Parquet.
 
 Checkpoint A follows Stage 3, Checkpoint B follows Stage 5, and Checkpoint C
 follows Stage 6. A checkpoint requires its stated evidence, a status update,
-and a recorded proceed, revise, or pause decision. Run independent review where
-the protocol or project configuration requires it.
+and a recorded proceed, revise, or pause decision. Only a passing checkpoint
+authorizes the next stage. Run independent review where the protocol or project
+configuration requires it.
 
 ### Checkpoint A: research design is answerable
 

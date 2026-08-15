@@ -55,6 +55,19 @@ def build_rows() -> list[dict[str, object]]:
 
 
 def main() -> None:
+    project_config_path = SMOKE_DIR / "handoff-fixture" / "research.yaml"
+    project_config = yaml.safe_load(project_config_path.read_text(encoding="utf-8"))
+    expected_identity = project_config["analysis_input_contract"]
+    assert project_config["project_name"] == "smoke_panel_handoff"
+    assert project_config["observation_unit"] == "firm-quarter"
+    assert expected_identity == {
+        "data_version": DATA_VERSION,
+        "dataset_path": "tests/smoke/panel.parquet",
+        "producing_script": "tests/smoke/generate_panel.py",
+        "time_granularity": "quarter",
+        "primary_key": ["firm_id", "year_qtr"],
+    }
+
     rows = build_rows()
     assert len(rows) == 96
     assert len({(row["firm_id"], row["year_qtr"]) for row in rows}) == 96
@@ -64,6 +77,7 @@ def main() -> None:
     audit_path = audit_dir / f"{DATA_VERSION}.merge-audit.yaml"
     contract_path = SMOKE_DIR / "panel-contract.yaml"
     invalid_contract_path = SMOKE_DIR / "invalid-contract.yaml"
+    invalid_identity_contract_path = SMOKE_DIR / "invalid-identity-contract.yaml"
     audit_dir.mkdir(parents=True, exist_ok=True)
 
     table = pa.table(
@@ -101,15 +115,16 @@ def main() -> None:
     write_yaml(audit_path, audit)
 
     contract = {
+        "project_name": project_config["project_name"],
         "data_version": DATA_VERSION,
         "produced_at_utc": "2026-08-15T00:00:00Z",
         "producing_script": "tests/smoke/generate_panel.py",
         "dataset_path": "tests/smoke/panel.parquet",
         "data_hash": {"algorithm": "sha256", "value": sha256(parquet_path)},
         "source_versions": [{"source": "simulated_panel", "version": "2026-08-15", "retrieved_at_utc": "2026-08-15T00:00:00Z"}],
-        "observation_unit": "firm-quarter",
-        "time_granularity": "quarter",
-        "primary_key": {"columns": ["firm_id", "year_qtr"], "is_unique": True, "duplicate_row_count": 0},
+        "observation_unit": project_config["observation_unit"],
+        "time_granularity": expected_identity["time_granularity"],
+        "primary_key": {"columns": expected_identity["primary_key"], "is_unique": True, "duplicate_row_count": 0},
         "row_count": len(rows),
         "unit_count": {"field": "firm_id", "value": 12},
         "period_count": {"field": "year_qtr", "value": 8},
@@ -152,6 +167,10 @@ def main() -> None:
     invalid_contract = dict(contract)
     invalid_contract["row_count"] = 95
     write_yaml(invalid_contract_path, invalid_contract)
+
+    invalid_identity_contract = dict(contract)
+    invalid_identity_contract["project_name"] = "wrong_project"
+    write_yaml(invalid_identity_contract_path, invalid_identity_contract)
 
 
 if __name__ == "__main__":

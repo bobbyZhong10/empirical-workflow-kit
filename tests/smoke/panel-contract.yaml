@@ -1,3 +1,4 @@
+project_name: smoke_panel_handoff
 data_version: smoke_panel_v2026_08_15
 produced_at_utc: '2026-08-15T00:00:00Z'
 producing_script: tests/smoke/generate_panel.py

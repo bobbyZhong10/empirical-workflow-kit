@@ -8,6 +8,10 @@
 - Versioned derived data and construction scripts subject to the project data
   contract.
 
+Read `references/data-contract.md` and `references/r-standards.md` before
+validating or consuming the Python analysis export. Lock the expected contract
+identity fields in `research.yaml` before validation.
+
 ## Automatic actions
 
 - Write a proxy justification for every core construct: what it captures and
@@ -45,7 +49,8 @@
 
 ## Exit condition
 
-Checkpoint B passes or has an explicitly authorized recorded waiver. Every core
-proxy is justified, functional forms are locked, the data contract validates,
-and the descriptive integrity record resolves or exposes material anomalies.
-The status record identifies the selected Stage 6 branch and remaining risks.
+Checkpoint B passes. A revise or pause outcome does not authorize Stage 6.
+Every core proxy is justified, functional forms are locked, the data contract
+validates against the expected project and analysis-input identities, and the
+descriptive integrity record resolves or exposes material anomalies. The status
+record identifies the selected Stage 6 branch and remaining risks.

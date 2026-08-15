@@ -1,9 +1,9 @@
-# Project Status Log
+# Project Status
 
 Copy this to `_status.md` at the project root. Update at the end of every stage
-and before any long running task. Overwrite the stale content rather than
-appending, except in the Decision Log and Abandoned Approaches sections, which
-are append only.
+and before any long running task. Overwrite stale content throughout this file.
+The project file decision-log.md is the sole append-only history; `_status.md`
+is only the current project snapshot.
 
 ---
 
@@ -65,22 +65,20 @@ entry.
 Robustness evidence-matrix summary:
 Blindspot audit verdict and open flags:
 
-## 6. Decision log (append only)
-
-| Date | Decision | Alternatives considered | Reason | Pre or post result |
-|---|---|---|---|---|
-
-## 7. Abandoned approaches (append only)
+## 6. Current abandoned-approach constraints
 
 | Approach | Why abandoned | Do not revisit unless |
 |---|---|---|
 
-## 8. File inventory
+The canonical decision and abandonment history remains in `decision-log.md`.
+This table contains only constraints relevant to the current state.
+
+## 7. File inventory
 
 | File | What it contains | Produced by |
 |---|---|---|
 
-## 9. Replication notes
+## 8. Replication notes
 
 - Script execution order:
 - Seed:

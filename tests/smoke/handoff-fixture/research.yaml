@@ -1,0 +1,13 @@
+project_name: smoke_panel_handoff
+observation_unit: firm-quarter
+analysis_languages:
+  etl: python
+  estimation: r
+current_stage: stage_6a_reduced_form
+primary_data_format: parquet
+analysis_input_contract:
+  data_version: smoke_panel_v2026_08_15
+  dataset_path: tests/smoke/panel.parquet
+  producing_script: tests/smoke/generate_panel.py
+  time_granularity: quarter
+  primary_key: [firm_id, year_qtr]

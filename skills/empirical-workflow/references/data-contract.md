@@ -20,6 +20,7 @@ Every contract must contain the following populated fields.
 
 | Field | Requirement |
 | --- | --- |
+| `project_name` | Exact project identity from the active `research.yaml`. |
 | `data_version` | Immutable version label for this export. |
 | `source_versions` | One entry per upstream source, with a source name and version or retrieval date. |
 | `data_hash` | Hash of the exported Parquet file, naming the hash algorithm. |
@@ -39,9 +40,13 @@ Every contract must contain the following populated fields.
 | `merge_audit` | Versioned merge-audit path, hash, and data version. |
 | `merge_rates` | Summary of merge rates copied from the audit for quick inspection. |
 
-`data_hash`, `row_count`, and field statistics describe the actual Parquet
-export, not an intermediate object. Counts use integer values; shares are
-decimal fractions from 0 through 1.
+Before export, lock `analysis_input_contract` in `research.yaml`. Its data
+version, dataset path, producing script, time granularity, and ordered primary
+key are expected identities, not values inferred from the submitted contract.
+The contract's `project_name` and `observation_unit` must exactly match the
+active project configuration. `data_hash`, `row_count`, and field statistics
+describe the actual Parquet export, not an intermediate object. Counts use
+integer values; shares are decimal fractions from 0 through 1.
 
 ## Versioned merge-audit artifact
 
@@ -76,8 +81,12 @@ contract validation must complete before `code/r/02_construct.R` reads or
 constructs analysis variables. `01_validate_contract.R` must:
 
 1. Read the YAML contract and the referenced Parquet file.
-2. Confirm the data version, hash, dataset path, observation unit, and time
-   granularity against the planned analysis input.
+2. Confirm project name and observation unit against `research.yaml`, and data
+   version, dataset path, producing script, time granularity, and ordered
+   primary key against its locked `analysis_input_contract`. These comparisons
+   must use the independently loaded project configuration, not values copied
+   from the contract under validation. Confirm the recorded file hash against
+   the referenced Parquet file.
 3. Confirm that every required field is present; validate declared field types.
 4. Recompute the ordered primary-key uniqueness check, row count, unit count,
    period count, missingness, and value ranges from the Parquet file.

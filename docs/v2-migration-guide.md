@@ -32,12 +32,12 @@ silently replace old results; version any regenerated artifact.
    Keep both if the project will switch runtimes.
    Install the skill in the runtime-specific location: copy it to
    `.claude/skills/empirical-workflow/` for Claude Code and to
-   `.codex/skills/empirical-workflow/` for Codex. Start Codex from the project
+   `.agents/skills/empirical-workflow/` for Codex. Start Codex from the project
    root so it discovers `SKILL.md`; `AGENTS.md` then routes empirical work to
    the `empirical-workflow` skill.
 3. Create `_status.md`, `decision-log.md`, and the appropriate evidence-card
    directory from the included templates. Fill `research.yaml` before work
-   begins.
+   begins; lock `analysis_input_contract` before R consumes a Python export.
 4. Start through the workflow router. The active runtime reads the portable
    protocol and project record, then loads only the current stage contract.
 5. At a handoff, finish an atomic task, write the decision and evidence,
@@ -48,7 +48,8 @@ silently replace old results; version any regenerated artifact.
 
 1. Preserve the v1 status file; make a dated copy if its format must change.
 2. Create `research.yaml` from the example and record the actual observation
-   unit, languages, target outlets, current stage, and approval mode.
+   unit, languages, target outlets, current stage, approval mode, and expected
+   analysis-input contract identity.
 3. Convert the latest status facts into the v2 status template: completed
    work, artifacts, validation, risks, next action, and active pause.
 4. Add past material design choices and their rationale to `decision-log.md`.

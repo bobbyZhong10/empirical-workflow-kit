@@ -7,6 +7,10 @@
 - Read-only raw sources, their provenance and license terms, and the approved
   observation unit and data-format conventions.
 
+Read `references/python-standards.md` before creating or changing numbered
+Python data scripts. Read `references/data-contract.md` before producing an
+analysis-ready export, its contract, or its merge audit.
+
 ## Automatic actions
 
 - Inventory every source and version; record owner, access method, coverage,
@@ -29,8 +33,10 @@
   both directions, unmatched-record characterization, and remediation.
 - `docs/entry_exit_report.md`: entry/exit tables or figures, coverage changes,
   and implications for the usable panel.
-- Numbered build scripts, a derived-data manifest, relevant Evidence cards, and
-  an updated `_status.md`.
+- Numbered build scripts that follow `references/python-standards.md`, a
+  derived-data manifest, and, for every analysis-ready export, the Parquet,
+  versioned contract, and merge audit required by `references/data-contract.md`.
+- Relevant Evidence cards and an updated `_status.md`.
 
 ## Red lines
 

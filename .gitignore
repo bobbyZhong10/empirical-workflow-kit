@@ -10,4 +10,5 @@ __pycache__/
 tests/smoke/output/
 tests/smoke/*.parquet
 tests/smoke/invalid-contract.yaml
+tests/smoke/invalid-identity-contract.yaml
 tests/smoke/audits/

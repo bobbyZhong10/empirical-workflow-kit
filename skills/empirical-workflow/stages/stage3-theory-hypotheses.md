@@ -29,7 +29,7 @@
   each hypothesis, specification, sample, coefficient, and expected table or
   figure.
 - `docs/checkpoints/checkpoint_a.md`: complete Checkpoint A record with
-  evidence, pass/revise/pause outcome, and any authorized waiver.
+  evidence and a pass, revise, or pause outcome.
 - Evidence cards for material theory and design claims, decision-log entries
   for commitments or deviations, and an updated `_status.md`.
 
@@ -44,7 +44,7 @@
 
 ## Exit condition
 
-Checkpoint A passes or has an explicitly authorized recorded waiver. The
+Checkpoint A passes. A revise or pause outcome does not authorize Stage 4. The
 identifying assumption, null-interest test, alternatives, and locked
-hypothesis-to-estimate map are complete, and the status record authorizes
-Stage 4 with outstanding risks visible.
+hypothesis-to-estimate map are complete, and the status record authorizes Stage
+4 with outstanding risks visible.

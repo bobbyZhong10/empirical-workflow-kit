@@ -11,7 +11,9 @@
   current literature/method authorities.
 
 Read `references/identification-decision-tree.md` before choosing an estimator
-and `references/robustness-checklists.md` before planning diagnostics.
+and `references/robustness-checklists.md` before planning diagnostics. Read
+`references/data-contract.md` and `references/r-standards.md` before consuming
+analysis data or running R validation, construction, diagnostics, or estimation.
 
 ## Automatic actions
 

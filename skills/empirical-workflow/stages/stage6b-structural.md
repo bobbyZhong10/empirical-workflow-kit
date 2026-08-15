@@ -8,6 +8,10 @@
 - The current status, decision-log tail, relevant Evidence cards, and method
   authorities for estimation and inference.
 
+Read `references/data-contract.md` before consuming analysis data. If the
+structural branch uses R, read `references/r-standards.md` before validation,
+construction, diagnostics, or estimation.
+
 ## Automatic actions
 
 - State agents, choice sets, information, timing, objectives, equilibrium, and

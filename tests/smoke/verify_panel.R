@@ -1,8 +1,8 @@
 #!/usr/bin/env Rscript
 
 args <- commandArgs(trailingOnly = TRUE)
-if (length(args) != 1) {
-  stop("Usage: Rscript tests/smoke/verify_panel.R CONTRACT_PATH", call. = FALSE)
+if (!(length(args) %in% c(2, 3))) {
+  stop("Usage: Rscript tests/smoke/verify_panel.R CONTRACT_PATH PROJECT_CONFIG_PATH [DIAGNOSTIC_PATH]", call. = FALSE)
 }
 
 required_packages <- c("arrow", "yaml", "fixest", "modelsummary")
@@ -55,19 +55,37 @@ matches_contract_type <- function(value, expected) {
   )
 }
 
-validate_contract <- function(contract_path) {
+validate_contract <- function(contract_path, project_config_path) {
   contract <- tryCatch(yaml::read_yaml(contract_path), error = function(error) fail_contract())
+  project_config <- tryCatch(yaml::read_yaml(project_config_path), error = function(error) fail_contract())
   required_contract_fields <- c(
-    "data_version", "produced_at_utc", "producing_script", "dataset_path", "data_hash",
+    "project_name", "data_version", "produced_at_utc", "producing_script", "dataset_path", "data_hash",
     "source_versions", "observation_unit", "time_granularity", "primary_key", "row_count",
     "unit_count", "period_count", "required_fields", "field_types", "missingness",
     "value_ranges", "merge_audit", "merge_rates"
   )
   contract_assert(is.list(contract) && all(required_contract_fields %in% names(contract)))
-  contract_assert(is_nonempty_string(contract$data_version) && is_nonempty_string(contract$produced_at_utc) &&
+  contract_assert(is_nonempty_string(contract$project_name) && is_nonempty_string(contract$data_version) &&
+    is_nonempty_string(contract$produced_at_utc) &&
     is_nonempty_string(contract$producing_script) && is_nonempty_string(contract$dataset_path) &&
     length(contract$source_versions) > 0 && is_nonempty_string(contract$observation_unit) &&
     is_nonempty_string(contract$time_granularity) && is_count(contract$row_count))
+
+  required_project_fields <- c("project_name", "observation_unit", "analysis_input_contract")
+  contract_assert(is.list(project_config) && all(required_project_fields %in% names(project_config)) &&
+    is_nonempty_string(project_config$project_name) && is_nonempty_string(project_config$observation_unit) &&
+    is.list(project_config$analysis_input_contract))
+  expected_identity <- project_config$analysis_input_contract
+  required_identity_fields <- c("data_version", "dataset_path", "producing_script", "time_granularity", "primary_key")
+  contract_assert(all(required_identity_fields %in% names(expected_identity)) &&
+    all(vapply(expected_identity[required_identity_fields[1:4]], is_nonempty_string, logical(1))) &&
+    is.character(expected_identity$primary_key) && length(expected_identity$primary_key) > 0)
+  contract_assert(identical(contract$project_name, project_config$project_name) &&
+    identical(contract$observation_unit, project_config$observation_unit) &&
+    identical(contract$data_version, expected_identity$data_version) &&
+    identical(contract$dataset_path, expected_identity$dataset_path) &&
+    identical(contract$producing_script, expected_identity$producing_script) &&
+    identical(contract$time_granularity, expected_identity$time_granularity))
   contract_assert(is.list(contract$data_hash) && identical(contract$data_hash$algorithm, "sha256") && is_nonempty_string(contract$data_hash$value))
   contract_assert(is.list(contract$merge_audit) && is_nonempty_string(contract$merge_audit$path) &&
     identical(contract$merge_audit$data_version, contract$data_version) &&
@@ -91,6 +109,7 @@ validate_contract <- function(contract_path) {
     is.logical(contract$primary_key$is_unique) && length(contract$primary_key$is_unique) == 1 &&
     is_count(contract$primary_key$duplicate_row_count))
   key_columns <- unlist(contract$primary_key$columns, use.names = FALSE)
+  contract_assert(identical(key_columns, unlist(expected_identity$primary_key, use.names = FALSE)))
   duplicated_count <- sum(duplicated(panel[key_columns]) | duplicated(panel[key_columns], fromLast = TRUE))
   contract_assert(duplicated_count == contract$primary_key$duplicate_row_count &&
     isTRUE(contract$primary_key$is_unique) == (duplicated_count == 0))
@@ -165,7 +184,38 @@ validate_contract <- function(contract_path) {
 }
 
 contract_path <- resolve_path(args[[1]])
-panel <- validate_contract(contract_path)
+project_config_path <- resolve_path(args[[2]])
+panel <- validate_contract(contract_path, project_config_path)
+
+output_dir <- file.path(project_root, "tests", "smoke", "output")
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+
+if (length(args) == 3) {
+  diagnostic_path <- resolve_path(args[[3]])
+  diagnostic <- tryCatch(yaml::read_yaml(diagnostic_path), error = function(error) fail_contract())
+  required_diagnostic_fields <- c(
+    "diagnostic_name", "status", "severity", "return_stage", "affected_artifacts", "options", "decision_needed"
+  )
+  contract_assert(is.list(diagnostic) && all(required_diagnostic_fields %in% names(diagnostic)) &&
+    is_nonempty_string(diagnostic$diagnostic_name) && is_nonempty_string(diagnostic$status))
+  if (identical(diagnostic$status, "failed")) {
+    pause_path <- file.path(output_dir, "identification_pause.md")
+    writeLines(
+      c(
+        "# Mandatory Pause: Failed Identifying Diagnostic",
+        "",
+        sprintf("- Trigger: %s failed with %s severity.", diagnostic$diagnostic_name, diagnostic$severity),
+        sprintf("- Affected artifacts: %s", paste(unlist(diagnostic$affected_artifacts), collapse = ", ")),
+        sprintf("- Required backtrack: %s", diagnostic$return_stage),
+        sprintf("- Options: %s", paste(unlist(diagnostic$options), collapse = " | ")),
+        sprintf("- Decision needed: %s", diagnostic$decision_needed),
+        "- Formal estimation status: blocked"
+      ),
+      pause_path
+    )
+    stop("Failed identifying diagnostic: formal analysis blocked", call. = FALSE)
+  }
+}
 
 sunab <- getFromNamespace("sunab", "fixest")
 model <- fixest::feols(
@@ -177,8 +227,6 @@ if (model$nobs != nrow(panel) || !all(c("firm_id", "year_qtr") %in% names(model$
   stop("Model verification failed", call. = FALSE)
 }
 
-output_dir <- file.path(project_root, "tests", "smoke", "output")
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 output_path <- file.path(output_dir, "smoke_table.md")
 note <- sprintf(
   "Note: Simulated data. N = %d. Fixed effects: firm and quarter. Clustering: firm (%d clusters).",

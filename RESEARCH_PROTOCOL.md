@@ -10,8 +10,11 @@ move between them, without changing the research record or the red lines.
 ## Source of truth and handoff
 
 The repository is the source of truth. Keep the active project configuration in
-`research.yaml`, the running decisions in `decision-log.md`, and the current
-stage status in the project's status artifact. A handoff records the completed
+`research.yaml`, the running decisions in the append-only `decision-log.md`,
+and the current stage status in the project's replaceable status artifact.
+`decision-log.md` is the sole append-only project history; status, handoff, and
+evidence artifacts are versioned records or current snapshots rather than
+parallel decision histories. A handoff records the completed
 stage, artifacts changed, open risks, next action, and any pause that remains
 unresolved. Raw data is never overwritten: preserve the received source and
 write cleaned or derived data to separate, documented artifacts. Conversation
@@ -59,7 +62,7 @@ make execution order clear, and each script has one plainly stated purpose.
 Checkpoints are gates. They require the specified evidence, a status update,
 and a decision to proceed, revise, or pause. A failed checkpoint returns work
 to the relevant earlier stage rather than being converted into a caveat at the
-end of the workflow.
+end of the workflow. Only a passing checkpoint authorizes the next stage.
 
 ## Specification discipline
 
