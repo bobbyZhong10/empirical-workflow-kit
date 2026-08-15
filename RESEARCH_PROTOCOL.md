@@ -13,7 +13,9 @@ The repository is the source of truth. Keep the active project configuration in
 `research.yaml`, the running decisions in `decision-log.md`, and the current
 stage status in the project's status artifact. A handoff records the completed
 stage, artifacts changed, open risks, next action, and any pause that remains
-unresolved. Conversation context is never a substitute for these files.
+unresolved. Raw data is never overwritten: preserve the received source and
+write cleaned or derived data to separate, documented artifacts. Conversation
+context is never a substitute for these files.
 
 ## Roles
 
@@ -39,6 +41,9 @@ Pause work and request a recorded decision before a material design change, a
 failed identifying diagnostic, a post-result specification, or external
 publication or submission. The pause note must state what triggered it, which
 artifacts are affected, options considered, and the decision needed to resume.
+Changes to the main specification, estimation sample, clustering level, or
+identifying strategy require a Mandatory pause and a recorded decision before
+execution.
 
 ## Stage interface
 
@@ -46,7 +51,8 @@ Each stage consumes named upstream artifacts and produces named downstream
 artifacts. Before starting, confirm the required inputs and constraints in
 `research.yaml`; before completing, record outputs, validation performed,
 remaining risks, and the next stage. Do not treat a stage as complete merely
-because code ran.
+because code ran. Research scripts are numbered and direct: their filenames
+make execution order clear, and each script has one plainly stated purpose.
 
 ## Checkpoints
 

@@ -46,7 +46,7 @@ turn.
 
 ## Development
 
-Install test dependencies in a repository-local environment with
+Install test dependencies (`pytest` and PyYAML) in a repository-local environment with
 `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt`.
 Run the workflow contract tests with
 `.venv/bin/python -m pytest tests/test_workflow_contract.py -q`.
