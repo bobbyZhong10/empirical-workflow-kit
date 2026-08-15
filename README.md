@@ -49,7 +49,9 @@ cp RESEARCH_PROTOCOL.md /path/to/project/RESEARCH_PROTOCOL.md
 cp research.example.yaml /path/to/project/research.yaml
 cp CLAUDE.md /path/to/project/CLAUDE.md  # Claude Code adapter
 cp AGENTS.md /path/to/project/AGENTS.md  # Codex adapter
+mkdir -p /path/to/project/.claude/skills /path/to/project/.codex/skills
 cp -r skills/empirical-workflow /path/to/project/.claude/skills/
+cp -r skills/empirical-workflow /path/to/project/.codex/skills/
 ```
 
 User level, available in every project:
@@ -63,6 +65,12 @@ files are loaded only when the stage runs. This is the reason the kit is split
 rather than written as one large instruction file: a long always loaded file
 dilutes attention across the whole session and pays a context cost on every
 turn.
+
+For Codex, install the repository skill at
+`.codex/skills/empirical-workflow/SKILL.md` using the second copy command
+above, then start Codex from the project root. `AGENTS.md` instructs Codex to
+load the `empirical-workflow` skill; the discovered skill's router selects the
+current stage. Claude Code uses the corresponding `.claude/skills/` copy.
 
 ## Bootstrap and handoff
 
@@ -83,8 +91,11 @@ project and converting a v1 `_status.md` record.
 
 Install test dependencies (`pytest` and PyYAML) in a repository-local environment with
 `python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt`.
-Run the workflow contract tests with
-`.venv/bin/python -m pytest tests/test_workflow_contract.py -q`.
+Run the workflow contract tests with the project-local command:
+
+```bash
+bash tests/run_contract_tests.sh
+```
 
 ### Python-R smoke test
 
@@ -97,6 +108,11 @@ event-study model, and writes a simulated-results table.
 ```bash
 bash tests/smoke/run_smoke.sh
 ```
+
+The runner starts from the repository root and automatically prepends a
+repository-local `.r-lib/` to `R_LIBS` when it exists. This makes the documented
+command work with a project-local R package installation; otherwise install the
+listed R packages in the active R library. Python 3 must provide PyArrow.
 
 The command intentionally invokes the R verifier a second time with an invalid
 contract. That invocation must stop with `Data contract validation failed`; the

@@ -30,6 +30,11 @@ silently replace old results; version any regenerated artifact.
    `skills/empirical-workflow/`, and the adapter for each intended runtime.
 2. Copy `CLAUDE.md` when using Claude Code and `AGENTS.md` when using Codex.
    Keep both if the project will switch runtimes.
+   Install the skill in the runtime-specific location: copy it to
+   `.claude/skills/empirical-workflow/` for Claude Code and to
+   `.codex/skills/empirical-workflow/` for Codex. Start Codex from the project
+   root so it discovers `SKILL.md`; `AGENTS.md` then routes empirical work to
+   the `empirical-workflow` skill.
 3. Create `_status.md`, `decision-log.md`, and the appropriate evidence-card
    directory from the included templates. Fill `research.yaml` before work
    begins.
@@ -66,6 +71,25 @@ The receiving runtime reads these artifacts in order before it continues:
 
 The runtime then continues the current stage. It must not infer missing project
 facts from the preceding Claude Code or Codex conversation.
+
+## Reproducible validation
+
+Run static workflow contracts through the repository-local virtual environment:
+
+```bash
+bash tests/run_contract_tests.sh
+```
+
+Run the Python-R smoke test with one command:
+
+```bash
+bash tests/smoke/run_smoke.sh
+```
+
+The smoke runner resolves the repository root and automatically uses `.r-lib/`
+when present. It otherwise uses the active R library, which must contain
+`arrow`, `yaml`, `fixest`, and `modelsummary`; the active Python 3 must contain
+PyArrow.
 
 ## Approved-specification coverage
 
