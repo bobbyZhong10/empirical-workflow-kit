@@ -30,7 +30,8 @@ Each claim revision has two axes:
 - `assessment`: `supported | challenged | unresolved`.
 
 `unresolved` is the initial state for a claim without live supporting evidence,
-and is restored when every supporting evidence relation is withdrawn or stale.
+and is restored when every supporting evidence relation is withdrawn. Stale
+availability never changes assessment.
 `stale` cannot be set or cleared manually.
 
 Evidence cards remain execution artifacts. They record
@@ -49,8 +50,11 @@ source artifact, source locator, paper locations, `derived_from`, and
    pipeline only. A declared reconciliation block is the sole exception:
    `cross_pipeline: reconciliation` plus its spanned pipeline list is required.
 3. Superseding a pipeline derives `stale` for every bound claim revision,
-   reported figure, and output artifact until valid revalidation or an explicit
-   reconciliation reference exists.
+   reported figure, and output artifact until valid revalidation occurs.
+
+A reconciliation block is an exception to output pipeline uniformity only. It
+may quote a stale revision as a historical result, but never restores its
+availability or permits it as a current claim.
 
 Pipeline-replacement stale may be cleared by revalidation. Semantic-correction
 stale may not be cleared by machine comparison.
@@ -72,7 +76,7 @@ revalidation:
 
 A submission export accepts `current + supported` claims. It accepts
 `current + challenged` claims only when every challenge has a disclosed,
-adjacent paper location. It rejects stale, superseded, withdrawn, and
+adjacent paper location. It rejects stale, superseded, retired, withdrawn, and
 unresolved claims, and any mixed-pipeline output outside a declared
 reconciliation block.
 
@@ -125,13 +129,15 @@ gate_evaluation:
 Allowed statuses are `passed | triggered | satisfied | released | moot |
 not_evaluated | inapplicable`. Incomplete coverage is treated as
 `not_evaluated`. `satisfied` requires both the compensation artifact and
-`accepted_by` plus `accepted_at`. `released` requires the triggering claim
-revision, reason, authorization, pre/post-result marker, evidence, and any
-remaining compensation disposition. `moot` is derived only from a linked claim
-withdrawal and records that withdrawal revision.
+`accepted_by` plus `accepted_at`. `released` requires the triggering change
+record, reason, authorization, pre/post-result marker, evidence, and any
+remaining compensation disposition. The triggering change may concern a claim,
+dataset, or pipeline stage. `moot` is derived only from retirement of an object
+to which the gate applies and records that retirement change.
 
 Checkpoint C blocks unresolved `triggered`, `not_evaluated`, incomplete, or
-unaccepted `satisfied` evaluations. It reports post-hoc and released gates.
+unaccepted `satisfied` evaluations, and any incomplete `released` record. It
+reports post-hoc declarations and complete released gates.
 
 ## Data semantics and applicability
 
@@ -160,8 +166,12 @@ semantic_fact:
 
 Verification cards for semantic facts may use raw fields and semantic facts,
 but never derived fields. This makes the semantic layer a graph bottom layer.
-Every used field must have exactly one semantic revision covering every point
-of the analysis window. Coverage gaps or overlaps block analysis.
+At every point in the analysis window, every used field must have exactly one
+valid semantic revision. Coverage gaps or overlaps block analysis. If more
+than one revision is valid across the full analysis window, the system creates
+a mandatory disclosure item and challenges dependent claims unless an authored
+semantic-equivalence decision declares the definitions interchangeable for the
+analysis.
 
 Derived fields reference fact keys, not bare field names. They have
 `verified | unverified | defective` status and known defects. A defective
@@ -194,8 +204,9 @@ logs:
    evidence cards, and claim revisions.
 3. For superseded pipelines, propagate stale to claim revisions, reported
    figures, and output artifacts.
-4. For defective derived fields, add challenged assessment reasons to dependent
-   claims unless they are already stale.
+4. For defective derived fields or required semantic-change disclosures, add
+   challenged assessment reasons to dependent claims unless they are already
+   stale.
 5. For withdrawn claims, derive moot state for linked gate evaluations.
 6. Recompute publication eligibility from availability, assessment, disclosure,
    gate, and output-pipeline invariants.
@@ -203,3 +214,17 @@ logs:
 Semantic or pipeline stale reasons remain distinguishable. Only pipeline stale
 may use machine revalidation; semantic-correction stale requires a human,
 evidence-backed reassessment.
+
+## Validator-first implementation requirement
+
+The first v2.1 implementation deliverable is `validate_registry`. It reads all
+registries and produces machine-readable Checkpoint B/C blocking reports. It
+must validate required fields, semantic coverage, semantic bottom-layer
+dependencies, graph acyclicity, pipeline and output invariants, gate timing,
+gate coverage and closure, cascade results, and publication eligibility.
+
+Its smoke fixtures must cover: pipeline supersession deriving stale and
+rejecting export; machine revalidation restoring availability without changing
+assessment; semantic correction requiring human reassessment; multi-revision
+semantic-window disclosure; incomplete release blocking Checkpoint C;
+cross-runtime handoff recovery; and a failed identification diagnostic.
