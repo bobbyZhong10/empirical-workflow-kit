@@ -1,0 +1,14 @@
+project_name: example_platform_adoption
+target_outlets: [Management Science, ISR, MISQ]
+reference_pools: [UTD24, FT50, TopEcon, JAIS, IJRM]
+research_domain: platform_and_firm_panel_causal
+observation_unit: firm_quarter
+analysis_languages:
+  etl: python
+  estimation: r
+allowed_designs: [fixed_effects, did, event_study, ddd, iv, rdd]
+autonomy_mode: complete_with_red_lines
+current_stage: stage_1_data_infrastructure
+primary_data_format: parquet
+conversation_language: Chinese
+artifact_language: English

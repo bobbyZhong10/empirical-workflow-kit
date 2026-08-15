@@ -7,7 +7,9 @@ MISQ, and Management Science.
 ## Contents
 
 ```
-CLAUDE.md                                execution rules and red lines, always loaded
+RESEARCH_PROTOCOL.md                     portable execution rules and red lines
+research.example.yaml                    project start card; rename to research.yaml
+CLAUDE.md                                Claude Code adapter, always loaded
 skills/empirical-workflow/
 ├── SKILL.md                             stage router, checkpoints, backtracking
 ├── stages/                              one file per stage, loaded on demand
@@ -17,10 +19,16 @@ skills/empirical-workflow/
 
 ## Install
 
-Project level:
+At the project level, copy the portable protocol, one or both adapters,
+`research.example.yaml` renamed to `research.yaml`, and the skill directory.
+The same project can move between Claude Code and Codex: retain the protocol,
+configuration, decision records, and skills, then use the adapter for the tool
+currently running it.
 
 ```
-cp CLAUDE.md /path/to/project/CLAUDE.md
+cp RESEARCH_PROTOCOL.md /path/to/project/RESEARCH_PROTOCOL.md
+cp research.example.yaml /path/to/project/research.yaml
+cp CLAUDE.md /path/to/project/CLAUDE.md  # Claude Code adapter
 cp -r skills/empirical-workflow /path/to/project/.claude/skills/
 ```
 
@@ -35,6 +43,13 @@ files are loaded only when the stage runs. This is the reason the kit is split
 rather than written as one large instruction file: a long always loaded file
 dilutes attention across the whole session and pays a context cost on every
 turn.
+
+## Development
+
+Install test dependencies in a repository-local environment with
+`python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt`.
+Run the workflow contract tests with
+`.venv/bin/python -m pytest tests/test_workflow_contract.py -q`.
 
 ## Design decisions worth knowing before editing
 
