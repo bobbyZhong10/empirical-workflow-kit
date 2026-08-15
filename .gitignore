@@ -1,0 +1,11 @@
+.DS_Store
+.Rhistory
+.RData
+.RDataTmp*
+.worktrees/
+.superpowers/
+__pycache__/
+.pytest_cache/
+tests/smoke/output/
+tests/smoke/*.parquet
+tests/smoke/invalid-contract.yaml
