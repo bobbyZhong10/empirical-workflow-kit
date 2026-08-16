@@ -31,5 +31,6 @@ gate_evaluations:
     evaluated_scope: selected observations
     complete: true
   evidence_card: EC-gate
-  observed_value: complete
+  observed_value: 2.0
+  observed_locator: estimate
 changes: []

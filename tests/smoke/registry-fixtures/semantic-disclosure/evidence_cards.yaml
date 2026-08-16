@@ -1,7 +1,9 @@
 evidence_cards:
-  - evidence_card_id: EC-1
-    pipeline_id: p1
-    provenance: confirmatory
-    status: current
-    depends_on:
-      - {kind: derived_field, id: outcome_scaled}
+- evidence_card_id: EC-1
+  pipeline_id: p1
+  provenance: confirmatory
+  status: current
+  depends_on:
+  - kind: derived_field
+    id: outcome_scaled
+  source_artifact: results/{pipeline_id}.json

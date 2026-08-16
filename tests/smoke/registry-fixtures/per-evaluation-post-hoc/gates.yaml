@@ -31,7 +31,8 @@ gate_evaluations:
     evaluated_scope: all observations
     complete: true
   evidence_card: EC-gate
-  observed_value: complete
+  observed_value: 2.0
+  observed_locator: estimate
 - gate_id: G-1
   pipeline_id: p2
   evaluated_against:
@@ -43,4 +44,5 @@ gate_evaluations:
     evaluated_scope: all observations
     complete: true
   evidence_card: EC-gate-p2
-  observed_value: complete
+  observed_value: 2.005
+  observed_locator: estimate

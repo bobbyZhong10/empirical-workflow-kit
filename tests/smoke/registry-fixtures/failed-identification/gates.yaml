@@ -31,4 +31,5 @@ gate_evaluations:
     evaluated_scope: all identification diagnostics
     complete: true
   evidence_card: EC-gate
-  observed_value: pass
+  observed_value: 2.0
+  observed_locator: estimate

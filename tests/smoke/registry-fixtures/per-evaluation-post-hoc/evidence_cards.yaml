@@ -1,11 +1,13 @@
 evidence_cards:
-  - evidence_card_id: EC-gate
-    pipeline_id: p1
-    provenance: confirmatory
-    status: current
-    depends_on: []
-  - evidence_card_id: EC-gate-p2
-    pipeline_id: p2
-    provenance: confirmatory
-    status: current
-    depends_on: []
+- evidence_card_id: EC-gate
+  pipeline_id: p1
+  provenance: confirmatory
+  status: current
+  depends_on: []
+  source_artifact: results/{pipeline_id}.json
+- evidence_card_id: EC-gate-p2
+  pipeline_id: p2
+  provenance: confirmatory
+  status: current
+  depends_on: []
+  source_artifact: results/{pipeline_id}.json

@@ -1026,6 +1026,35 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 f"pipelines[{index}].first_formal_batch_at",
                 "must be an ISO timestamp",
             )
+    for index, card in enumerate(registry["evidence_cards"]):
+        if card.get("provenance") == "confirmatory" and not (
+            _nonempty_string(card.get("source_artifact"))
+            or isinstance(card.get("source_artifact"), dict)
+        ):
+            # An evidence card was a name, not a thing. Every number that hung
+            # off one -- a gate's observation, an assertion's sample size and
+            # significance -- was typed by hand and compared to nothing.
+            _schema_error(
+                blocking,
+                f"evidence_cards[{index}].source_artifact",
+                "a confirmatory evidence card must name the artifact its "
+                "numbers come from",
+            )
+        estimates = card.get("estimates")
+        if estimates is not None and not (
+            isinstance(estimates, dict)
+            and all(
+                isinstance(cell, dict)
+                and cell
+                and all(_nonempty_string(locator) for locator in cell.values())
+                for cell in estimates.values()
+            )
+        ):
+            _schema_error(
+                blocking,
+                f"evidence_cards[{index}].estimates",
+                "must map an estimate name to a mapping of field locators",
+            )
     for index, relation in enumerate(registry["evidence_relations"]):
         if relation.get("relation") in {"challenges", "bounds"} and (
             relation.get("bears_on") not in RELATION_BEARS_ON
@@ -1103,6 +1132,35 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 blocking,
                 f"evidence_cards[{index}].machine_comparison",
                 "requires exactly source and destination evidence-card references",
+            )
+    for index, card in enumerate(registry["evidence_cards"]):
+        if card.get("provenance") == "confirmatory" and not (
+            _nonempty_string(card.get("source_artifact"))
+            or isinstance(card.get("source_artifact"), dict)
+        ):
+            # An evidence card was a name, not a thing. Every number that hung
+            # off one -- a gate's observation, an assertion's sample size and
+            # significance -- was typed by hand and compared to nothing.
+            _schema_error(
+                blocking,
+                f"evidence_cards[{index}].source_artifact",
+                "a confirmatory evidence card must name the artifact its "
+                "numbers come from",
+            )
+        estimates = card.get("estimates")
+        if estimates is not None and not (
+            isinstance(estimates, dict)
+            and all(
+                isinstance(cell, dict)
+                and cell
+                and all(_nonempty_string(locator) for locator in cell.values())
+                for cell in estimates.values()
+            )
+        ):
+            _schema_error(
+                blocking,
+                f"evidence_cards[{index}].estimates",
+                "must map an estimate name to a mapping of field locators",
             )
     for index, relation in enumerate(registry["evidence_relations"]):
         if _as_date(relation.get("date")) is None:
@@ -2644,6 +2702,61 @@ def _resolve_artifact_locator(registry: dict, source: dict) -> float:
     return value
 
 
+def _card_artifact(card: dict) -> str | None:
+    """The artifact a card's numbers come from, resolved for its pipeline."""
+
+    spec = card.get("source_artifact")
+    pipeline_id = str(card.get("pipeline_id"))
+    if isinstance(spec, dict):
+        spec = spec.get(pipeline_id)
+    if not isinstance(spec, str) or not spec:
+        return None
+    return spec.replace("{pipeline_id}", pipeline_id)
+
+
+def _resolve_card_cell(registry: dict, card: dict, locator: Any) -> Any:
+    """Read one value out of the artifact a card names."""
+
+    artifact = _card_artifact(card)
+    if artifact is None:
+        raise ValueError(
+            f"evidence card {card.get('evidence_card_id')} names no source_artifact"
+        )
+    if not _nonempty_string(locator):
+        raise ValueError("a locator is required to read a value from the artifact")
+    return _resolve_artifact_locator(
+        registry, {"artifact": artifact, "locator": locator}
+    )
+
+
+def _resolve_estimate_reference(
+    registry: dict, cards: dict, estimate_id: Any
+) -> dict[str, Any]:
+    """Resolve `<evidence_card_id>#<cell>` to the numbers the artifact holds.
+
+    An evidence card used to be a name. Every number hanging off it -- a gate's
+    observation, an assertion's sample size and significance -- was typed by
+    hand and compared to nothing.
+    """
+
+    card_id, _, cell = str(estimate_id).partition("#")
+    card = cards.get(card_id)
+    if card is None:
+        raise ValueError(f"unknown evidence card {card_id}")
+    estimates = card.get("estimates")
+    if not isinstance(estimates, dict) or cell not in estimates:
+        raise ValueError(
+            f"evidence card {card_id} declares no estimate named {cell!r}"
+        )
+    declared = estimates[cell]
+    if not isinstance(declared, dict):
+        raise ValueError(f"estimate {cell!r} must be a mapping of locators")
+    resolved: dict[str, Any] = {}
+    for field, locator in declared.items():
+        resolved[field] = _resolve_card_cell(registry, card, locator)
+    return resolved
+
+
 def _apply_revalidation_record(
     registry: dict,
     state: dict,
@@ -3235,6 +3348,60 @@ def _gate_checks(
         # `triggered` -> `passed` was a one-word edit.
         if status in {"passed", "triggered", "satisfied"}:
             observed = evaluation.get("observed_value")
+            # The observation is the whole point of a gate, so it is read from
+            # the artifact rather than taken on the author's word. Requiring
+            # only that a number be present made the gate falsifiable in
+            # principle and self-reported in practice.
+            card = cards.get(str(evaluation.get("evidence_card")))
+            locator = evaluation.get("observed_locator")
+            if card is not None and _card_artifact(card) is not None:
+                if not _nonempty_string(locator):
+                    blocking.append(
+                        _issue(
+                            "GATE_OBSERVATION_UNGROUNDED",
+                            gate_id=gate_id,
+                            pipeline_id=pipeline_id,
+                            detail=(
+                                "observed_locator must name where in the "
+                                "evidence card's artifact the observation is read"
+                            ),
+                        )
+                    )
+                else:
+                    try:
+                        resolved = _resolve_card_cell(registry, card, locator)
+                    except (
+                        OSError, UnicodeError, ValueError, KeyError, TypeError
+                    ) as error:
+                        blocking.append(
+                            _issue(
+                                "GATE_OBSERVATION_UNRESOLVED",
+                                gate_id=gate_id,
+                                pipeline_id=pipeline_id,
+                                detail=str(error),
+                            )
+                        )
+                    else:
+                        if not (
+                            isinstance(observed, (int, float))
+                            and not isinstance(observed, bool)
+                            and math.isclose(
+                                float(observed),
+                                float(resolved),
+                                rel_tol=1e-9,
+                                abs_tol=1e-12,
+                            )
+                        ):
+                            blocking.append(
+                                _issue(
+                                    "GATE_OBSERVATION_MISMATCH",
+                                    gate_id=gate_id,
+                                    pipeline_id=pipeline_id,
+                                    declared=observed,
+                                    artifact_value=resolved,
+                                )
+                            )
+                        observed = resolved
             if observed is None:
                 blocking.append(
                     _issue(
@@ -5038,6 +5205,70 @@ def _writing_strength_checks(
                     registry, state, claim, estimate_id
                 )
             )
+            if precision_reference_valid and precision_evidence is not None:
+                # The sample size and the significance level are properties of
+                # the estimate, not of the author's memory. When the card says
+                # where they live, they are read and compared.
+                try:
+                    measured = _resolve_estimate_reference(
+                        registry,
+                        _id_map(
+                            registry.get("evidence_cards", []), "evidence_card_id"
+                        ),
+                        estimate_id,
+                    )
+                except (
+                    OSError, UnicodeError, ValueError, KeyError, TypeError
+                ) as error:
+                    measured = {}
+                    # A card that declares where its numbers live must be able
+                    # to produce the one this site cites; otherwise the site is
+                    # pointing at nothing and nothing is compared.
+                    if precision_evidence.get("estimates"):
+                        blocking.append(
+                            _issue(
+                                "UNDERLYING_PRECISION_UNRESOLVED",
+                                estimate_id=estimate_id,
+                                detail=str(error),
+                                **identity,
+                            )
+                        )
+                declared_n = precision.get("n")
+                if (
+                    "n" in measured
+                    and isinstance(declared_n, (int, float))
+                    and not isinstance(declared_n, bool)
+                    and int(measured["n"]) != int(declared_n)
+                ):
+                    blocking.append(
+                        _issue(
+                            "UNDERLYING_PRECISION_CONTRADICTED",
+                            field="n",
+                            declared=declared_n,
+                            artifact_value=measured["n"],
+                            **identity,
+                        )
+                    )
+                declared_level = precision.get("significant_at")
+                if (
+                    "p_value" in measured
+                    and isinstance(declared_level, (int, float))
+                    and not isinstance(declared_level, bool)
+                    and float(measured["p_value"]) > float(declared_level)
+                ):
+                    blocking.append(
+                        _issue(
+                            "UNDERLYING_PRECISION_CONTRADICTED",
+                            field="significant_at",
+                            declared=declared_level,
+                            artifact_value=measured["p_value"],
+                            detail=(
+                                "the estimate does not reach the significance "
+                                "level the site claims for it"
+                            ),
+                            **identity,
+                        )
+                    )
             if not precision_reference_valid:
                 blocking.append(
                     _issue(

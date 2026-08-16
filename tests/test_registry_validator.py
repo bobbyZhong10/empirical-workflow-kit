@@ -53,6 +53,14 @@ def base_registry() -> dict:
                     "pipeline_id": "p1",
                     "provenance": "confirmatory",
                     "status": "current",
+                    "source_artifact": "results/{pipeline_id}.json",
+                    "estimates": {
+                        "theta": {
+                            "value": "estimate",
+                            "n": "n",
+                            "p_value": "p_value",
+                        }
+                    },
                     "depends_on": [{"kind": "raw_field", "id": "outcome"}],
                     "comparison_endpoint": {
                         "artifact": "comparison/p1.yaml",
@@ -130,7 +138,8 @@ def base_registry() -> dict:
                     "pipeline_id": "p1",
                     "evaluated_against": {"kind": "claim_key", "id": "H1"},
                     "status": "passed",
-                    "observed_value": "pass",
+                    "observed_value": 2.0,
+                    "observed_locator": "estimate",
                     "coverage": {
                         "declared_scope": "all observations",
                         "evaluated_scope": "all observations",
@@ -188,8 +197,16 @@ def write_registry(root: Path, registry: dict | None = None) -> Path:
     results = root / "results"
     results.mkdir(exist_ok=True)
     for name, payload in (
-        ("p1.json", '{"estimate": 2.0, "percent": 200.0, "other": 3.0}\n'),
-        ("p2.json", '{"estimate": 2.005, "percent": 200.5, "other": 3.0}\n'),
+        (
+            "p1.json",
+            '{"estimate": 2.0, "percent": 200.0, "other": 3.0, '
+            '"n": 1000, "p_value": 0.01}\n',
+        ),
+        (
+            "p2.json",
+            '{"estimate": 2.005, "percent": 200.5, "other": 3.0, '
+            '"n": 1000, "p_value": 0.01}\n',
+        ),
     ):
         (results / name).write_text(payload, encoding="utf-8")
     paper = root / "paper"
@@ -280,6 +297,7 @@ def add_destination_evidence(registry: dict, claim_id: str = "H1.r1") -> None:
             "evidence_card_id": "EC-2",
             "pipeline_id": "p2",
             "provenance": "confirmatory",
+            "source_artifact": "results/{pipeline_id}.json",
             "status": "current",
             "depends_on": [{"kind": "raw_field", "id": "outcome"}],
             "comparison_endpoint": {
@@ -314,7 +332,13 @@ def add_destination_gate_evaluation(
 ) -> None:
     second_evaluation = copy.deepcopy(registry["gates"]["gate_evaluations"][0])
     second_evaluation.update(
-        {"pipeline_id": "p2", "evidence_card": "EC-2", "status": status}
+        {
+            "pipeline_id": "p2",
+            "evidence_card": "EC-2",
+            "status": status,
+            # The destination pipeline's artifact holds its own number.
+            "observed_value": 2.005,
+        }
     )
     registry["gates"]["gate_evaluations"].append(second_evaluation)
 
@@ -653,6 +677,7 @@ def test_claim_revision_bindings_must_come_from_one_pipeline(tmp_path):
             "evidence_card_id": "EC-2",
             "pipeline_id": "p2",
             "provenance": "confirmatory",
+            "source_artifact": "results/{pipeline_id}.json",
             "status": "current",
             "depends_on": [{"kind": "raw_field", "id": "outcome"}],
         }
@@ -735,6 +760,7 @@ def test_reconciliation_can_quote_stale_history_without_restoring_it(tmp_path):
             "evidence_card_id": "EC-2",
             "pipeline_id": "p2",
             "provenance": "confirmatory",
+            "source_artifact": "results/{pipeline_id}.json",
             "status": "current",
             "depends_on": [{"kind": "raw_field", "id": "outcome"}],
         }
@@ -1126,6 +1152,7 @@ def test_semantic_correction_stays_stale_after_machine_revalidation(tmp_path):
             "evidence_card_id": "EC-source",
             "pipeline_id": "p1",
             "provenance": "confirmatory",
+            "source_artifact": "results/{pipeline_id}.json",
             "status": "current",
             "depends_on": [{"kind": "raw_field", "id": "outcome"}],
             "comparison_endpoint": {
@@ -1436,6 +1463,7 @@ def _add_challenge(
             "pipeline_id": "p1",
             "provenance": provenance,
             "status": "current",
+            "source_artifact": "results/{pipeline_id}.json",
             "depends_on": [{"kind": "raw_field", "id": "outcome"}],
         }
     )
@@ -2074,6 +2102,7 @@ def test_dormant_machine_comparison_artifact_is_eagerly_resolved(tmp_path):
             "evidence_card_id": "EC-dormant",
             "pipeline_id": "p1",
             "provenance": "confirmatory",
+            "source_artifact": "results/{pipeline_id}.json",
             "status": "current",
             "depends_on": [],
             "comparison_endpoint": {
@@ -2272,6 +2301,7 @@ def test_claim_key_gate_requires_target_revision_on_evaluation_pipeline(tmp_path
             "evidence_card_id": "EC-p2",
             "pipeline_id": "p2",
             "provenance": "confirmatory",
+            "source_artifact": "results/{pipeline_id}.json",
             "status": "current",
             "depends_on": [],
         }
@@ -2589,6 +2619,7 @@ def test_supersedes_lineage_does_not_propagate_old_evidence_defects(tmp_path):
             "evidence_card_id": "EC-clean",
             "pipeline_id": "p1",
             "provenance": "confirmatory",
+            "source_artifact": "results/{pipeline_id}.json",
             "status": "current",
             "depends_on": [{"kind": "raw_field", "id": "outcome"}],
         }
@@ -4714,6 +4745,84 @@ def test_an_interval_band_requires_a_numeric_observation(tmp_path):
         load_registry(write_registry(tmp_path, registry)), "C"
     )
     assert "GATE_OBSERVATION_INVALID" in codes(report, "blocking")
+
+
+def test_a_confirmatory_evidence_card_must_name_its_artifact(tmp_path):
+    """An evidence card was a name, not a thing.
+
+    Every number that hung off one -- a gate's observation, an assertion's
+    sample size and significance -- was typed by hand and compared to nothing.
+    """
+
+    registry = base_registry()
+    del registry["evidence_cards"]["evidence_cards"][0]["source_artifact"]
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    locations = [
+        item.get("location")
+        for item in report["blocking"]
+        if item["code"] == "SCHEMA_INVALID"
+    ]
+    assert "evidence_cards[0].source_artifact" in locations
+
+
+def test_a_gate_observation_is_read_from_the_artifact(tmp_path):
+    """Requiring only that a number be present made the gate falsifiable in
+    principle and self-reported in practice."""
+
+    registry = _gate_registry(
+        base_registry(),
+        "passed",
+        observed_value=0.02,  # the artifact holds 2.0
+        observed_locator="estimate",
+    )
+    report = validate_registry(
+        load_registry(write_registry(tmp_path / "typed", registry)), "C"
+    )
+    assert "GATE_OBSERVATION_MISMATCH" in codes(report, "blocking")
+
+    registry = _gate_registry(base_registry(), "passed", observed_value=2.0)
+    report = validate_registry(
+        load_registry(write_registry(tmp_path / "unlocated", registry)), "C"
+    )
+    assert "GATE_OBSERVATION_UNGROUNDED" in codes(report, "blocking")
+
+
+def test_a_site_cannot_claim_a_sample_size_the_estimate_does_not_have(tmp_path):
+    site = assertion_site("site", section_role="results", declared_tier="T0")
+    site["underlying_precision"].update({"estimate_id": "EC-1#theta", "n": 999999})
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- site --> Treatment increases retention.\n",
+        base_registry(),
+    )
+    contradicted = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "UNDERLYING_PRECISION_CONTRADICTED"
+    ]
+    assert contradicted and contradicted[0]["field"] == "n"
+
+
+def test_a_site_cannot_claim_significance_the_estimate_does_not_reach(tmp_path):
+    site = assertion_site("site", section_role="results", declared_tier="T0")
+    site["underlying_precision"].update(
+        {"estimate_id": "EC-1#theta", "n": 1000, "significant_at": 0.001}
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- site --> Treatment increases retention.\n",
+        base_registry(),
+    )
+    contradicted = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "UNDERLYING_PRECISION_CONTRADICTED"
+    ]
+    assert contradicted and contradicted[0]["field"] == "significant_at"
 
 
 def test_a_gate_status_must_be_measured_against_its_band(tmp_path):
