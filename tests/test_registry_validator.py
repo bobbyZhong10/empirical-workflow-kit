@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 import yaml
 
-from tools.validate_registry import load_registry, main, validate_registry
+from tools.validate_registry import (
+    KIT_VERSION,
+    load_registry,
+    main,
+    validate_registry,
+)
 
 
 REGISTRY_FILES = (
@@ -151,6 +156,7 @@ def base_registry() -> dict:
             ],
         },
         "semantics": {
+            "kit_version": KIT_VERSION,
             "analysis_window": ["2024-01-01", "2024-12-31"],
             "used_fields": ["outcome"],
             "semantic_facts": [
@@ -4119,6 +4125,66 @@ def test_a_misfiled_negative_is_told_which_type_it_actually_is(tmp_path):
         if item["code"] == "NEGATIVE_POWER_BASIS_REQUIRED"
     ]
     assert misfiled and "suggested_assertion_type" in misfiled[0]
+
+
+SHARED_START = "<!-- shared-contract: generated, identical in CLAUDE.md and AGENTS.md -->"
+SHARED_END = "<!-- end-shared-contract -->"
+
+
+def _shared_contract(name: str) -> str:
+    body = (Path(__file__).resolve().parent.parent / name).read_text(encoding="utf-8")
+    start = body.index(SHARED_START)
+    end = body.index(SHARED_END) + len(SHARED_END)
+    return body[start:end]
+
+
+def test_both_runtimes_are_given_the_same_contract():
+    """Two runtimes, one workflow.
+
+    Claude reads CLAUDE.md and Codex reads AGENTS.md. If the two files drift,
+    the same project run by two people stops being the same project, and the
+    drift is invisible because nobody reads both. The shared block is generated
+    into both and compared here byte for byte; only the runtime notes below it
+    may differ.
+    """
+
+    claude = _shared_contract("CLAUDE.md")
+    codex = _shared_contract("AGENTS.md")
+    assert claude == codex, "the runtime adapters have drifted"
+
+    # The version in the adapters is the version the validator will enforce.
+    assert f"Workflow version: {KIT_VERSION}." in claude
+
+    # Both must send the reader to the protocol and to the same gate.
+    for required in (
+        "RESEARCH_PROTOCOL.md",
+        "skills/empirical-workflow/SKILL.md",
+        "tools/validate_registry.py",
+        "--checkpoint B",
+        "--checkpoint C",
+    ):
+        assert required in claude, required
+
+    # And they must differ where the runtimes genuinely differ.
+    assert "Codex has no skill mechanism" in (
+        Path(__file__).resolve().parent.parent / "AGENTS.md"
+    ).read_text(encoding="utf-8")
+
+
+def test_a_registry_names_the_workflow_version_that_judged_it(tmp_path):
+    registry = copy.deepcopy(base_registry())
+    registry["semantics"].pop("kit_version", None)
+    report = validate_registry(load_registry(write_registry(tmp_path / "bare", registry)), "C")
+    assert "KIT_VERSION_UNDECLARED" in codes(report, "blocking")
+
+    registry["semantics"]["kit_version"] = "0.1"
+    stale = validate_registry(load_registry(write_registry(tmp_path / "stale", registry)), "C")
+    assert "KIT_VERSION_MISMATCH" in codes(stale, "blocking")
+
+    registry["semantics"]["kit_version"] = KIT_VERSION
+    current = validate_registry(load_registry(write_registry(tmp_path / "ok", registry)), "C")
+    assert "KIT_VERSION_MISMATCH" not in codes(current, "blocking")
+    assert "KIT_VERSION" in codes(current, "reports")
 
 
 def test_the_mechanical_half_of_the_house_style_is_checked_not_remembered(tmp_path):

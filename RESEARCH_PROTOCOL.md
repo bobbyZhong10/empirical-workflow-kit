@@ -71,6 +71,27 @@ confirmatory work from exploration, label deviations, and record their
 rationale and timing in `decision-log.md`. Do not promote a result-dependent
 choice to the main specification without a Mandatory pause decision.
 
+## Runtime parity
+
+Two runtimes execute this workflow. What makes them the same workflow is not
+their instruction files but `tools/validate_registry.py`: the same registry
+produces the same verdict whoever runs it, and no instruction file can soften a
+check.
+
+- `CLAUDE.md` and `AGENTS.md` carry a generated block that is identical in both,
+  bounded by `<!-- shared-contract -->` markers. Only the runtime notes beneath
+  it may differ, and a test in the kit compares the two blocks byte for byte.
+- The workflow carries one version number, defined once in
+  `tools/validate_registry.py` and reported by
+  `python3 tools/validate_registry.py --version`.
+- Every registry records `kit_version`. The scaffold writes it; the validator
+  reports `KIT_VERSION_UNDECLARED` or `KIT_VERSION_MISMATCH` and blocks at
+  Checkpoint C, so a project cannot be carried forward under rules it was never
+  checked against, and a verdict always names the rules that produced it.
+
+A stage is complete when its checkpoint returns zero blocking findings. Report
+the count.
+
 ## Language
 
 **R is the default language for a project's empirical work**, end to end:

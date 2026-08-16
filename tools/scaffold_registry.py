@@ -26,6 +26,7 @@ from typing import Any
 
 try:  # script or module
     from validate_registry import (
+        KIT_VERSION,
         REGISTRY_FILES,
         _classify_assertion_text,
         _compiled_lexical_markers,
@@ -36,6 +37,7 @@ try:  # script or module
     )
 except ModuleNotFoundError:  # pragma: no cover - import shim
     from tools.validate_registry import (  # type: ignore[no-redef]
+        KIT_VERSION,
         REGISTRY_FILES,
         _classify_assertion_text,
         _compiled_lexical_markers,
@@ -53,6 +55,7 @@ SKELETONS: dict[str, str] = {
         "  - pipeline_id: p1\n"
         "    status: current\n"
         "    first_formal_batch_at: \"\"   # required: timestamp of the first formal batch\n"
+        f"kit_version: '{KIT_VERSION}'   # the workflow version this registry is judged by\n"
         "analysis_window: [\"\", \"\"]   # required: ISO start and end dates\n"
         "used_fields: []\n"
         "changes: []\n"

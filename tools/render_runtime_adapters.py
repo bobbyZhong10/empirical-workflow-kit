@@ -1,8 +1,22 @@
-# Codex Runtime Adapter
+"""Write CLAUDE.md and AGENTS.md from one shared body.
 
-<!-- shared-contract: generated, identical in CLAUDE.md and AGENTS.md -->
+Two runtimes read two files, and nobody reads both, so any drift between them
+is invisible until a project run by one runtime stops matching a project run by
+the other. The shared block is generated into both and compared byte for byte
+by ``tests/test_registry_validator.py``; only the runtime notes beneath it may
+differ.
 
-**Workflow version: 2.3.** Every project records `kit_version` in its
+    python3 tools/render_runtime_adapters.py
+"""
+
+from pathlib import Path
+import sys
+sys.path.insert(0, "tools")
+from validate_registry import KIT_VERSION
+
+SHARED = f"""<!-- shared-contract: generated, identical in CLAUDE.md and AGENTS.md -->
+
+**Workflow version: {KIT_VERSION}.** Every project records `kit_version` in its
 registry, and `tools/validate_registry.py` blocks at Checkpoint C when the two
 disagree. Check with `python3 tools/validate_registry.py --version`.
 
@@ -65,10 +79,31 @@ and result.
    relevant current evidence card, then the tail of `decision-log.md`.
 
 <!-- end-shared-contract -->
+"""
 
-## Runtime notes
+RUNTIMES = {
+    "CLAUDE.md": (
+        "# Claude Runtime Adapter",
+        """## Runtime notes
+
+Claude loads `skills/empirical-workflow/` as a skill and routes through its
+stage file. Claude keeps its reasoning in the conversation; nothing durable may
+live there. Where a task list is used it reflects the stages above, not a
+parallel plan.
+""",
+    ),
+    "AGENTS.md": (
+        "# Codex Runtime Adapter",
+        """## Runtime notes
 
 Codex has no skill mechanism. Read `skills/empirical-workflow/SKILL.md` and the
 stage files as ordinary repository files, by path. Keep project state in
 repository artifacts rather than in task context, and preserve unrelated
 working-tree changes while implementing the assigned task.
+""",
+    ),
+}
+
+for name, (title, notes) in RUNTIMES.items():
+    Path(name).write_text(f"{title}\n\n{SHARED}\n{notes}", encoding="utf-8")
+print("wrote", ", ".join(RUNTIMES))

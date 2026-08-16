@@ -179,6 +179,13 @@ UNEVALUATED_GATE_STATUSES = {"released", "moot", "inapplicable"}
 # world.
 ANALYTICAL_SITE_TYPES = {"model_internal", "hypothesis"}
 
+# The one place a version number lives. Two runtimes execute this workflow, and
+# the thing that makes them the same workflow is not their instruction files but
+# this program: whoever runs it, the same registry produces the same verdict.
+# A project records the version it was validated against, and a mismatch is a
+# finding rather than a silent difference in behaviour.
+KIT_VERSION = "2.3"
+
 DISCOVERY_MODES = {"enforce", "report"}
 # Parts a reader consumes on their own. A qualification met in the body is met
 # for the whole body, because the body is read in sequence; these three are
@@ -445,6 +452,7 @@ def load_registry(root: Path) -> dict:
     registry.update(
         {
             "analysis_window": None,
+            "kit_version": None,
             "used_fields": [],
             "gate_set_confirmation": None,
             "writing_strength": {},
@@ -497,6 +505,7 @@ def load_registry(root: Path) -> dict:
                     registry["_collection_sources"].setdefault(key, filename)
             elif key in {
                 "analysis_window",
+                "kit_version",
                 "used_fields",
                 "gate_set_confirmation",
                 "writing_strength",
@@ -6573,6 +6582,46 @@ STYLE_EXEMPT_ENVIRONMENTS = re.compile(
 )
 
 
+def _kit_version_checks(
+    registry: dict, checkpoint: str, blocking: list[dict], reports: list[dict]
+) -> None:
+    """Bind a registry to the version of the workflow that validated it.
+
+    Two runtimes run this kit. They read different instruction files and they
+    will drift; the validator is what they have in common. Recording which
+    version produced a verdict is what makes a later verdict comparable, and
+    what stops a project being carried forward under rules it was never checked
+    against.
+    """
+
+    declared = registry.get("kit_version")
+    if declared is None:
+        issue = _issue(
+            "KIT_VERSION_UNDECLARED",
+            running=KIT_VERSION,
+            detail=(
+                "record `kit_version` beside `analysis_window` so a verdict "
+                "names the rules that produced it"
+            ),
+        )
+        (blocking if checkpoint == "C" else reports).append(issue)
+        return
+    if str(declared) != KIT_VERSION:
+        issue = _issue(
+            "KIT_VERSION_MISMATCH",
+            declared=str(declared),
+            running=KIT_VERSION,
+            detail=(
+                "the registry was built against a different version of the "
+                "workflow; re-run every checkpoint and update the field, or "
+                "check out the version it names"
+            ),
+        )
+        (blocking if checkpoint == "C" else reports).append(issue)
+        return
+    reports.append(_issue("KIT_VERSION", version=KIT_VERSION))
+
+
 def _prose_style_checks(
     registry: dict, state: dict, blocking: list[dict], reports: list[dict]
 ) -> None:
@@ -7080,6 +7129,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
         derived,
         prevalidated_revalidations,
     )
+    _kit_version_checks(registry, checkpoint, blocking, reports)
     _attestation_checks(registry, state, checkpoint, blocking, reports)
     _gate_checks(registry, state, checkpoint, blocking, reports, derived)
     _figure_grounding_checks(registry, state, blocking)
@@ -7110,6 +7160,9 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("registry_dir", type=Path)
+    parser.add_argument(
+        "--version", action="version", version=f"empirical-workflow {KIT_VERSION}"
+    )
     parser.add_argument("--checkpoint", required=True, choices=("B", "C"))
     parser.add_argument("--format", choices=("text", "json"), default="text")
     return parser
@@ -7132,11 +7185,15 @@ def main(argv: list[str] | None = None) -> int:
             "derived": [],
             "state": {},
         }
+    report["kit_version"] = KIT_VERSION
     if args.format == "json":
         json.dump(report, sys.stdout, indent=2, sort_keys=True, default=str)
         sys.stdout.write("\n")
     else:
-        print(f"Checkpoint {report['checkpoint']}: {len(report['blocking'])} blocking issue(s)")
+        print(
+            f"empirical-workflow {KIT_VERSION} | checkpoint {report['checkpoint']}: "
+            f"{len(report['blocking'])} blocking issue(s)"
+        )
         for item in report["blocking"]:
             print(f"BLOCK {item['code']}: {json.dumps(item, sort_keys=True, default=str)}")
         for item in report["reports"]:
