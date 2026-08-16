@@ -87,6 +87,14 @@ REQUIRED_FIELDS: dict[str, tuple[str, ...]] = {
         "source_locator",
         "paper_locations",
     ),
+    # A derived figure is recomputed from its upstream figure and has no
+    # artifact of its own. Requiring one anyway forced the author to point it
+    # at some artifact -- any artifact -- which is how a fabricated derived
+    # value acquires an authoritative-looking provenance record.
+    "_derived_reported_figure_exempt": (
+        "source_artifact",
+        "source_locator",
+    ),
     "outputs": ("output_id", "kind", "status"),
     "gate_definitions": (
         "gate_id",
@@ -180,6 +188,27 @@ ASSERTION_SECTION_ROLES = {
     "robustness",
     "limitations",
 }
+# Why a claim was revised. This is an enumeration rather than free text because
+# the propagation rule keys on it: a narrowing must reach the title, abstract
+# and conclusion. While the reason was a free string, the rule was opt-in -- an
+# author who wrote "narrowed to trips into the zone" instead of
+# `bounded_by_population` disabled the check by phrasing. Choosing a
+# non-narrowing reason for a narrowing revision is now a recorded false
+# statement rather than a formatting choice.
+NARROWING_REVISION_REASONS = {
+    "bounded_by_population",     # the claim now covers fewer units
+    "bounded_by_period",         # ... fewer periods
+    "bounded_by_specification",  # ... survives only some specifications
+    "bounded_by_sensitivity",    # ... survives only some sensitivity analyses
+    "bounded_by_measurement",    # ... holds only under some measure
+}
+NON_NARROWING_REVISION_REASONS = {
+    "corrected",             # the previous revision was wrong
+    "restated",             # same content, different wording
+    "strengthened",         # the claim now covers more, with evidence
+    "rebound_to_pipeline",  # carried to a new analysis pipeline unchanged
+}
+CLAIM_REVISION_REASONS = NARROWING_REVISION_REASONS | NON_NARROWING_REVISION_REASONS
 ASSERTION_TIERS = {"T0": 4, "T1": 3, "T2": 2, "T3": 1, "T4": 0}
 QUALIFIER_SCOPES = {"sentence", "paragraph", "section", "cross_reference"}
 COUNTEREVIDENCE_PROMINENCE = {
@@ -478,6 +507,8 @@ def _id_map(items: Iterable[dict], key: str) -> dict[str, dict]:
 
 def _required_field_checks(registry: dict, blocking: list[dict]) -> None:
     for collection, fields in REQUIRED_FIELDS.items():
+        if collection.startswith("_"):
+            continue
         for index, item in enumerate(registry.get(collection, [])):
             if not isinstance(item, dict):
                 blocking.append(
@@ -488,7 +519,12 @@ def _required_field_checks(registry: dict, blocking: list[dict]) -> None:
                     )
                 )
                 continue
+            exempt: tuple[str, ...] = ()
+            if collection == "reported_figures" and item.get("derived_from"):
+                exempt = REQUIRED_FIELDS["_derived_reported_figure_exempt"]
             for field in fields:
+                if field in exempt:
+                    continue
                 if field not in item or item[field] is None:
                     blocking.append(
                         _issue(
@@ -926,6 +962,30 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
             "used_fields",
             "must be a list of nonempty field identifiers",
         )
+    else:
+        # The semantic layer iterates `used_fields`, so an empty list switched
+        # the whole layer off while the registry still validated. The list is
+        # not free: every raw field an evidence card declares a dependency on
+        # is a field the analysis reads, and a field the analysis reads needs
+        # a meaning that covers the analysis window.
+        declared = set(registry["used_fields"])
+        depended: set[str] = set()
+        for card in registry.get("evidence_cards", []):
+            for dependency in card.get("depends_on", []) or []:
+                if (
+                    isinstance(dependency, dict)
+                    and dependency.get("kind") == "raw_field"
+                    and _nonempty_string(dependency.get("id"))
+                ):
+                    depended.add(str(dependency["id"]))
+        missing = sorted(depended - declared)
+        if missing:
+            _schema_error(
+                blocking,
+                "used_fields",
+                "must declare every raw field an evidence card depends on; "
+                "missing " + ", ".join(missing),
+            )
     writing_strength = registry.get("writing_strength")
     if writing_strength is not None and not isinstance(writing_strength, dict):
         _schema_error(blocking, "writing_strength", "must be a mapping")
@@ -944,6 +1004,16 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 "must be an ISO timestamp",
             )
     for index, claim in enumerate(registry["claims"]):
+        if (
+            claim.get("revision_reason") is not None
+            and claim["revision_reason"] not in CLAIM_REVISION_REASONS
+        ):
+            _schema_error(
+                blocking,
+                f"claims[{index}].revision_reason",
+                "must be one of "
+                + ", ".join(sorted(CLAIM_REVISION_REASONS)),
+            )
         if "challenge_disclosures" in claim and not isinstance(
             claim["challenge_disclosures"], list
         ):
@@ -1042,6 +1112,8 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 "must be a list of nonempty strings",
             )
         for field in ("source_artifact", "source_locator"):
+            if figure.get("derived_from") and field not in figure:
+                continue
             source = figure.get(field)
             if not (
                 _nonempty_string(source)
@@ -1061,11 +1133,33 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 )
         if figure.get("derived_from"):
             transform = figure.get("transform")
-            if not (
-                isinstance(transform, dict)
-                and transform.get("operation")
-                in {"multiply", "divide", "add", "subtract"}
-                and isinstance(transform.get("operand"), (int, float))
+            location = f"reported_figures[{index}].transform"
+            if not isinstance(transform, dict) or transform.get(
+                "operation"
+            ) not in {"multiply", "divide", "add", "subtract"}:
+                _schema_error(
+                    blocking,
+                    location,
+                    "derived figures require a supported finite arithmetic transform",
+                )
+            elif ("operand" in transform) == ("operand_figure" in transform):
+                # A gap, a ratio, or a difference of differences is derived
+                # from two figures. While the operand had to be a literal, the
+                # only way to write one was to type the second figure's value
+                # into the transform, which is the ungrounded number the
+                # grounding check exists to catch.
+                _schema_error(
+                    blocking,
+                    location,
+                    "requires exactly one of operand or operand_figure",
+                )
+            elif "operand_figure" in transform:
+                if not _nonempty_string(transform.get("operand_figure")):
+                    _schema_error(
+                        blocking, location, "operand_figure must be a figure id"
+                    )
+            elif not (
+                isinstance(transform.get("operand"), (int, float))
                 and not isinstance(transform.get("operand"), bool)
                 and math.isfinite(float(transform["operand"]))
                 and not (
@@ -1075,7 +1169,7 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
             ):
                 _schema_error(
                     blocking,
-                    f"reported_figures[{index}].transform",
+                    location,
                     "derived figures require a supported finite arithmetic transform",
                 )
     for index, output in enumerate(registry["outputs"]):
@@ -1524,7 +1618,7 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
             predecessor = claims.get(str(claim["supersedes"]))
             if predecessor and (
                 predecessor.get("claim_key") != claim.get("claim_key")
-                or not _nonempty_string(claim.get("revision_reason"))
+                or claim.get("revision_reason") not in CLAIM_REVISION_REASONS
             ):
                 blocking.append(
                     _issue(
@@ -1718,6 +1812,13 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
         require(pipelines, figure.get("pipeline_id"), f"reported_figures.{figure.get('figure_id')}.pipeline_id")
         if figure.get("derived_from"):
             require(figures, figure["derived_from"], f"reported_figures.{figure.get('figure_id')}.derived_from")
+            operand_figure = (figure.get("transform") or {}).get("operand_figure")
+            if operand_figure:
+                require(
+                    figures,
+                    operand_figure,
+                    f"reported_figures.{figure.get('figure_id')}.transform.operand_figure",
+                )
     for output in registry["outputs"]:
         if output.get("pipeline_id"):
             require(pipelines, output["pipeline_id"], f"outputs.{output.get('output_id')}.pipeline_id")
@@ -1991,6 +2092,9 @@ def _dependency_topology(
         destination = node("reported_figure", figure["figure_id"])
         if figure.get("derived_from"):
             edge(node("reported_figure", figure["derived_from"]), destination)
+            operand_figure = (figure.get("transform") or {}).get("operand_figure")
+            if operand_figure:
+                edge(node("reported_figure", operand_figure), destination)
     ready = sorted(name for name, degree in indegree.items() if degree == 0)
     order: list[str] = []
     while ready:
@@ -2055,6 +2159,9 @@ def _identity_cycle_checks(registry: dict, blocking: list[dict]) -> None:
         destination = node("reported_figure", figure["figure_id"])
         if figure.get("derived_from"):
             edge(node("reported_figure", figure["derived_from"]), destination)
+            operand_figure = (figure.get("transform") or {}).get("operand_figure")
+            if operand_figure:
+                edge(node("reported_figure", operand_figure), destination)
     for item in registry["applicability"]:
         destination = node("applicability", item["requirement_id"])
         for dependency in item.get("substituted_by", []):
@@ -2552,11 +2659,14 @@ def _apply_revalidation_record(
     )
 
 
-def _apply_transform(value: Any, transform: Any) -> float:
+def _apply_transform(value: Any, transform: Any, operand: Any = None) -> float:
     if not isinstance(value, (int, float)) or not isinstance(transform, dict):
         raise ValueError("transform requires a numeric upstream and mapping")
     operation = transform.get("operation")
-    operand = transform.get("operand")
+    if operand is None:
+        operand = transform.get("operand")
+    if not isinstance(operand, (int, float)) or isinstance(operand, bool):
+        raise ValueError("transform requires a numeric operand")
     if operation == "multiply" and isinstance(operand, (int, float)):
         return float(value) * float(operand)
     if operation == "divide" and isinstance(operand, (int, float)) and operand != 0:
@@ -2578,8 +2688,22 @@ def _recompute_one_figure(
     if not figure.get("derived_from"):
         return
     upstream = state["reported_figures"][str(figure["derived_from"])]
+    transform = figure.get("transform") or {}
+    operand: Any = None
+    if transform.get("operand_figure"):
+        operand_figure = state["reported_figures"].get(
+            str(transform["operand_figure"])
+        )
+        operand = operand_figure.get("value") if operand_figure else None
+        # An operand read from a superseded figure is a stale number wearing a
+        # derivation, so the staleness travels to whatever is derived from it.
+        if operand_figure and operand_figure.get("_stale_reasons"):
+            reasons = figure.setdefault("_stale_reasons", [])
+            for reason in operand_figure["_stale_reasons"]:
+                if reason not in reasons:
+                    reasons.append(reason)
     try:
-        recomputed = _apply_transform(upstream.get("value"), figure.get("transform"))
+        recomputed = _apply_transform(upstream.get("value"), transform, operand)
     except ValueError as error:
         blocking.append(
             _issue(
@@ -4129,7 +4253,7 @@ def _claim_evidence_strength(
         reasons.append("live_confirmatory_support")
 
     revision_reason = claim.get("revision_reason")
-    if isinstance(revision_reason, str) and revision_reason.startswith("bounded_by_"):
+    if revision_reason in NARROWING_REVISION_REASONS:
         strength = min(strength, 3)
         reasons.append(revision_reason)
 
@@ -4552,7 +4676,24 @@ def _writing_strength_checks(
             if assertion_type == "negative":
                 complete_power = _complete_power_basis(site.get("power_basis"))
                 if not complete_power:
-                    blocking.append(_issue("NEGATIVE_POWER_BASIS_REQUIRED", **identity))
+                    blocking.append(
+                        _issue(
+                            "NEGATIVE_POWER_BASIS_REQUIRED",
+                            # A statement about what a model does not deliver
+                            # has no sampling distribution and cannot have a
+                            # power basis. Registering it as `negative` reads
+                            # it as a failure to reject, which is a different
+                            # and much weaker claim.
+                            detail=(
+                                "a negative empirical result requires a power "
+                                "basis or a hedge; if the assertion is about "
+                                "what a model implies rather than what the "
+                                "data failed to show, its assertion_type is "
+                                "model_internal"
+                            ),
+                            **identity,
+                        )
+                    )
                     if re.search(r"(?<!\w)(?:we\s+)?rule(?:s|d)?\s+out(?!\w)", text, re.I):
                         blocking.append(
                             _issue("NEGATIVE_RULE_OUT_UNSUPPORTED", **identity)
@@ -4688,7 +4829,7 @@ def _writing_strength_checks(
                     )
 
         revision_reason = claim.get("revision_reason")
-        if isinstance(revision_reason, str) and revision_reason.startswith("bounded_by_"):
+        if revision_reason in NARROWING_REVISION_REASONS:
             narrowed_results_strength = min(result_strengths) if result_strengths else 3
             for item in world_sites:
                 site = item["site"]
@@ -4960,7 +5101,21 @@ def _manuscript_coverage_checks(
                 continue
             excluded[source].append((start, end))
             exclusion_count += 1
-    for claim in state["claims"].values():
+    # Only a claim the output carries can cover the manuscript. A site on a
+    # retired claim, or on one no output lists, is a coverage token rather than
+    # a commitment: it silences discovery at a sentence the paper still makes
+    # and the registry no longer stands behind.
+    covering_claims = {
+        str(identifier)
+        for output in registry.get("outputs", [])
+        if output.get("manuscript_sources")
+        for identifier in output.get("claim_revision_ids", []) or []
+    }
+    for claim_id, claim in state["claims"].items():
+        if str(claim_id) not in covering_claims:
+            continue
+        if claim.get("availability") != "current":
+            continue
         for site in claim.get("assertion_sites", []) or []:
             try:
                 _, start, end, source = _resolved_assertion_site(

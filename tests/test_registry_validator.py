@@ -507,7 +507,7 @@ def test_identity_and_nested_scalar_types_are_executable_schema(tmp_path, mutate
         ),
         (
             lambda registry: registry["claims"]["claims"][0].update(
-                {"supersedes": "UNKNOWN", "revision_reason": "replacement"}
+                {"supersedes": "UNKNOWN", "revision_reason": "restated"}
             ),
             "UNKNOWN_REFERENCE",
         ),
@@ -724,7 +724,7 @@ def test_reconciliation_can_quote_stale_history_without_restoring_it(tmp_path):
             "availability": "current",
             "assessment": "supported",
             "supersedes": "H1.r1",
-            "revision_reason": "new pipeline",
+            "revision_reason": "rebound_to_pipeline",
         }
     )
     registry["evidence_cards"]["evidence_cards"].append(
@@ -1392,7 +1392,7 @@ def test_retired_historical_claim_only_moots_its_own_pipeline_evaluation(tmp_pat
             "availability": "current",
             "assessment": "supported",
             "supersedes": "H1.r1",
-            "revision_reason": "destination pipeline",
+            "revision_reason": "rebound_to_pipeline",
         }
     )
     add_destination_evidence(registry, claim_id="H1.r2")
@@ -2216,6 +2216,25 @@ def test_semantic_equivalence_cannot_suppress_unlisted_fact_transition(tmp_path)
 def test_semantic_equivalence_evidence_must_depend_on_compared_field(tmp_path):
     registry = base_registry()
     _split_semantic_window(registry)
+    # The card points at a declared field other than the one being compared.
+    registry["semantics"]["used_fields"].append("unrelated")
+    registry["semantics"]["semantic_facts"].append(
+        {
+            "fact_key": "SEM-unrelated",
+            "fact_revision_id": "SEM-unrelated.r1",
+            "field": "unrelated",
+            "statement": "An unrelated field.",
+            "valid_range": ["2024-01-01", None],
+            "authority": {"status": "sourced", "source": "dictionary.md"},
+            "verification": {
+                "method": "source_review",
+                "result": "pass",
+                "performed_by": "analyst",
+                "performed_at": "2026-01-01T00:00:00Z",
+                "depends_on": [{"kind": "raw_field", "id": "unrelated"}],
+            },
+        }
+    )
     registry["evidence_cards"]["evidence_cards"][0]["depends_on"] = [
         {"kind": "raw_field", "id": "unrelated"}
     ]
@@ -2542,7 +2561,7 @@ def test_supersedes_lineage_does_not_propagate_old_evidence_defects(tmp_path):
             "claim_revision_id": "H1.r1",
             "pipeline_id": "p1",
             "supersedes": "H1.r0",
-            "revision_reason": "independent clean estimate",
+            "revision_reason": "corrected",
             "availability": "current",
             "assessment": "supported",
         }
@@ -2600,14 +2619,14 @@ def test_lineage_cycles_block_without_becoming_evidence_dependencies(
     registry = base_registry()
     if kind == "claim":
         first = registry["claims"]["claims"][0]
-        first.update({"supersedes": "H1.r0", "revision_reason": "cycle"})
+        first.update({"supersedes": "H1.r0", "revision_reason": "restated"})
         registry["claims"]["claims"].append(
             {
                 "claim_key": "H1",
                 "claim_revision_id": "H1.r0",
                 "pipeline_id": "p1",
                 "supersedes": "H1.r1",
-                "revision_reason": "cycle",
+                "revision_reason": "restated",
                 "availability": "superseded",
                 "assessment": "supported",
             }
@@ -4306,6 +4325,164 @@ def test_body_sections_resolve_to_a_registrable_role(heading, role):
     resolved = _tex_section_role(lines, 2)
     assert resolved == role
     assert resolved in ASSERTION_SECTION_ROLES
+
+
+def test_a_gap_can_be_derived_from_two_registered_figures(tmp_path):
+    """A gap, a ratio, or a difference of differences has two inputs.
+
+    While `transform` took only a literal operand, the only way to register a
+    cross-platform gap was to type the second figure's value into the
+    transform -- an ungrounded number wearing a derivation, which is exactly
+    what the grounding check exists to catch.
+    """
+
+    registry = base_registry()
+    figures = registry["reported_figures"]["reported_figures"]
+    other = copy.deepcopy(figures[0])
+    other.update(
+        {
+            "figure_id": "RF-2",
+            "value": 3.0,
+            "source_locator": "other",
+            "paper_locations": ["paper/results.md#other"],
+        }
+    )
+    figures.append(other)
+    figures.append(
+        {
+            "figure_id": "gap",
+            "pipeline_id": "p1",
+            "value": 0.0,  # deliberately wrong; the validator recomputes it
+            "paper_locations": ["paper/results.md#derived"],
+            "derived_from": "RF-2",
+            "transform": {"operation": "subtract", "operand_figure": "RF-1"},
+        }
+    )
+    registry["outputs"]["outputs"][0]["reported_figure_ids"] = [
+        "RF-1",
+        "RF-2",
+        "gap",
+    ]
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    assert "MISSING_REQUIRED_FIELD" not in codes(report, "blocking")
+    assert "SCHEMA_INVALID" not in codes(report, "blocking")
+    assert "UNKNOWN_REFERENCE" not in codes(report, "blocking")
+    # 3.0 - 2.0, read from two registered figures rather than typed.
+    assert report["state"]["reported_figures"]["gap"]["value"] == pytest.approx(
+        1.0
+    )
+
+
+def test_a_transform_takes_a_literal_or_a_figure_but_not_both(tmp_path):
+    registry = base_registry()
+    figures = registry["reported_figures"]["reported_figures"]
+    figures.append(
+        {
+            "figure_id": "gap",
+            "pipeline_id": figures[0]["pipeline_id"],
+            "value": 1.0,
+            "paper_locations": figures[0]["paper_locations"],
+            "derived_from": figures[0]["figure_id"],
+            "transform": {
+                "operation": "subtract",
+                "operand": 1,
+                "operand_figure": figures[0]["figure_id"],
+            },
+        }
+    )
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    assert "SCHEMA_INVALID" in codes(report, "blocking")
+
+
+def test_a_retired_claim_does_not_cover_the_manuscript(tmp_path):
+    """Registration must be a commitment, not a coverage token.
+
+    Discovery counted every registered site, whatever claim it belonged to. An
+    author could therefore retire a claim -- removing it from the publication
+    checks entirely -- while its assertion sites went on silencing discovery at
+    the sentences the paper still makes.
+    """
+
+    from tools.validate_registry import load_registry, validate_registry
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("live", section_role="results", declared_tier="T0"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\n"
+        "\\claimsite{live}Treatment increases retention.\n",
+        encoding="utf-8",
+    )
+    report = validate_registry(load_registry(root), "C")
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+
+    retired = copy.deepcopy(registry)
+    retired["claims"]["claims"][0]["availability"] = "retired"
+    retired["outputs"]["outputs"][0]["claim_revision_ids"] = []
+    root = write_registry(tmp_path / "retired", retired)
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\n"
+        "\\claimsite{live}Treatment increases retention.\n",
+        encoding="utf-8",
+    )
+    report = validate_registry(load_registry(root), "C")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+
+
+def test_a_narrowing_cannot_be_hidden_in_the_wording_of_its_reason(tmp_path):
+    """The propagation rule keys on `revision_reason`, so it cannot be free text.
+
+    While any string was accepted, writing "narrowed to trips into the zone"
+    instead of `bounded_by_population` switched the rule off by phrasing. The
+    reason is now an enumeration; choosing a non-narrowing value for a
+    narrowing revision is a recorded false statement, not a formatting choice.
+    """
+
+    registry = base_registry()
+    registry["claims"]["claims"][0]["revision_reason"] = "narrowed to urban firms"
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    locations = [
+        item.get("location")
+        for item in report["blocking"]
+        if item["code"] == "SCHEMA_INVALID"
+    ]
+    assert "claims[0].revision_reason" in locations
+
+
+def test_used_fields_must_cover_the_fields_the_evidence_depends_on(tmp_path):
+    """An empty `used_fields` switched off the entire semantic layer.
+
+    Every semantic check iterates the declared fields, so declaring none meant
+    no field needed a meaning, a coverage window, or a verification -- and the
+    registry validated exactly as if the layer had been satisfied.
+    """
+
+    registry = base_registry()
+    registry["semantics"]["used_fields"] = []
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    detail = [
+        item.get("detail")
+        for item in report["blocking"]
+        if item["code"] == "SCHEMA_INVALID"
+        and item.get("location") == "used_fields"
+    ]
+    assert detail and "outcome" in detail[0]
 
 
 def test_mid_line_anchor_reads_the_sentence_it_precedes(tmp_path):

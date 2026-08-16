@@ -10,4 +10,4 @@ claims:
     availability: current
     assessment: supported
     supersedes: H1.r1
-    revision_reason: Updated pipeline.
+    revision_reason: rebound_to_pipeline
