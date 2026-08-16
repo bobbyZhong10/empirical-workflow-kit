@@ -4747,6 +4747,118 @@ def test_an_interval_band_requires_a_numeric_observation(tmp_path):
     assert "GATE_OBSERVATION_INVALID" in codes(report, "blocking")
 
 
+def _bounded_claim_registry():
+    """A claim bounded by identification-bearing evidence."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "bears_on": "identifying_assumption",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "Sensitivity narrows the claim.",
+        }
+    )
+    return registry
+
+
+def _disclosed(anchor, bound_anchor, role):
+    site = assertion_site(anchor, section_role=role, declared_tier="T0")
+    site["counterevidence_prominence"] = "separate_contrastive_sentence"
+    site["counterevidence_disclosure"] = {
+        "path": "paper/assertions.md",
+        "anchor": bound_anchor,
+    }
+    return site
+
+
+def test_one_disclosure_covers_the_body_it_precedes(tmp_path):
+    """The obligation is per audience, not per sentence.
+
+    A title, an abstract and a conclusion are each read on their own, so each
+    carries the qualification itself. The body is read in sequence, so meeting
+    it once there is meeting it -- the previous rule produced one contrastive
+    sentence per registered site and taught nobody anything the first had not.
+    """
+
+    sites = [
+        _disclosed("intro-site", "intro-bound", "introduction"),
+        assertion_site("results-site", section_role="results", declared_tier="T4"),
+        assertion_site("disc-site", section_role="discussion", declared_tier="T4"),
+    ]
+    report = write_assertion_registry(
+        tmp_path,
+        sites,
+        "<!-- intro-site --> The instrument produced the divergence.\n"
+        "<!-- intro-bound --> However, it survives only in one direction.\n"
+        "<!-- results-site --> The pattern is reported in Table 1.\n"
+        "<!-- disc-site --> The pattern is discussed below.\n",
+        _bounded_claim_registry(),
+    )
+    assert "COUNTEREVIDENCE_BURIED" not in codes(report, "blocking")
+    covered = [
+        item
+        for item in report["reports"]
+        if item["code"] == "COUNTEREVIDENCE_DISCLOSED"
+    ]
+    assert covered and covered[0]["covers_sites"] == 3
+
+
+def test_the_body_disclosure_must_come_at_the_first_body_site(tmp_path):
+    """A reader must meet the qualification where the claim is first made, not
+    after three unqualified statements of it."""
+
+    sites = [
+        assertion_site("intro-site", section_role="introduction", declared_tier="T4"),
+        _disclosed("disc-site", "disc-bound", "discussion"),
+    ]
+    report = write_assertion_registry(
+        tmp_path,
+        sites,
+        "<!-- intro-site --> The instrument produced the divergence.\n"
+        "<!-- disc-site --> The instrument produced the divergence.\n"
+        "<!-- disc-bound --> However, it survives only in one direction.\n",
+        _bounded_claim_registry(),
+    )
+    buried = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "COUNTEREVIDENCE_BURIED"
+    ]
+    assert buried and buried[0]["site"].endswith("#intro-site")
+    assert buried[0]["disclosure_group"] == "body"
+
+
+@pytest.mark.parametrize("role", ["abstract", "conclusion"])
+def test_a_standalone_section_carries_the_qualification_itself(tmp_path, role):
+    """An abstract and a conclusion are read without the body, so a disclosure
+    in the body does not reach their reader."""
+
+    sites = [
+        _disclosed("intro-site", "intro-bound", "introduction"),
+        assertion_site(f"{role}-site", section_role=role, declared_tier="T4"),
+    ]
+    report = write_assertion_registry(
+        tmp_path / role,
+        sites,
+        "<!-- intro-site --> The instrument produced the divergence.\n"
+        "<!-- intro-bound --> However, it survives only in one direction.\n"
+        f"<!-- {role}-site --> The instrument produced the divergence.\n",
+        _bounded_claim_registry(),
+    )
+    buried = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "COUNTEREVIDENCE_BURIED"
+    ]
+    assert buried and buried[0]["disclosure_group"] == role
+
+
 def _attested_registry(change_id="CH-1", **change_fields):
     registry = copy.deepcopy(base_registry())
     registry["claims"]["claims"][0]["availability"] = "retired"

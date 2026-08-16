@@ -164,6 +164,11 @@ ALLOWED = {
 }
 
 DISCOVERY_MODES = {"enforce", "report"}
+# Parts a reader consumes on their own. A qualification met in the body is met
+# for the whole body, because the body is read in sequence; these three are
+# read without it. They are the same three the narrowing-propagation rule
+# already targets, which is the point -- one phenomenon, one set of roles.
+STANDALONE_SECTION_ROLES = {"title", "abstract", "conclusion"}
 # What a challenging or bounding relation bears on. Declared, not inferred:
 # while it was read out of the relation's free-text rationale, the adjacency
 # obligation could be switched off by rewording a sentence nobody reads.
@@ -5737,24 +5742,41 @@ def _writing_strength_checks(
         if identifying_relations or any(
             _site_bears_on_identification(item["site"]) for item in prominence_sites
         ):
-            for item in prominence_sites:
-                if not identifying_relations and not _site_bears_on_identification(
-                    item["site"]
-                ):
-                    continue
-                relevant_relations = identifying_relations or [
-                    relation
-                    for relation in relations_by_claim.get(claim_id, [])
-                    if relation.get("relation") in {"challenges", "bounds"}
-                ]
-                relation_ids = sorted(
-                    str(relation.get("relation_id"))
-                    for relation in relevant_relations
+            obliged = [
+                item
+                for item in prominence_sites
+                if identifying_relations
+                or _site_bears_on_identification(item["site"])
+            ]
+            relevant_relations = identifying_relations or [
+                relation
+                for relation in relations_by_claim.get(claim_id, [])
+                if relation.get("relation") in {"challenges", "bounds"}
+            ]
+            relation_ids = sorted(
+                str(relation.get("relation_id")) for relation in relevant_relations
+            )
+            # The obligation is per audience, not per sentence. A title, an
+            # abstract and a conclusion are each read on their own, so each has
+            # to carry the qualification itself; the body is read in sequence,
+            # so meeting it once there is meeting it. Requiring it at every
+            # registered site produced one contrastive sentence per site and
+            # taught nobody anything the first one had not.
+            groups: dict[str, list[dict]] = defaultdict(list)
+            for item in obliged:
+                role = item["site"].get("section_role")
+                groups[role if role in STANDALONE_SECTION_ROLES else "body"].append(
+                    item
                 )
-                prominence = item["site"].get("counterevidence_prominence")
+            for group, items in sorted(groups.items()):
+                # The reader must meet the qualification where the claim is
+                # first made, not after three unqualified statements of it.
+                items.sort(key=lambda entry: (str(entry["source"]), entry["start_line"]))
+                first = items[0]
+                prominence = first["site"].get("counterevidence_prominence")
                 if (
                     prominence != "separate_contrastive_sentence"
-                    or not item["counterevidence_corroborated"]
+                    or not first["counterevidence_corroborated"]
                 ):
                     blocking.append(
                         _issue(
@@ -5762,7 +5784,20 @@ def _writing_strength_checks(
                             level="BLOCK",
                             relation_ids=relation_ids,
                             prominence=prominence,
-                            **item["identity"],
+                            disclosure_group=group,
+                            covers_sites=len(items),
+                            **first["identity"],
+                        )
+                    )
+                elif len(items) > 1:
+                    reports.append(
+                        _issue(
+                            "COUNTEREVIDENCE_DISCLOSED",
+                            level="INFO",
+                            relation_ids=relation_ids,
+                            disclosure_group=group,
+                            covers_sites=len(items),
+                            **first["identity"],
                         )
                     )
 
