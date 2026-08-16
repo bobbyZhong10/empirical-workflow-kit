@@ -12,6 +12,7 @@ from tools.validate_registry import load_registry, main, validate_registry
 
 REGISTRY_FILES = (
     "pipelines.yaml",
+    "references.yaml",
     "claims.yaml",
     "evidence_cards.yaml",
     "evidence_relations.yaml",
@@ -186,7 +187,7 @@ def write_registry(root: Path, registry: dict | None = None) -> Path:
     for filename in REGISTRY_FILES:
         key = filename.removesuffix(".yaml")
         (root / filename).write_text(
-            yaml.safe_dump(registry[key], sort_keys=False), encoding="utf-8"
+            yaml.safe_dump(registry.get(key, {}), sort_keys=False), encoding="utf-8"
         )
     comparison = root / "comparison"
     comparison.mkdir(exist_ok=True)
@@ -4745,6 +4746,127 @@ def test_an_interval_band_requires_a_numeric_observation(tmp_path):
         load_registry(write_registry(tmp_path, registry)), "C"
     )
     assert "GATE_OBSERVATION_INVALID" in codes(report, "blocking")
+
+
+MANUSCRIPT_WITH_BIB = """\\section{Introduction}
+Prior work frames the question \\citep{a2020}.
+\\section{Discussion}
+The result speaks to that literature \\citep{b2021}.
+\\begin{thebibliography}{}
+\\bibitem[A(2020)]{a2020} A (2020) A paper. \\emph{J.} 1(1):1--2.
+\\bibitem[B(2021)]{b2021} B (2021) Another paper. \\emph{J.} 2(1):3--4.
+\\end{thebibliography}
+"""
+
+
+def _citation_registry(references=None, page_budget=None, manuscript=None):
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = []
+    output = registry["outputs"]["outputs"][0]
+    output["manuscript_sources"] = ["paper/manuscript.tex"]
+    if page_budget is not None:
+        output["page_budget"] = page_budget
+    registry["references"] = {
+        "references": [
+            {
+                "key": key,
+                "doi": f"10.0000/{key}",
+                "url": f"https://example.org/{key}",
+                "verified_by": "author",
+                "verified_at": "2026-08-16T00:00:00Z",
+            }
+            for key in ("a2020", "b2021")
+        ]
+        if references is None
+        else references
+    }
+    return registry, manuscript or MANUSCRIPT_WITH_BIB
+
+
+def _citation_report(tmp_path, registry, manuscript):
+    root = write_registry(tmp_path, registry)
+    (root / "paper").mkdir(exist_ok=True)
+    (root / "paper" / "manuscript.tex").write_text(manuscript, encoding="utf-8")
+    return validate_registry(load_registry(root), "C")
+
+
+def test_a_complete_bibliography_passes(tmp_path):
+    registry, manuscript = _citation_registry()
+    report = _citation_report(tmp_path, registry, manuscript)
+    assert not [
+        item
+        for item in report["blocking"]
+        if item["code"].startswith(("CITATION_", "REFERENCE_"))
+    ]
+
+
+def test_a_cited_key_must_have_an_entry_and_an_entry_must_be_cited(tmp_path):
+    registry, manuscript = _citation_registry()
+    report = _citation_report(
+        tmp_path,
+        registry,
+        manuscript.replace("\\citep{b2021}", "\\citep{missing2099}"),
+    )
+    assert "CITATION_KEY_DANGLING" in codes(report, "blocking")
+    assert "CITATION_UNCITED_REFERENCE" in codes(report, "blocking")
+
+
+def test_every_reference_carries_a_locator_and_a_verifier(tmp_path):
+    """A citation is a claim about the literature and carries the same
+    obligation as any other: something a reader can check, and a person who
+    checked it. Nothing here can tell whether a work exists -- only a human
+    can -- but a fabricated citation becomes a recorded false statement rather
+    than an oversight nobody was asked about."""
+
+    registry, manuscript = _citation_registry(references=[])
+    report = _citation_report(tmp_path / "none", registry, manuscript)
+    assert "REFERENCE_UNVERIFIED" in codes(report, "blocking")
+
+    registry, manuscript = _citation_registry(
+        references=[
+            {"key": "a2020", "verified_by": "author",
+             "verified_at": "2026-08-16T00:00:00Z"},
+            {"key": "b2021", "doi": "10.0000/b", "url": "https://example.org/b"},
+        ]
+    )
+    report = _citation_report(tmp_path / "partial", registry, manuscript)
+    assert "REFERENCE_UNLOCATED" in codes(report, "blocking")
+    assert "REFERENCE_UNATTESTED" in codes(report, "blocking")
+
+
+def test_the_bibliography_scales_with_the_page_budget(tmp_path):
+    from tools.validate_registry import _required_reference_count
+
+    assert _required_reference_count(15) == 20
+    assert _required_reference_count(20) == 25
+    assert _required_reference_count(10) == 20
+
+    registry, manuscript = _citation_registry(page_budget=15)
+    report = _citation_report(tmp_path, registry, manuscript)
+    low = [
+        item for item in report["blocking"] if item["code"] == "REFERENCE_COUNT_LOW"
+    ]
+    assert low and low[0]["required"] == 20 and low[0]["references"] == 2
+
+
+def test_citations_may_not_be_confined_to_the_literature_section(tmp_path):
+    """A literature section is not a substitute for engaging the literature
+    where the argument is made."""
+
+    registry, manuscript = _citation_registry(
+        manuscript=MANUSCRIPT_WITH_BIB.replace(
+            "\\section{Introduction}", "\\section{Related Literature}"
+        ).replace("\\section{Discussion}", "\\section{Related Literature}")
+    )
+    report = _citation_report(tmp_path, registry, manuscript)
+    spread = [
+        item for item in report["blocking"] if item["code"] == "CITATION_NOT_SPREAD"
+    ]
+    assert spread
+    assert set(spread[0]["sections_without_citations"]) == {
+        "introduction",
+        "discussion",
+    }
 
 
 def _bounded_claim_registry():

@@ -57,6 +57,12 @@ SKELETONS: dict[str, str] = {
         "used_fields: []\n"
         "changes: []\n"
     ),
+    "references.yaml": (
+        "# One entry per work the manuscript cites. A citation is a claim about\n"
+        "# the literature, so it carries the same obligation as any other: a\n"
+        "# locator someone else can check, and a person who checked it.\n"
+        "references: []\n"
+    ),
     "claims.yaml": "claims: []\n",
     "evidence_cards.yaml": "evidence_cards: []\n",
     "evidence_relations.yaml": "evidence_relations: []\n",

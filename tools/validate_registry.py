@@ -27,6 +27,7 @@ import yaml
 
 REGISTRY_FILES = (
     "pipelines.yaml",
+    "references.yaml",
     "claims.yaml",
     "evidence_cards.yaml",
     "evidence_relations.yaml",
@@ -40,6 +41,7 @@ REGISTRY_FILES = (
 
 COLLECTIONS = (
     "pipelines",
+    "references",
     "claims",
     "evidence_cards",
     "evidence_relations",
@@ -917,6 +919,7 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
         "derived_fields": "derived_field_id",
         "applicability": "requirement_id",
         "changes": "change_id",
+        "references": "key",
     }
     for collection, field in identity_fields.items():
         for index, item in enumerate(registry[collection]):
@@ -1659,6 +1662,7 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
         "derived_fields": "derived_field_id",
         "applicability": "requirement_id",
         "changes": "change_id",
+        "references": "key",
     }
     for collection, field in identity_fields.items():
         seen: set[str] = set()
@@ -6096,6 +6100,114 @@ def _tex_included_sources(source: Path) -> list[Path]:
     return found
 
 
+CITE_COMMAND = re.compile(r"\\cite[a-z]*\*?(?:\[[^\]]*\])*\{([^{}]+)\}")
+BIBITEM = re.compile(r"\\bibitem(?:\[[^\]]*\])?\{([^{}]+)\}")
+# A citation is a claim about the literature. It carries the same obligation as
+# any other claim: a locator someone else can check, and a person who checked
+# it. Nothing here can tell whether a work exists -- only a human can -- but a
+# fabricated citation becomes a recorded false statement rather than an
+# oversight nobody was ever asked about.
+CITATION_SPREAD_ROLES = ("introduction", "discussion")
+
+
+def _citation_checks(
+    registry: dict, state: dict, blocking: list[dict], reports: list[dict]
+) -> None:
+    sources = _manuscript_sources(registry, state)
+    if not sources:
+        return
+    source_cache: dict[Path, tuple[str, list[str]]] = {}
+    cited: dict[str, set[str]] = defaultdict(set)   # key -> section roles
+    entries: set[str] = set()
+    for source in sorted(sources, key=str):
+        try:
+            body = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        lines = body.splitlines()
+        source_cache[source] = (body, lines)
+        entries.update(match.group(1).strip() for match in BIBITEM.finditer(body))
+        for number, line in enumerate(lines, start=1):
+            for match in CITE_COMMAND.finditer(line):
+                role = (
+                    _tex_section_role(lines, number)
+                    if source.suffix.lower() == ".tex"
+                    else None
+                )
+                for key in match.group(1).split(","):
+                    if key.strip():
+                        cited[key.strip()].add(str(role))
+    if not entries and not cited:
+        return
+
+    for key in sorted(set(cited) - entries):
+        blocking.append(
+            _issue("CITATION_KEY_DANGLING", key=key,
+                   detail="cited in the text with no entry in the bibliography"))
+    for key in sorted(entries - set(cited)):
+        blocking.append(
+            _issue("CITATION_UNCITED_REFERENCE", key=key,
+                   detail="listed in the bibliography and never cited"))
+
+    # A reference list carries a locator and a verifier, per reference.
+    verified = {
+        str(item.get("key")): item for item in registry.get("references", [])
+    }
+    for key in sorted(entries):
+        record = verified.get(key)
+        if record is None:
+            blocking.append(
+                _issue("REFERENCE_UNVERIFIED", key=key,
+                       detail="no reference record; a citation must name where it "
+                              "was checked and who checked it"))
+            continue
+        if not (
+            _nonempty_string(record.get("doi")) or _nonempty_string(record.get("url"))
+        ):
+            blocking.append(
+                _issue("REFERENCE_UNLOCATED", key=key,
+                       detail="a reference record requires a doi or a url"))
+        if not _nonempty_string(record.get("verified_by")) or _as_datetime(
+            record.get("verified_at")
+        ) is None:
+            blocking.append(
+                _issue("REFERENCE_UNATTESTED", key=key,
+                       detail="a reference record requires verified_by and an ISO "
+                              "verified_at"))
+
+    # Density and spread, against the output's declared page budget.
+    for output in registry.get("outputs", []):
+        if output.get("kind") != "submission" or not output.get("manuscript_sources"):
+            continue
+        budget = output.get("page_budget")
+        if isinstance(budget, int) and not isinstance(budget, bool) and budget > 0:
+            required = _required_reference_count(budget)
+            if len(entries) < required:
+                blocking.append(
+                    _issue("REFERENCE_COUNT_LOW", output_id=output.get("output_id"),
+                           page_budget=budget, references=len(entries),
+                           required=required))
+        roles = {role for section in cited.values() for role in section}
+        missing = [role for role in CITATION_SPREAD_ROLES if role not in roles]
+        if entries and missing:
+            blocking.append(
+                _issue("CITATION_NOT_SPREAD", output_id=output.get("output_id"),
+                       sections_without_citations=missing,
+                       detail="a literature section is not a substitute for "
+                              "engaging the literature where the argument is made"))
+    reports.append(
+        _issue("CITATION_COVERAGE", references=len(entries), cited=len(cited),
+               section_roles=sorted(r for r in
+                                    {x for s in cited.values() for x in s}
+                                    if r != "None")))
+
+
+def _required_reference_count(pages: int) -> int:
+    """Twenty by fifteen pages, and one more for each page beyond that."""
+
+    return max(20, 20 + (pages - 15))
+
+
 def _manuscript_coverage_checks(
     registry: dict, state: dict, blocking: list[dict], reports: list[dict]
 ) -> None:
@@ -6434,6 +6546,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     if checkpoint == "C":
         _writing_strength_checks(registry, state, blocking, reports)
         _manuscript_coverage_checks(registry, state, blocking, reports)
+        _citation_checks(registry, state, blocking, reports)
     _pipeline_binding_checks(registry, blocking, state)
     invalid_outputs = _output_checks(state, blocking)
     _publication_checks(registry, state, invalid_outputs, checkpoint, blocking)
