@@ -768,7 +768,8 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 f"semantic_equivalence_decisions[{index}]",
                 "requires a field, two or more unique fact revisions, and an ISO date window",
             )
-        if decision.get("decision") not in {
+        decision_value = decision.get("decision")
+        if not _nonempty_string(decision_value) or decision_value not in {
             "equivalent",
             "interchangeable",
             "distinct",
@@ -781,6 +782,7 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
             )
         if (
             not _nonempty_string(decision.get("decided_by"))
+            or not _nonempty_string(decision.get("decided_at"))
             or _as_datetime(decision.get("decided_at")) is None
             or not _nonempty_string(decision.get("evidence_card"))
         ):
@@ -880,6 +882,30 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 blocking,
                 f"revalidations[{index}].target",
                 "must contain exactly a supported kind and nonempty string id",
+            )
+        for field in (
+            "from_pipeline",
+            "to_pipeline",
+            "method",
+            "result",
+            "performed_by",
+            "performed_at",
+            "evidence_card",
+        ):
+            if not _nonempty_string(record.get(field)):
+                _schema_error(
+                    blocking,
+                    f"revalidations[{index}].{field}",
+                    "must be a nonempty string",
+                )
+        if (
+            record.get("method") == "machine"
+            and not _nonempty_string(record.get("tolerance"))
+        ):
+            _schema_error(
+                blocking,
+                f"revalidations[{index}].tolerance",
+                "machine revalidation requires a nonempty string tolerance",
             )
     for index, change in enumerate(registry["changes"]):
         if change.get("object_kind") not in {
@@ -1047,6 +1073,15 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
                 for endpoint in endpoint_records
                 if endpoint is not None
             ]
+            same_endpoint = False
+            if len(endpoint_specs) == 2:
+                try:
+                    same_endpoint = _artifact_endpoint_identity(
+                        registry, endpoint_specs[0]
+                    ) == _artifact_endpoint_identity(registry, endpoint_specs[1])
+                except ValueError:
+                    # The eager endpoint resolver above records the stable source error.
+                    pass
             if (
                 source_id == destination_id
                 or destination_id != card.get("evidence_card_id")
@@ -1058,14 +1093,7 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
                     for endpoint in endpoint_records
                 )
                 or len(endpoint_specs) != 2
-                or (
-                    endpoint_specs[0].get("artifact"),
-                    endpoint_specs[0].get("locator"),
-                )
-                == (
-                    endpoint_specs[1].get("artifact"),
-                    endpoint_specs[1].get("locator"),
-                )
+                or same_endpoint
             ):
                 blocking.append(
                     _issue(
@@ -1724,17 +1752,17 @@ def _valid_revalidation(
             and destination_evidence.get("provenance") == "confirmatory"
             and isinstance(source_endpoint, dict)
             and isinstance(destination_endpoint, dict)
-            and (
-                source_endpoint.get("artifact"), source_endpoint.get("locator")
-            )
-            != (
-                destination_endpoint.get("artifact"),
-                destination_endpoint.get("locator"),
-            )
         ):
             blocking.append(_issue("REVALIDATION_COMPARISON_INVALID", target=target))
             return None
         try:
+            if _artifact_endpoint_identity(
+                registry, source_endpoint
+            ) == _artifact_endpoint_identity(registry, destination_endpoint):
+                blocking.append(
+                    _issue("REVALIDATION_COMPARISON_INVALID", target=target)
+                )
+                return None
             from_value = _resolve_artifact_locator(registry, source_endpoint)
             to_value = _resolve_artifact_locator(registry, destination_endpoint)
         except ValueError as error:
@@ -1748,7 +1776,7 @@ def _valid_revalidation(
             return None
         resolved_value = {"from_value": from_value, "to_value": to_value}
         accepted = _tolerance_accepts(
-            from_value, to_value, str(record["tolerance"])
+            from_value, to_value, record["tolerance"]
         )
         expected_result = "revalidated" if accepted else "changed"
         if record.get("result") != expected_result:
@@ -1774,7 +1802,7 @@ def _valid_revalidation(
             )
             return None
         accepted = _tolerance_accepts(
-            item.get("value"), resolved_value, str(record["tolerance"])
+            item.get("value"), resolved_value, record["tolerance"]
         )
         expected_result = "revalidated" if accepted else "changed"
         if record.get("result") != expected_result:
@@ -1805,7 +1833,11 @@ def _preflight_revalidations(
 
 
 def _tolerance_accepts(old: Any, new: Any, expression: str) -> bool:
-    if not isinstance(old, (int, float)) or not isinstance(new, (int, float)):
+    if (
+        not isinstance(old, (int, float))
+        or not isinstance(new, (int, float))
+        or not isinstance(expression, str)
+    ):
         return False
     match = re.search(r"abs\s*\(\s*delta\s*\)\s*<=\s*([0-9.eE+-]+)", expression)
     if not match:
@@ -1845,8 +1877,10 @@ def _resolve_figure_value(registry: dict, figure: dict, record: dict) -> Any:
     )
 
 
-def _resolve_artifact_locator(registry: dict, source: dict) -> float:
-    """Resolve one finite numeric value from an independent YAML/JSON artifact."""
+def _canonical_artifact_endpoint(
+    registry: dict, source: dict
+) -> tuple[Path, tuple[str, ...]]:
+    """Return the resolved file and canonical locator tokens for an endpoint."""
 
     artifact_name = source.get("artifact")
     locator = source.get("locator")
@@ -1855,18 +1889,45 @@ def _resolve_artifact_locator(registry: dict, source: dict) -> float:
     artifact_path = Path(artifact_name)
     if not artifact_path.is_absolute():
         artifact_path = Path(registry.get("_root", ".")) / artifact_path
+    try:
+        artifact_path = artifact_path.resolve(strict=True)
+    except OSError as error:
+        raise ValueError(
+            f"destination source artifact not found: {artifact_name}"
+        ) from error
     if not artifact_path.is_file():
         raise ValueError(f"destination source artifact not found: {artifact_name}")
+
+    parts = tuple(
+        part.replace("~1", "/").replace("~0", "~")
+        for part in (
+            locator.lstrip("/").split("/")
+            if locator.startswith("/")
+            else locator.split(".")
+        )
+    )
+    return artifact_path, parts
+
+
+def _artifact_endpoint_identity(
+    registry: dict, source: dict
+) -> tuple[tuple[int, int], tuple[str, ...]]:
+    """Return underlying file identity plus canonical locator token sequence."""
+
+    artifact_path, parts = _canonical_artifact_endpoint(registry, source)
+    stat = artifact_path.stat()
+    return (stat.st_dev, stat.st_ino), parts
+
+
+def _resolve_artifact_locator(registry: dict, source: dict) -> float:
+    """Resolve one finite numeric value from an independent YAML/JSON artifact."""
+
+    artifact_path, parts = _canonical_artifact_endpoint(registry, source)
+    locator = source["locator"]
     try:
         payload = yaml.safe_load(artifact_path.read_text(encoding="utf-8"))
     except (OSError, yaml.YAMLError) as error:
         raise ValueError(f"destination source artifact is unreadable: {error}") from error
-
-    parts = (
-        [part.replace("~1", "/").replace("~0", "~") for part in locator.lstrip("/").split("/")]
-        if locator.startswith("/")
-        else locator.split(".")
-    )
     value = payload
     try:
         for part in parts:
@@ -2162,24 +2223,29 @@ def _evaluate_dependency_cascade(
     return challenged
 
 
-def _gate_scope_matches(definition: dict, evaluation: dict) -> bool:
+def _matched_gate_scope_target(definition: dict, evaluation: dict) -> dict | None:
+    """Return the exact frozen target matched by an evaluated identity."""
+
     evaluated = evaluation["evaluated_against"]
     pipeline_id = str(evaluation["pipeline_id"])
-    for target in definition["applies_to"]:
-        if target["kind"] != evaluated["kind"]:
-            continue
-        target_id = str(target["id"])
-        evaluated_id = str(evaluated["id"])
-        if target["kind"] == "claim_key" and evaluated_id in {
-            target_id,
-            f"{target_id}@{pipeline_id}",
-        }:
-            return True
-        if target["kind"] in {"dataset", "pipeline_stage"} and evaluated_id == (
-            f"{target_id}@{pipeline_id}"
-        ):
-            return True
-    return False
+    evaluated_id = str(evaluated["id"])
+    candidates = [
+        target
+        for target in definition["applies_to"]
+        if target["kind"] == evaluated["kind"]
+    ]
+    if evaluated["kind"] == "claim_key":
+        for target in candidates:
+            if str(target["id"]) == evaluated_id:
+                return target
+    for target in candidates:
+        if evaluated_id == f"{target['id']}@{pipeline_id}":
+            return target
+    return None
+
+
+def _gate_scope_matches(definition: dict, evaluation: dict) -> bool:
+    return _matched_gate_scope_target(definition, evaluation) is not None
 
 
 def _resolve_gate_target(
@@ -2187,17 +2253,18 @@ def _resolve_gate_target(
 ) -> dict | None:
     """Resolve one evaluation to only its concrete pipeline-local target."""
 
-    if not _gate_scope_matches(definition, evaluation):
+    matched_target = _matched_gate_scope_target(definition, evaluation)
+    if matched_target is None:
         return None
     evaluated = evaluation["evaluated_against"]
     pipeline_id = str(evaluation["pipeline_id"])
     if evaluated["kind"] in {"dataset", "pipeline_stage"}:
         return {
             "kind": evaluated["kind"],
-            "id": str(evaluated["id"]).removesuffix(f"@{pipeline_id}"),
+            "id": str(matched_target["id"]),
             "pipeline_id": pipeline_id,
         }
-    target_id = str(evaluated["id"]).removesuffix(f"@{pipeline_id}")
+    target_id = str(matched_target["id"])
     authored_claims = registry.get("claims", [])
     current_claims = state["claims"].values()
     revision_ids = {
