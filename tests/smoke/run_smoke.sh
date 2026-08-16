@@ -44,6 +44,23 @@ if sys.argv[2] not in codes:
 PY
 }
 
+assert_registry_lacks_code() {
+  local unexpected_code=$1
+  "$registry_python" - "$registry_output" "$unexpected_code" <<'PY'
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+codes = {
+    item["code"]
+    for section in ("blocking", "reports", "derived")
+    for item in payload[section]
+}
+if sys.argv[2] in codes:
+    raise SystemExit(f"unexpected registry code {sys.argv[2]}; observed {sorted(codes)}")
+PY
+}
+
 run_registry_fixture() {
   local expected_status=$1
   local fixture=$2
@@ -169,6 +186,11 @@ assert not any(
 PY
 
 run_writing_registry_fixture fail overclaim OVERCLAIM_RESIDUAL
+assert_registry_lacks_code MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED
+
+run_writing_registry_fixture fail model-internal MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED
+assert_registry_lacks_code OVERCLAIM_RESIDUAL
+assert_registry_lacks_code UNDERCLAIM_RESIDUAL
 
 if Rscript tests/smoke/verify_panel.R tests/smoke/panel-contract.yaml "$project_config" \
   tests/smoke/failed-identification.yaml >"$failed_identification_output" 2>&1; then

@@ -2850,6 +2850,71 @@ def test_evidence_strength_uses_provenance_gate_and_site_precision(
     assert expected_basis in finding["evidence_basis"]
 
 
+@pytest.mark.parametrize(
+    ("estimate_id", "card_mutation"),
+    [
+        ("NOT-A-CARD", lambda registry: None),
+        (
+            "EC-1",
+            lambda registry: registry["evidence_cards"]["evidence_cards"][0].__setitem__(
+                "status", "stale"
+            ),
+        ),
+        (
+            "EC-1#estimate",
+            lambda registry: registry["evidence_cards"]["evidence_cards"][0].__setitem__(
+                "pipeline_id", "p2"
+            )
+            or registry["pipelines"]["pipelines"].append(
+                {
+                    "pipeline_id": "p2",
+                    "status": "current",
+                    "first_formal_batch_at": "2026-01-01T00:00:00Z",
+                }
+            ),
+        ),
+    ],
+    ids=["unknown", "stale", "wrong-pipeline"],
+)
+def test_every_non_null_estimate_id_resolves_to_current_same_pipeline_evidence(
+    tmp_path, estimate_id, card_mutation
+):
+    registry = base_registry()
+    card_mutation(registry)
+    site = assertion_site("precision-reference", estimate_id=estimate_id)
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- precision-reference --> Treatment causes retention.\n",
+        registry,
+    )
+    assert "UNDERLYING_PRECISION_REFERENCE_INVALID" in codes(report, "blocking")
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert site_state["_evidence_strength"] == 0
+
+
+def test_evidence_strength_uses_gate_status_derived_from_incomplete_coverage(
+    tmp_path,
+):
+    registry = base_registry()
+    registry["gates"]["gate_evaluations"][0]["coverage"]["complete"] = False
+    site = assertion_site("effective-gate-site")
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- effective-gate-site --> Treatment causes retention.\n",
+        registry,
+    )
+    finding = next(
+        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+    )
+    assert finding["evidence_strength"] == 0
+    assert "applicable_gate_unresolved" in finding["evidence_basis"]
+    effective = report["state"]["gate_evaluations"]["G-1@p1"]
+    assert effective["_declared_status"] == "passed"
+    assert effective["effective_status"] == "not_evaluated"
+
+
 def test_narrowing_must_propagate_strength_and_scope_to_high_visibility_sites(
     tmp_path,
 ):
@@ -2934,6 +2999,76 @@ def test_identifying_counterevidence_declaration_must_match_contrastive_text(
         registry,
     )
     assert "COUNTEREVIDENCE_BURIED" not in report_codes(report)
+
+
+def test_prominence_metadata_without_counterevidence_text_cannot_lower_strength(
+    tmp_path,
+):
+    registry = base_registry()
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-ordinary-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "A subgroup diagnostic materially bounds the claim.",
+        }
+    )
+    site = assertion_site(
+        "false-parenthetical",
+        declared_tier="T2",
+        counterevidence_prominence="parenthetical",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- false-parenthetical --> Treatment causes retention.\n",
+        registry,
+    )
+    assert "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED" in codes(
+        report, "blocking"
+    )
+    finding = next(
+        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+    )
+    assert finding["lexical_tier"] == "T0"
+
+
+def test_resolved_site_disclosure_can_corroborate_prominence(tmp_path):
+    registry = base_registry()
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-ordinary-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "A subgroup diagnostic materially bounds the claim.",
+        }
+    )
+    site = assertion_site(
+        "referenced-disclosure-site",
+        declared_tier="T2",
+        counterevidence_prominence="separate_contrastive_sentence",
+        counterevidence_disclosure={
+            "path": "paper/assertions.md",
+            "anchor": "counterevidence-sentence",
+        },
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- referenced-disclosure-site --> Treatment increases retention.\n"
+        "<!-- counterevidence-sentence --> However, subgroup estimates are imprecise.\n",
+        registry,
+    )
+    assert "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED" not in report_codes(report)
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
 
 
 def test_immediate_recovery_is_reporting_only(tmp_path):
@@ -3055,6 +3190,92 @@ def test_specific_one_word_discriminating_alternative_is_accepted(tmp_path):
     assert "DISCRIMINATING_ALTERNATIVE_REQUIRED" not in report_codes(report)
 
 
+@pytest.mark.parametrize(
+    ("assertion_type", "conditional"),
+    [
+        (
+            "negative",
+            {
+                "power_basis": {
+                    "test": "equivalence_test",
+                    "sample_size": 1000,
+                    "minimum_detectable_effect": 0.03,
+                }
+            },
+        ),
+        ("methodological", {}),
+        (
+            "discriminating",
+            {"alternative_explanation": "differential pre-trend selection"},
+        ),
+        ("model_internal", {"as_modeled": True}),
+    ],
+)
+def test_identifying_prominence_check_covers_all_empirical_untiered_types(
+    tmp_path, assertion_type, conditional
+):
+    registry = base_registry()
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-identification-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "This diagnostic bears on the identifying assumption.",
+        }
+    )
+    site = assertion_site(
+        "untiered-identification-site",
+        assertion_type=assertion_type,
+        declared_tier=None,
+        counterevidence_prominence="clause_appended",
+        **conditional,
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- untiered-identification-site --> The diagnostic supports the account, "
+        "although differential pre-trends remain imprecise.\n",
+        registry,
+    )
+    assert "COUNTEREVIDENCE_BURIED" in codes(report, "blocking")
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
+    assert "UNDERCLAIM_RESIDUAL" not in report_codes(report)
+
+
+def test_identifying_prominence_scope_excludes_hypotheses_awaiting_test(tmp_path):
+    registry = base_registry()
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-identification-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "This diagnostic bears on the identifying assumption.",
+        }
+    )
+    site = assertion_site(
+        "hypothesis-identification-site",
+        assertion_type="hypothesis",
+        declared_tier=None,
+        counterevidence_prominence="clause_appended",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- hypothesis-identification-site --> We hypothesize a retention effect, "
+        "although differential pre-trends may be imprecise.\n",
+        registry,
+    )
+    assert "COUNTEREVIDENCE_BURIED" not in report_codes(report)
+
+
 def test_lexical_scan_is_limited_to_registered_sites(tmp_path):
     site = assertion_site("registered-description", declared_tier="T4")
     report = write_assertion_registry(
@@ -3092,6 +3313,35 @@ def test_project_can_extend_each_registered_site_lexical_class(
     )
     site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
     assert marker in site_state["_matched_lexical_classes"][lexical_class]
+
+
+@pytest.mark.parametrize(
+    "causal_configuration",
+    [
+        {"replace": []},
+        {"remove": ["causes"]},
+    ],
+    ids=["empty-replacement", "default-removal"],
+)
+def test_project_configuration_cannot_erase_baseline_causal_enforcement(
+    tmp_path, causal_configuration
+):
+    registry = base_registry()
+    registry["claims"]["writing_strength"] = {
+        "lexical_markers": {"causal": causal_configuration}
+    }
+    site = assertion_site(
+        "protected-causal", declared_tier="T0", has_sampling_distribution=False
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- protected-causal --> Treatment causes retention.\n",
+        registry,
+    )
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert "causes" in site_state["_matched_lexical_classes"]["causal"]
 
 
 @pytest.mark.parametrize(
@@ -3230,6 +3480,56 @@ def test_scope_declaration_outside_coverage_does_not_qualify_the_site(tmp_path):
     assert "SCOPE_DECLARATION_INVALID" in codes(report, "blocking")
 
 
+def test_sentence_scope_does_not_leak_to_a_neighboring_causal_sentence(tmp_path):
+    registry = base_registry()
+    registry["claims"]["claims"][0]["revision_reason"] = "bounded_by_population"
+    site = assertion_site(
+        "neighboring-sentence",
+        section_role="abstract",
+        declared_tier="T1",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- neighboring-sentence --> Among urban firms, data were collected. "
+        "Treatment increases retention.\n",
+        registry,
+    )
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
+    assert "NARROWING_NOT_PROPAGATED" in codes(report, "blocking")
+
+
+def test_closed_scope_must_contain_the_full_line_range_site(tmp_path):
+    registry = base_registry()
+    registry["claims"]["claims"][0]["revision_reason"] = "bounded_by_population"
+    site = assertion_site(
+        "L2-L4",
+        section_role="abstract",
+        declared_tier="T1",
+        qualifier_scope="paragraph",
+        scope_declaration={
+            "path": "paper/assertions.md",
+            "anchor": "scope-statement",
+            "coverage": {
+                "path": "paper/assertions.md",
+                "start_anchor": "coverage-start",
+                "end_anchor": "coverage-end",
+            },
+        },
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- scope-statement --> Among urban firms, the following claim applies.\n"
+        "<!-- coverage-start --><!-- coverage-end --> Treatment increases retention.\n"
+        "Treatment increases output.\n"
+        "Treatment increases sales.\n",
+        registry,
+    )
+    assert "SCOPE_DECLARATION_INVALID" in codes(report, "blocking")
+    assert "NARROWING_NOT_PROPAGATED" in codes(report, "blocking")
+
+
 def test_duplicate_assertion_site_for_one_claim_is_rejected(tmp_path):
     site = assertion_site("duplicate-site", declared_tier="T4")
     report = write_assertion_registry(
@@ -3249,3 +3549,70 @@ def test_malformed_assertion_scalar_types_return_schema_errors(tmp_path):
         "<!-- malformed-site --> Treatment causes retention.\n",
     )
     assert "SCHEMA_INVALID" in codes(report, "blocking")
+
+
+def test_world_overclaim_and_model_internal_simulation_are_separate_failures(
+    tmp_path,
+):
+    """A narrowed world claim asserted unqualified is an overclaim residual.
+
+    A model-internal simulation that borrows the word ``significant`` is a
+    different failure with a different remedy. The two paths must not be
+    reachable through one another: a residual block must not depend on a
+    missing sampling distribution, and a model-internal block must not be
+    laundered into a residual.
+    """
+
+    world = base_registry()
+    world["claims"]["claims"][0]["revision_reason"] = "bounded_by_sensitivity"
+    world_report = write_assertion_registry(
+        tmp_path / "world",
+        [
+            assertion_site(
+                "unqualified-world-claim",
+                section_role="results",
+                declared_tier="T0",
+            )
+        ],
+        "<!-- unqualified-world-claim --> The intervention causes retention "
+        "to increase.\n",
+        world,
+    )
+    world_blocking = codes(world_report, "blocking")
+    assert "OVERCLAIM_RESIDUAL" in world_blocking
+    assert "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED" not in world_blocking
+    residual = next(
+        item
+        for item in world_report["blocking"]
+        if item["code"] == "OVERCLAIM_RESIDUAL"
+    )
+    assert residual["lexical_strength"] == 4
+    assert residual["evidence_strength"] == 3
+    assert "bounded_by_sensitivity" in residual["evidence_basis"]
+    assert "no_sampling_distribution" not in residual["evidence_basis"]
+
+    model_internal = base_registry()
+    site = assertion_site(
+        "counterfactual-gain",
+        section_role="results",
+        declared_tier=None,
+    )
+    site["assertion_type"] = "model_internal"
+    site["as_modeled"] = True
+    site["underlying_precision"] = {
+        "estimate_id": None,
+        "significant_at": None,
+        "has_sampling_distribution": False,
+        "n": None,
+    }
+    model_report = write_assertion_registry(
+        tmp_path / "model",
+        [site],
+        "<!-- counterfactual-gain --> As we model, the subsidy has a "
+        "significant effect on the simulated net gain.\n",
+        model_internal,
+    )
+    model_blocking = codes(model_report, "blocking")
+    assert "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED" in model_blocking
+    assert "OVERCLAIM_RESIDUAL" not in model_blocking
+    assert "UNDERCLAIM_RESIDUAL" not in codes(model_report, "reports")

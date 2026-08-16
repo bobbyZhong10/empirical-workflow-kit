@@ -684,6 +684,17 @@ def _assertion_site_schema_checks(
                     f"{site_location}.upgrade_justification",
                     "must be null or a mapping",
                 )
+        disclosure = site.get("counterevidence_disclosure")
+        if disclosure is not None and not (
+            isinstance(disclosure, dict)
+            and _nonempty_string(disclosure.get("path"))
+            and _valid_anchor_shape(disclosure.get("anchor"))
+        ):
+            _schema_error(
+                blocking,
+                f"{site_location}.counterevidence_disclosure",
+                "must be null or a path/anchor mapping",
+            )
         for field in ("alternative_explanation",):
             if site.get(field) is not None and not _nonempty_string(site.get(field)):
                 _schema_error(
@@ -2662,6 +2673,10 @@ def _gate_scope_matches(definition: dict, evaluation: dict) -> bool:
     return _matched_gate_scope_target(definition, evaluation) is not None
 
 
+def _gate_evaluation_key(evaluation: dict) -> str:
+    return f"{evaluation.get('gate_id')}@{evaluation.get('pipeline_id')}"
+
+
 def _resolve_gate_target(
     registry: dict, state: dict, definition: dict, evaluation: dict
 ) -> dict | None:
@@ -2756,9 +2771,12 @@ def _gate_checks(
                         )
                     )
 
-    for evaluation in registry.get("gate_evaluations", []):
+    for evaluation in state.get("gate_evaluations", {}).values():
         gate_id = str(evaluation.get("gate_id"))
         pipeline_id = str(evaluation.get("pipeline_id"))
+        effective_evaluation = state["gate_evaluations"].get(
+            _gate_evaluation_key(evaluation)
+        )
         definition = definitions.get(gate_id)
         pipeline = pipelines.get(pipeline_id)
         if definition is None or pipeline is None:
@@ -2868,6 +2886,8 @@ def _gate_checks(
             )
 
         if checkpoint != "C":
+            if effective_evaluation is not None:
+                effective_evaluation["effective_status"] = status
             continue
         coverage = evaluation.get("coverage")
         declared_scope = coverage.get("declared_scope") if isinstance(coverage, dict) else None
@@ -2897,6 +2917,8 @@ def _gate_checks(
                 )
             )
             status = "not_evaluated"
+        if effective_evaluation is not None:
+            effective_evaluation["effective_status"] = status
         if status == "triggered":
             blocking.append(
                 _issue("GATE_TRIGGERED", gate_id=gate_id, pipeline_id=pipeline_id)
@@ -3248,30 +3270,37 @@ def _publication_checks(
 
 
 def _compiled_lexical_markers(registry: dict) -> dict[str, tuple[str, ...]]:
-    markers = {
+    baseline = {
         name: list(values) for name, values in DEFAULT_LEXICAL_MARKERS.items()
     }
+    extensions = {name: [] for name in DEFAULT_LEXICAL_MARKERS}
     configured = _lexical_configuration(registry) or {}
     if not isinstance(configured, dict):
-        return {name: tuple(values) for name, values in markers.items()}
+        return {name: tuple(values) for name, values in baseline.items()}
     for name, extension in configured.items():
-        if name not in markers:
+        if name not in baseline:
             continue
         if isinstance(extension, list):
-            markers[name].extend(extension)
+            extensions[name].extend(extension)
             continue
         if not isinstance(extension, dict):
             continue
-        if "replace" in extension:
-            markers[name] = list(extension["replace"])
-        markers[name].extend(extension.get("add", []))
+        # Project configuration may refine its extension layer, but the
+        # contract's baseline semantic classes are not deletable. Otherwise a
+        # valid ``replace: []`` could turn the residual engine off.
+        extensions[name].extend(extension.get("replace", []))
+        extensions[name].extend(extension.get("add", []))
         removed = {item.casefold() for item in extension.get("remove", [])}
-        markers[name] = [
-            item for item in markers[name] if item.casefold() not in removed
+        extensions[name] = [
+            item for item in extensions[name] if item.casefold() not in removed
         ]
     return {
-        name: tuple(dict.fromkeys(item.casefold() for item in values))
-        for name, values in markers.items()
+        name: tuple(
+            dict.fromkeys(
+                item.casefold() for item in [*baseline[name], *extensions[name]]
+            )
+        )
+        for name in baseline
     }
 
 
@@ -3281,26 +3310,61 @@ def _contains_marker(text: str, marker: str) -> bool:
     ) is not None
 
 
+def _sentence_segments(text: str) -> list[str]:
+    return [
+        segment.strip()
+        for segment in re.split(r"(?<=[.!?])\s+", text.strip())
+        if segment.strip()
+    ]
+
+
+def _matched_markers(
+    text: str, markers: dict[str, tuple[str, ...]]
+) -> dict[str, list[str]]:
+    return {
+        name: [marker for marker in values if _contains_marker(text, marker)]
+        for name, values in markers.items()
+        if any(_contains_marker(text, marker) for marker in values)
+    }
+
+
 def _classify_assertion_text(
     text: str,
     site: dict,
     markers: dict[str, tuple[str, ...]],
     registered_scope_applies: bool = False,
-) -> tuple[int, str, dict[str, list[str]]]:
-    matched = {
-        name: [marker for marker in values if _contains_marker(text, marker)]
-        for name, values in markers.items()
+    counterevidence_corroborated: bool = False,
+) -> tuple[int, str, dict[str, list[str]], bool]:
+    sentence_results: list[tuple[int, dict[str, list[str]], bool]] = []
+    aggregate: dict[str, list[str]] = defaultdict(list)
+    for sentence in _sentence_segments(text):
+        matched = _matched_markers(sentence, markers)
+        for name, values in matched.items():
+            aggregate[name].extend(values)
+        sentence_scoped = registered_scope_applies or "scope_qualifying" in matched
+        if "causal" in matched:
+            if counterevidence_corroborated:
+                strength = 2
+            elif sentence_scoped:
+                strength = 3
+            else:
+                strength = 4
+        elif "associational" in matched or "framing" in matched:
+            strength = 1
+        else:
+            strength = 0
+        sentence_results.append((strength, matched, sentence_scoped))
+
+    strength = max((item[0] for item in sentence_results), default=0)
+    tier = {value: tier for tier, value in ASSERTION_TIERS.items()}[strength]
+    governing = [item for item in sentence_results if item[0] == strength]
+    sentence_scope_applies = registered_scope_applies or bool(governing) and all(
+        item[2] for item in governing
+    )
+    deduplicated = {
+        name: list(dict.fromkeys(values)) for name, values in aggregate.items()
     }
-    matched = {name: values for name, values in matched.items() if values}
-    if "causal" in matched:
-        if site.get("counterevidence_prominence") is not None:
-            return 2, "T2", matched
-        if "scope_qualifying" in matched or registered_scope_applies:
-            return 3, "T1", matched
-        return 4, "T0", matched
-    if "associational" in matched or "framing" in matched:
-        return 1, "T3", matched
-    return 0, "T4", matched
+    return strength, tier, deduplicated, sentence_scope_applies
 
 
 def _resolve_registry_source(registry: dict, authored_path: Any) -> Path:
@@ -3354,9 +3418,10 @@ def _anchor_text(
     line_number = start
     line = lines[line_number - 1]
     without_marker = line.replace(marker, "", 1)
-    visible = re.sub(r"<!--|-->|\\label\{\}|[%#]", " ", without_marker).strip()
+    anchored_text = re.sub(r"<!--\s*-->|\\label\{\}|^[%#]\s*", " ", without_marker)
+    visible = anchored_text.strip()
     if re.search(r"[A-Za-z]", visible):
-        return without_marker, line_number, line_number
+        return visible, line_number, line_number
     for next_index in range(line_number, len(lines)):
         if lines[next_index].strip():
             return lines[next_index], line_number, next_index + 1
@@ -3373,6 +3438,27 @@ def _resolved_assertion_site(
     return text, start, end, source
 
 
+def _resolved_counterevidence_disclosure(
+    registry: dict,
+    site: dict,
+    site_source: Path,
+    site_start: int,
+    site_end: int,
+    source_cache: dict[Path, tuple[str, list[str]]],
+) -> str | None:
+    disclosure = site.get("counterevidence_disclosure")
+    if disclosure is None:
+        return None
+    source = _resolve_registry_source(registry, disclosure.get("path"))
+    text, start, end = _anchor_text(source, disclosure.get("anchor"), source_cache)
+    prominence = site.get("counterevidence_prominence")
+    if prominence not in {"footnote", "appendix"} and (
+        source != site_source or start > site_end + 1 or end < site_start - 1
+    ):
+        raise ValueError("counterevidence disclosure is not adjacent to its assertion site")
+    return text
+
+
 def _site_reference(site: dict) -> str:
     anchor = site.get("anchor")
     anchor_text = (
@@ -3387,7 +3473,8 @@ def _scope_declaration_applies(
     registry: dict,
     site: dict,
     site_source: Path,
-    site_line: int,
+    site_start: int,
+    site_end: int,
     source_cache: dict[Path, tuple[str, list[str]]],
     markers: dict[str, tuple[str, ...]],
 ) -> bool:
@@ -3415,7 +3502,11 @@ def _scope_declaration_applies(
     )
     if coverage_start > coverage_end:
         raise ValueError("scope coverage anchors are reversed")
-    return site_source == coverage_source and coverage_start <= site_line <= coverage_end
+    return (
+        site_source == coverage_source
+        and coverage_start <= site_start
+        and site_end <= coverage_end
+    )
 
 
 def _complete_power_basis(power: Any) -> bool:
@@ -3496,8 +3587,40 @@ def _site_bears_on_identification(site: dict) -> bool:
     return False
 
 
+def _precision_evidence_reference(
+    registry: dict, state: dict, claim: dict, estimate_id: Any
+) -> tuple[dict | None, bool]:
+    if estimate_id is None:
+        return None, True
+    if not _nonempty_string(estimate_id):
+        return None, False
+    evidence_id = str(estimate_id).split("#", 1)[0]
+    evidence = state["evidence_cards"].get(evidence_id)
+    live_support = any(
+        str(relation.get("claim_revision_id"))
+        == str(claim.get("claim_revision_id"))
+        and str(relation.get("evidence_card_id")) == evidence_id
+        and relation.get("relation") == "supports"
+        and relation.get("status") != "withdrawn"
+        for relation in registry.get("evidence_relations", [])
+    )
+    valid = (
+        evidence is not None
+        and str(evidence.get("pipeline_id")) == str(claim.get("pipeline_id"))
+        and evidence.get("status") == "current"
+        and not evidence.get("_stale_reasons")
+        and live_support
+    )
+    return evidence, valid
+
+
 def _claim_evidence_strength(
-    registry: dict, state: dict, claim: dict, precision: dict
+    registry: dict,
+    state: dict,
+    claim: dict,
+    precision: dict,
+    precision_evidence: dict | None,
+    precision_reference_valid: bool,
 ) -> tuple[int, list[str]]:
     reasons: list[str] = []
     claim_id = str(claim.get("claim_revision_id"))
@@ -3534,7 +3657,7 @@ def _claim_evidence_strength(
 
     definitions = _id_map(registry.get("gate_definitions", []), "gate_id")
     relevant_gate_statuses: list[str] = []
-    for evaluation in registry.get("gate_evaluations", []):
+    for evaluation in state.get("gate_evaluations", {}).values():
         if str(evaluation.get("pipeline_id")) != str(claim.get("pipeline_id")):
             continue
         definition = definitions.get(str(evaluation.get("gate_id")))
@@ -3545,7 +3668,7 @@ def _claim_evidence_strength(
             and str(target.get("id")) == str(claim.get("claim_key"))
             for target in definition.get("applies_to", [])
         ):
-            relevant_gate_statuses.append(str(evaluation.get("status")))
+            relevant_gate_statuses.append(str(evaluation.get("effective_status")))
     if any(status in {"triggered", "not_evaluated"} for status in relevant_gate_statuses):
         strength = 0
         reasons.append("applicable_gate_unresolved")
@@ -3559,6 +3682,15 @@ def _claim_evidence_strength(
         reasons.append("applicable_gate_passed")
 
     distribution = precision.get("has_sampling_distribution")
+    if not precision_reference_valid:
+        strength = 0
+        reasons.append("precision_evidence_invalid")
+    elif precision_evidence is not None:
+        if precision_evidence.get("provenance") != "confirmatory":
+            strength = min(strength, 1)
+            reasons.append("precision_evidence_exploratory")
+        else:
+            reasons.append("precision_evidence_confirmatory")
     if distribution is False:
         strength = 0
         reasons.append("no_sampling_distribution")
@@ -3604,6 +3736,70 @@ def _has_separate_contrastive_sentence(text: str) -> bool:
         text,
         flags=re.IGNORECASE,
     ) is not None
+
+
+COUNTEREVIDENCE_CUES = (
+    "although",
+    "despite",
+    "however",
+    "nevertheless",
+    "yet",
+    "albeit",
+    "whereas",
+    "by contrast",
+    "in contrast",
+    "limitation",
+    "caveat",
+    "imprecise",
+    "insignificant",
+    "not significant",
+    "fails",
+    "failure",
+    "weakens",
+    "violates",
+    "cannot",
+    "no effect",
+)
+
+
+def _has_counterevidence_cue(text: str) -> bool:
+    return any(_contains_marker(text, cue) for cue in COUNTEREVIDENCE_CUES)
+
+
+def _counterevidence_prominence_is_corroborated(
+    assertion_text: str,
+    prominence: Any,
+    disclosure_text: str | None,
+) -> bool:
+    combined = assertion_text
+    if disclosure_text:
+        combined = f"{assertion_text.rstrip()} {disclosure_text.lstrip()}"
+    if prominence == "parenthetical":
+        return any(
+            _has_counterevidence_cue(match.group(1))
+            for match in re.finditer(r"\(([^()]*)\)", combined, flags=re.DOTALL)
+        )
+    if prominence == "clause_appended":
+        return re.search(
+            r"[,;—-]\s*(?:although|but|yet|albeit|whereas|despite)(?!\w)",
+            combined,
+            flags=re.IGNORECASE,
+        ) is not None and _has_counterevidence_cue(combined)
+    if prominence == "separate_contrastive_sentence":
+        return _has_separate_contrastive_sentence(combined) and _has_counterevidence_cue(
+            combined
+        )
+    if prominence == "footnote":
+        return (
+            re.search(r"\\footnote\{|\[\^[^\]]+\]|<sup>", combined, re.I)
+            is not None
+            and _has_counterevidence_cue(combined)
+        )
+    if prominence == "appendix":
+        return _contains_marker(combined, "appendix") and _has_counterevidence_cue(
+            combined
+        )
+    return False
 
 
 def _writing_strength_checks(
@@ -3676,6 +3872,18 @@ def _writing_strength_checks(
                         **identity,
                     )
                 )
+            if (
+                site.get("counterevidence_prominence") is None
+                and site.get("counterevidence_disclosure") is not None
+            ):
+                blocking.append(
+                    _issue(
+                        "ASSERTION_FIELD_NOT_APPLICABLE",
+                        field="counterevidence_disclosure",
+                        assertion_type=assertion_type,
+                        **identity,
+                    )
+                )
 
             try:
                 text, start_line, end_line, source = _resolved_assertion_site(
@@ -3693,7 +3901,13 @@ def _writing_strength_checks(
             scope_error = False
             try:
                 declared_scope_applies = _scope_declaration_applies(
-                    registry, site, source, start_line, source_cache, markers
+                    registry,
+                    site,
+                    source,
+                    start_line,
+                    end_line,
+                    source_cache,
+                    markers,
                 )
             except (OSError, UnicodeError, ValueError, KeyError) as error:
                 blocking.append(
@@ -3714,14 +3928,56 @@ def _writing_strength_checks(
                     )
                 )
 
-            lexical_strength, lexical_tier, matched = _classify_assertion_text(
-                text, site, markers, declared_scope_applies
+            disclosure_text = None
+            try:
+                disclosure_text = _resolved_counterevidence_disclosure(
+                    registry,
+                    site,
+                    source,
+                    start_line,
+                    end_line,
+                    source_cache,
+                )
+            except (OSError, UnicodeError, ValueError) as error:
+                blocking.append(
+                    _issue(
+                        "COUNTEREVIDENCE_DISCLOSURE_INVALID",
+                        detail=str(error),
+                        **identity,
+                    )
+                )
+            prominence = site.get("counterevidence_prominence")
+            counterevidence_corroborated = (
+                prominence is not None
+                and _counterevidence_prominence_is_corroborated(
+                    text, prominence, disclosure_text
+                )
             )
-            scope_applies = declared_scope_applies or "scope_qualifying" in matched
+            if prominence is not None and not counterevidence_corroborated:
+                blocking.append(
+                    _issue(
+                        "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED",
+                        prominence=prominence,
+                        **identity,
+                    )
+                )
+
+            lexical_strength, lexical_tier, matched, scope_applies = (
+                _classify_assertion_text(
+                    text,
+                    site,
+                    markers,
+                    declared_scope_applies,
+                    counterevidence_corroborated,
+                )
+            )
             site_state = state["claims"][claim_id]["assertion_sites"][site_index]
             site_state["_lexical_tier"] = lexical_tier
             site_state["_lexical_strength"] = lexical_strength
             site_state["_matched_lexical_classes"] = matched
+            site_state["_counterevidence_corroborated"] = (
+                counterevidence_corroborated
+            )
             resolved = {
                 "site": site,
                 "identity": identity,
@@ -3730,6 +3986,7 @@ def _writing_strength_checks(
                 "lexical_tier": lexical_tier,
                 "matched": matched,
                 "scope_applies": scope_applies,
+                "counterevidence_corroborated": counterevidence_corroborated,
                 "source": source,
                 "start_line": start_line,
                 "end_line": end_line,
@@ -3738,23 +3995,19 @@ def _writing_strength_checks(
 
             precision = site["underlying_precision"]
             estimate_id = precision.get("estimate_id")
-            if isinstance(estimate_id, str) and "#" in estimate_id:
-                evidence_id = estimate_id.split("#", 1)[0]
-                precision_evidence = cards.get(evidence_id)
-                if (
-                    precision_evidence is None
-                    or str(precision_evidence.get("pipeline_id"))
-                    != str(claim.get("pipeline_id"))
-                    or precision_evidence.get("status") != "current"
-                    or precision_evidence.get("_stale_reasons")
-                ):
-                    blocking.append(
-                        _issue(
-                            "UNDERLYING_PRECISION_REFERENCE_INVALID",
-                            estimate_id=estimate_id,
-                            **identity,
-                        )
+            precision_evidence, precision_reference_valid = (
+                _precision_evidence_reference(
+                    registry, state, claim, estimate_id
+                )
+            )
+            if not precision_reference_valid:
+                blocking.append(
+                    _issue(
+                        "UNDERLYING_PRECISION_REFERENCE_INVALID",
+                        estimate_id=estimate_id,
+                        **identity,
                     )
+                )
             if (
                 precision.get("has_sampling_distribution") is False
                 and precision.get("significant_at") is not None
@@ -3819,7 +4072,12 @@ def _writing_strength_checks(
 
             if assertion_type == "world":
                 evidence_strength, evidence_basis = _claim_evidence_strength(
-                    registry, state, claim, precision
+                    registry,
+                    state,
+                    claim,
+                    precision,
+                    precision_evidence,
+                    precision_reference_valid,
                 )
                 residual = lexical_strength - evidence_strength
                 site_state["_evidence_strength"] = evidence_strength
@@ -3935,10 +4193,18 @@ def _writing_strength_checks(
             if relation.get("relation") in {"challenges", "bounds"}
             and _relation_bears_on_identification(relation)
         ]
+        # The prominence rule governs the five empirical assertion types. A
+        # hypothesis is a proposition awaiting a test, so it has no diagnostic
+        # disclosure obligation until it is registered as an empirical site.
+        prominence_sites = [
+            item
+            for item in resolved_sites
+            if item["site"].get("assertion_type") != "hypothesis"
+        ]
         if identifying_relations or any(
-            _site_bears_on_identification(item["site"]) for item in world_sites
+            _site_bears_on_identification(item["site"]) for item in prominence_sites
         ):
-            for item in world_sites:
+            for item in prominence_sites:
                 if not identifying_relations and not _site_bears_on_identification(
                     item["site"]
                 ):
@@ -3953,8 +4219,9 @@ def _writing_strength_checks(
                     for relation in relevant_relations
                 )
                 prominence = item["site"].get("counterevidence_prominence")
-                if prominence != "separate_contrastive_sentence" or not (
-                    _has_separate_contrastive_sentence(item["text"])
+                if (
+                    prominence != "separate_contrastive_sentence"
+                    or not item["counterevidence_corroborated"]
                 ):
                     blocking.append(
                         _issue(
@@ -3977,6 +4244,11 @@ def _initial_state(registry: dict) -> dict:
             _id_map(registry.get("reported_figures", []), "figure_id")
         ),
         "outputs": copy.deepcopy(_id_map(registry.get("outputs", []), "output_id")),
+        "gate_evaluations": {
+            _gate_evaluation_key(evaluation): copy.deepcopy(evaluation)
+            for evaluation in registry.get("gate_evaluations", [])
+            if isinstance(evaluation, dict)
+        },
         "derived_fields": copy.deepcopy(
             _id_map(registry.get("derived_fields", []), "derived_field_id")
         ),
@@ -3988,6 +4260,9 @@ def _initial_state(registry: dict) -> dict:
         for item in state[collection].values():
             item["_declared_status"] = item.get("status", "current")
             item["_stale_reasons"] = []
+    for evaluation in state["gate_evaluations"].values():
+        evaluation["_declared_status"] = evaluation.get("status")
+        evaluation["effective_status"] = evaluation.get("status")
     return state
 
 
