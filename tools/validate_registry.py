@@ -471,23 +471,32 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                     "must be a list of kind/id mappings",
                 )
     for index, card in enumerate(registry["evidence_cards"]):
+        endpoint = card.get("comparison_endpoint")
+        if endpoint is not None and not (
+            isinstance(endpoint, dict)
+            and set(endpoint) == {"artifact", "locator"}
+            and _nonempty_string(endpoint.get("artifact"))
+            and _nonempty_string(endpoint.get("locator"))
+        ):
+            _schema_error(
+                blocking,
+                f"evidence_cards[{index}].comparison_endpoint",
+                "requires exactly one nonempty artifact and locator",
+            )
         comparison = card.get("machine_comparison")
         if comparison is None:
             continue
         if not (
             isinstance(comparison, dict)
-            and all(
-                isinstance(comparison.get(side), dict)
-                and _nonempty_string(comparison[side].get("pipeline_id"))
-                and _nonempty_string(comparison[side].get("artifact"))
-                and _nonempty_string(comparison[side].get("locator"))
-                for side in ("source", "destination")
-            )
+            and set(comparison)
+            == {"source_evidence_card", "destination_evidence_card"}
+            and _nonempty_string(comparison.get("source_evidence_card"))
+            and _nonempty_string(comparison.get("destination_evidence_card"))
         ):
             _schema_error(
                 blocking,
                 f"evidence_cards[{index}].machine_comparison",
-                "requires source/destination pipeline, artifact, and locator",
+                "requires exactly source and destination evidence-card references",
             )
     for index, relation in enumerate(registry["evidence_relations"]):
         if _as_date(relation.get("date")) is None:
@@ -741,16 +750,23 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 "must be a two-element list",
             )
     for index, decision in enumerate(registry["semantic_equivalence_decisions"]):
-        scopes = [
-            field
-            for field in ("fact_key", "field")
-            if _nonempty_string(decision.get(field))
-        ]
-        if len(scopes) != 1:
+        revisions = decision.get("fact_revision_ids")
+        valid_range = decision.get("valid_range")
+        if not (
+            _nonempty_string(decision.get("field"))
+            and _string_list(revisions)
+            and len(revisions) >= 2
+            and len(revisions) == len(set(revisions))
+            and isinstance(valid_range, list)
+            and len(valid_range) == 2
+            and _as_date(valid_range[0]) is not None
+            and _as_date(valid_range[1]) is not None
+            and _as_date(valid_range[0]) <= _as_date(valid_range[1])
+        ):
             _schema_error(
                 blocking,
                 f"semantic_equivalence_decisions[{index}]",
-                "requires exactly one fact_key or field scope",
+                "requires a field, two or more unique fact revisions, and an ISO date window",
             )
         if decision.get("decision") not in {
             "equivalent",
@@ -853,11 +869,17 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                     "sibling_parity requires match/diverge results and consequence assessment",
                 )
     for index, record in enumerate(registry["revalidations"]):
-        if not isinstance(record.get("target"), dict):
+        target = record.get("target")
+        if not (
+            isinstance(target, dict)
+            and set(target) == {"kind", "id"}
+            and target.get("kind") in {"claim_revision", "reported_figure"}
+            and _nonempty_string(target.get("id"))
+        ):
             _schema_error(
                 blocking,
                 f"revalidations[{index}].target",
-                "must be a mapping",
+                "must contain exactly a supported kind and nonempty string id",
             )
     for index, change in enumerate(registry["changes"]):
         if change.get("object_kind") not in {
@@ -991,14 +1013,65 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
                 )
     for card in registry["evidence_cards"]:
         require(pipelines, card.get("pipeline_id"), f"evidence_cards.{card.get('evidence_card_id')}.pipeline_id")
+        endpoint = card.get("comparison_endpoint")
+        if isinstance(endpoint, dict):
+            try:
+                _resolve_artifact_locator(registry, endpoint)
+            except ValueError as error:
+                blocking.append(
+                    _issue(
+                        "REVALIDATION_SOURCE_INVALID",
+                        endpoint_evidence_card=card.get("evidence_card_id"),
+                        detail=str(error),
+                    )
+                )
         comparison = card.get("machine_comparison")
         if isinstance(comparison, dict):
-            for side in ("source", "destination"):
-                endpoint = comparison.get(side, {})
-                require(
-                    pipelines,
-                    endpoint.get("pipeline_id"),
-                    f"evidence_cards.{card.get('evidence_card_id')}.machine_comparison.{side}.pipeline_id",
+            source_id = comparison.get("source_evidence_card")
+            destination_id = comparison.get("destination_evidence_card")
+            require(
+                cards,
+                source_id,
+                f"evidence_cards.{card.get('evidence_card_id')}.machine_comparison.source_evidence_card",
+            )
+            require(
+                cards,
+                destination_id,
+                f"evidence_cards.{card.get('evidence_card_id')}.machine_comparison.destination_evidence_card",
+            )
+            source = cards.get(str(source_id))
+            destination = cards.get(str(destination_id))
+            endpoint_records = (source, destination)
+            endpoint_specs = [
+                endpoint.get("comparison_endpoint")
+                for endpoint in endpoint_records
+                if endpoint is not None
+            ]
+            if (
+                source_id == destination_id
+                or destination_id != card.get("evidence_card_id")
+                or any(
+                    endpoint is None
+                    or endpoint.get("status") != "current"
+                    or endpoint.get("provenance") != "confirmatory"
+                    or not isinstance(endpoint.get("comparison_endpoint"), dict)
+                    for endpoint in endpoint_records
+                )
+                or len(endpoint_specs) != 2
+                or (
+                    endpoint_specs[0].get("artifact"),
+                    endpoint_specs[0].get("locator"),
+                )
+                == (
+                    endpoint_specs[1].get("artifact"),
+                    endpoint_specs[1].get("locator"),
+                )
+            ):
+                blocking.append(
+                    _issue(
+                        "REVALIDATION_COMPARISON_INVALID",
+                        evidence_card_id=card.get("evidence_card_id"),
+                    )
                 )
     for relation in registry["evidence_relations"]:
         require(cards, relation.get("evidence_card_id"), f"evidence_relations.{relation.get('relation_id')}.evidence_card_id")
@@ -1017,37 +1090,57 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
                         fact_revision_id=fact.get("fact_revision_id"),
                     )
                 )
-    equivalence_scopes: set[tuple[str, str]] = set()
+    equivalence_scopes: set[tuple[str, tuple[str, ...], tuple[str, str]]] = set()
     for decision in registry["semantic_equivalence_decisions"]:
-        scope_kind = "fact_key" if decision.get("fact_key") else "field"
-        scope_id = decision.get(scope_kind)
-        require(
-            fact_keys if scope_kind == "fact_key" else semantic_fields,
-            scope_id,
-            f"semantic_equivalence_decisions.{scope_kind}",
-        )
+        field = str(decision.get("field"))
+        require(semantic_fields, field, "semantic_equivalence_decisions.field")
+        revisions = [str(item) for item in decision.get("fact_revision_ids", [])]
+        for revision_id in revisions:
+            require(
+                fact_revisions,
+                revision_id,
+                "semantic_equivalence_decisions.fact_revision_ids",
+            )
         require(
             cards,
             decision.get("evidence_card"),
             "semantic_equivalence_decisions.evidence_card",
         )
         evidence = cards.get(str(decision.get("evidence_card")))
+        resolved_facts = [fact_revisions.get(revision_id) for revision_id in revisions]
+        dependency_pairs = {
+            (str(item.get("kind")), str(item.get("id")))
+            for item in (evidence or {}).get("depends_on", [])
+        }
+        fact_key_scope = {
+            str(fact.get("fact_key")) for fact in resolved_facts if fact is not None
+        }
+        relevant_evidence = ("raw_field", field) in dependency_pairs or all(
+            ("semantic_fact", fact_key) in dependency_pairs
+            for fact_key in fact_key_scope
+        )
         if evidence and (
             evidence.get("status") != "current"
             or evidence.get("provenance") != "confirmatory"
+            or any(fact and str(fact.get("field")) != field for fact in resolved_facts)
+            or not relevant_evidence
         ):
             blocking.append(
                 _issue(
                     "SEMANTIC_EQUIVALENCE_EVIDENCE_INVALID",
-                    scope={"kind": scope_kind, "id": scope_id},
+                    field=field,
+                    fact_revision_ids=revisions,
                 )
             )
-        scope = (scope_kind, str(scope_id))
+        valid_range = tuple(str(item) for item in decision.get("valid_range", []))
+        scope = (field, tuple(revisions), valid_range)
         if scope in equivalence_scopes:
             blocking.append(
                 _issue(
                     "DUPLICATE_SEMANTIC_EQUIVALENCE_DECISION",
-                    scope={"kind": scope_kind, "id": scope_id},
+                    field=field,
+                    fact_revision_ids=revisions,
+                    valid_range=list(valid_range),
                 )
             )
         equivalence_scopes.add(scope)
@@ -1214,8 +1307,12 @@ def _semantic_checks(
         return corrected_fact_keys
 
     equivalence = registry.get("semantic_equivalence_decisions", [])
-    equivalent_keys = {
-        str(item.get("fact_key") or item.get("field"))
+    equivalent_windows = {
+        (
+            str(item.get("field")),
+            tuple(str(revision) for revision in item.get("fact_revision_ids", [])),
+            tuple(str(bound) for bound in item.get("valid_range", [])),
+        )
         for item in equivalence
         if item.get("decision") in {"equivalent", "interchangeable"}
         and item.get("decided_by")
@@ -1268,13 +1365,26 @@ def _semantic_checks(
         if gap:
             blocking.append(_issue("SEMANTIC_COVERAGE_GAP", field=field))
         fact_key = str(intervals[0][2].get("fact_key")) if intervals else ""
-        if len(intervals) > 1 and not overlap and not gap and not ({field, fact_key} & equivalent_keys):
+        revision_ids = tuple(
+            str(item[2].get("fact_revision_id")) for item in intervals
+        )
+        exact_window = (
+            str(field),
+            revision_ids,
+            (window_start.isoformat(), window_end.isoformat()),
+        )
+        if (
+            len(intervals) > 1
+            and not overlap
+            and not gap
+            and exact_window not in equivalent_windows
+        ):
             reports.append(
                 _issue(
                     "SEMANTIC_DISCLOSURE_REQUIRED",
                     field=field,
                     fact_key=fact_key,
-                    revisions=[item[2].get("fact_revision_id") for item in intervals],
+                    revisions=list(revision_ids),
                 )
             )
     return corrected_fact_keys
@@ -1503,10 +1613,17 @@ def _valid_revalidation(
     } or not target.get("id"):
         blocking.append(_issue("REVALIDATION_TARGET_INVALID", target=target))
         return None
-    if record.get("method") not in {"machine", "manual"}:
+    if not isinstance(record.get("method"), str) or record.get("method") not in {
+        "machine",
+        "manual",
+    }:
         blocking.append(_issue("REVALIDATION_METHOD_INVALID", target=target))
         return None
-    if record.get("result") not in {"revalidated", "changed", "not_revalidated"}:
+    if not isinstance(record.get("result"), str) or record.get("result") not in {
+        "revalidated",
+        "changed",
+        "not_revalidated",
+    }:
         blocking.append(_issue("REVALIDATION_RESULT_INVALID", target=target))
         return None
     if _as_datetime(record.get("performed_at")) is None:
@@ -1571,18 +1688,55 @@ def _valid_revalidation(
         and record.get("result") != "not_revalidated"
     ):
         comparison = evidence.get("machine_comparison")
+        source_id = (
+            comparison.get("source_evidence_card")
+            if isinstance(comparison, dict)
+            else None
+        )
+        destination_id = (
+            comparison.get("destination_evidence_card")
+            if isinstance(comparison, dict)
+            else None
+        )
+        source_evidence = cards.get(str(source_id))
+        destination_evidence = cards.get(str(destination_id))
+        source_endpoint = (
+            source_evidence.get("comparison_endpoint")
+            if source_evidence is not None
+            else None
+        )
+        destination_endpoint = (
+            destination_evidence.get("comparison_endpoint")
+            if destination_evidence is not None
+            else None
+        )
         if not (
             isinstance(comparison, dict)
-            and comparison.get("source", {}).get("pipeline_id")
-            == record.get("from_pipeline")
-            and comparison.get("destination", {}).get("pipeline_id")
-            == record.get("to_pipeline")
+            and source_id != destination_id
+            and destination_id == record.get("evidence_card")
+            and source_evidence is not None
+            and destination_evidence is not None
+            and source_evidence.get("pipeline_id") == record.get("from_pipeline")
+            and destination_evidence.get("pipeline_id") == record.get("to_pipeline")
+            and source_evidence.get("status") == "current"
+            and destination_evidence.get("status") == "current"
+            and source_evidence.get("provenance") == "confirmatory"
+            and destination_evidence.get("provenance") == "confirmatory"
+            and isinstance(source_endpoint, dict)
+            and isinstance(destination_endpoint, dict)
+            and (
+                source_endpoint.get("artifact"), source_endpoint.get("locator")
+            )
+            != (
+                destination_endpoint.get("artifact"),
+                destination_endpoint.get("locator"),
+            )
         ):
             blocking.append(_issue("REVALIDATION_COMPARISON_INVALID", target=target))
             return None
         try:
-            from_value = _resolve_artifact_locator(registry, comparison["source"])
-            to_value = _resolve_artifact_locator(registry, comparison["destination"])
+            from_value = _resolve_artifact_locator(registry, source_endpoint)
+            to_value = _resolve_artifact_locator(registry, destination_endpoint)
         except ValueError as error:
             blocking.append(
                 _issue(
@@ -1634,6 +1788,20 @@ def _valid_revalidation(
             )
             return None
     return item, resolved_value
+
+
+def _preflight_revalidations(
+    registry: dict, state: dict, blocking: list[dict]
+) -> dict[str, tuple[dict, tuple[dict, Any]]]:
+    """Validate every authored revalidation before graph evaluation."""
+
+    validated: dict[str, tuple[dict, tuple[dict, Any]]] = {}
+    for record in registry["revalidations"]:
+        target = record["target"]
+        result = _valid_revalidation(registry, state, record, blocking)
+        if result is not None:
+            validated[f"{target['kind']}:{target['id']}"] = (record, result)
+    return validated
 
 
 def _tolerance_accepts(old: Any, new: Any, expression: str) -> bool:
@@ -1720,10 +1888,12 @@ def _apply_revalidation_record(
     record: dict,
     blocking: list[dict],
     derived: list[dict],
+    validated: tuple[dict, Any] | None = None,
 ) -> None:
     """Apply one authenticated transition when its target is visited."""
 
-    validated = _valid_revalidation(registry, state, record, blocking)
+    if validated is None:
+        validated = _valid_revalidation(registry, state, record, blocking)
     if validated is None or record.get("result") != "revalidated":
         return
     target = record["target"]
@@ -1847,6 +2017,7 @@ def _evaluate_dependency_cascade(
     outgoing: dict[str, set[str]],
     blocking: list[dict],
     derived: list[dict],
+    prevalidated_revalidations: dict[str, tuple[dict, tuple[dict, Any]]],
 ) -> dict[str, set[str]]:
     """Evaluate stale, transitions, figures, and challenges in one DAG walk."""
 
@@ -1896,10 +2067,6 @@ def _evaluate_dependency_cascade(
                 pipeline_ids=sorted(referenced_pipelines & superseded),
             )
 
-    revalidations = {
-        f"{record['target']['kind']}:{record['target']['id']}": record
-        for record in registry["revalidations"]
-    }
     challenged: dict[str, set[str]] = defaultdict(set)
     for name in order:
         kind, identifier = name.split(":", 1)
@@ -1952,14 +2119,16 @@ def _evaluate_dependency_cascade(
                     pipeline_id=figure.get("pipeline_id"),
                 )
 
-        record = revalidations.get(name)
-        if record:
+        prevalidated = prevalidated_revalidations.get(name)
+        if prevalidated:
+            record, validation = prevalidated
             _apply_revalidation_record(
                 registry,
                 state,
                 record,
                 blocking,
                 revalidation_events,
+                validation,
             )
         if kind == "reported_figure":
             _recompute_one_figure(
@@ -2013,32 +2182,54 @@ def _gate_scope_matches(definition: dict, evaluation: dict) -> bool:
     return False
 
 
-def _gate_target_instance_exists(
+def _resolve_gate_target(
     registry: dict, state: dict, definition: dict, evaluation: dict
-) -> bool:
-    """Resolve the frozen target to a concrete instance on this pipeline."""
+) -> dict | None:
+    """Resolve one evaluation to only its concrete pipeline-local target."""
 
+    if not _gate_scope_matches(definition, evaluation):
+        return None
     evaluated = evaluation["evaluated_against"]
     pipeline_id = str(evaluation["pipeline_id"])
     if evaluated["kind"] in {"dataset", "pipeline_stage"}:
-        return _gate_scope_matches(definition, evaluation)
+        return {
+            "kind": evaluated["kind"],
+            "id": str(evaluated["id"]).removesuffix(f"@{pipeline_id}"),
+            "pipeline_id": pipeline_id,
+        }
     target_id = str(evaluated["id"]).removesuffix(f"@{pipeline_id}")
     authored_claims = registry.get("claims", [])
     current_claims = state["claims"].values()
-    return any(
-        str(claim.get("claim_key")) == target_id
-        and str(claim.get("pipeline_id")) == pipeline_id
+    revision_ids = {
+        str(claim.get("claim_revision_id"))
         for claim in [*authored_claims, *current_claims]
-    )
+        if str(claim.get("claim_key")) == target_id
+        and str(claim.get("pipeline_id")) == pipeline_id
+    }
+    if not revision_ids:
+        return None
+    return {
+        "kind": "claim_key",
+        "id": target_id,
+        "pipeline_id": pipeline_id,
+        "claim_revision_ids": revision_ids,
+    }
 
 
-def _change_matches_gate(change: dict, definition: dict, pipeline_id: str) -> bool:
-    if str(change.get("pipeline_id")) != pipeline_id:
+def _change_matches_gate(change: dict, target: dict | None) -> bool:
+    if target is None or str(change.get("pipeline_id")) != target["pipeline_id"]:
         return False
-    return any(
-        target.get("kind") == change.get("object_kind")
-        and str(target.get("id")) == str(change.get("object_id"))
-        for target in definition.get("applies_to", [])
+    if target["kind"] == "claim_key":
+        return (
+            change.get("object_kind") == "claim_key"
+            and str(change.get("object_id")) == target["id"]
+        ) or (
+            change.get("object_kind") == "claim_revision"
+            and str(change.get("object_id")) in target["claim_revision_ids"]
+        )
+    return (
+        change.get("object_kind") == target["kind"]
+        and str(change.get("object_id")) == target["id"]
     )
 
 
@@ -2096,6 +2287,9 @@ def _gate_checks(
                 )
             )
             continue
+        resolved_target = _resolve_gate_target(
+            registry, state, definition, evaluation
+        )
         if not _gate_scope_matches(definition, evaluation):
             blocking.append(
                 _issue(
@@ -2105,9 +2299,7 @@ def _gate_checks(
                     evaluated_against=evaluation.get("evaluated_against"),
                 )
             )
-        elif not _gate_target_instance_exists(
-            registry, state, definition, evaluation
-        ):
+        elif resolved_target is None:
             blocking.append(
                 _issue(
                     "GATE_TARGET_INSTANCE_MISSING",
@@ -2150,36 +2342,30 @@ def _gate_checks(
 
         status = evaluation.get("status")
         moot_change = None
-        for target in definition.get("applies_to", []):
-            if target.get("kind") == "claim_key":
-                for claim in claims_by_key.get(str(target.get("id")), []):
+        if resolved_target and resolved_target["kind"] == "claim_key":
+            for claim in claims_by_key.get(resolved_target["id"], []):
+                if (
+                    str(claim.get("claim_revision_id"))
+                    in resolved_target["claim_revision_ids"]
+                    and claim.get("availability") in {"retired", "withdrawn"}
+                ):
+                    change = changes.get(str(claim.get("change_id")))
                     if (
-                        str(claim.get("pipeline_id")) == pipeline_id
-                        and claim.get("availability") in {"retired", "withdrawn"}
-                    ):
-                        change = changes.get(str(claim.get("change_id")))
-                        if (
-                            change
-                            and change.get("object_kind") == "claim_revision"
-                            and change.get("object_id") == claim.get("claim_revision_id")
-                            and str(change.get("pipeline_id")) == pipeline_id
-                            and change.get("new_state") == claim.get("availability")
-                        ):
-                            moot_change = change["change_id"]
-                        break
-            elif target.get("kind") in {"dataset", "pipeline_stage"}:
-                for change in changes.values():
-                    if (
-                        change.get("object_kind") == target.get("kind")
-                        and change.get("object_id") == target.get("id")
-                        and str(change.get("pipeline_id")) == pipeline_id
-                        and change.get("new_state")
-                        in {"retired", "withdrawn", "end_of_life"}
+                        change
+                        and _change_matches_gate(change, resolved_target)
+                        and change.get("new_state") == claim.get("availability")
                     ):
                         moot_change = change["change_id"]
                         break
-            if moot_change:
-                break
+        elif resolved_target:
+            for change in changes.values():
+                if (
+                    _change_matches_gate(change, resolved_target)
+                    and change.get("new_state")
+                    in {"retired", "withdrawn", "end_of_life"}
+                ):
+                    moot_change = change["change_id"]
+                    break
         if moot_change:
             status = "moot"
             derived.append(
@@ -2297,7 +2483,7 @@ def _gate_checks(
                 change = changes.get(str(release.get("triggering_change_id")))
                 if (
                     change is None
-                    or not _change_matches_gate(change, definition, pipeline_id)
+                    or not _change_matches_gate(change, resolved_target)
                     or release.get("authorized_by") != change.get("authorized_by")
                 ):
                     blocking.append(
@@ -2630,10 +2816,13 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
             "derived": derived,
             "state": _initial_state(registry),
         }
+    state = _initial_state(registry)
+    prevalidated_revalidations = _preflight_revalidations(
+        registry, state, blocking
+    )
     corrected_fact_keys = _semantic_checks(registry, blocking, reports)
     _identity_cycle_checks(registry, blocking)
     order, outgoing = _dependency_topology(registry, blocking)
-    state = _initial_state(registry)
 
     # Contractual cascade order: semantics, pipelines, challenges, moot gates,
     # live-support assessment, then publication. Revalidation is an authored
@@ -2647,6 +2836,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
         outgoing,
         blocking,
         derived,
+        prevalidated_revalidations,
     )
     _gate_checks(registry, state, checkpoint, blocking, reports, derived)
     _applicability_checks(registry, blocking)

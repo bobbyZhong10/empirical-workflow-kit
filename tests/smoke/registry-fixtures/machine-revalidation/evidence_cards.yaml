@@ -5,18 +5,18 @@ evidence_cards:
     status: current
     depends_on:
       - {kind: raw_field, id: outcome}
+    comparison_endpoint:
+      artifact: comparison/p1.yaml
+      locator: estimate
   - evidence_card_id: EC-2
     pipeline_id: p2
     provenance: confirmatory
     status: current
     depends_on:
       - {kind: raw_field, id: outcome}
+    comparison_endpoint:
+      artifact: comparison/p2.yaml
+      locator: estimate
     machine_comparison:
-      source:
-        pipeline_id: p1
-        artifact: comparison/p1.yaml
-        locator: estimate
-      destination:
-        pipeline_id: p2
-        artifact: comparison/p2.yaml
-        locator: estimate
+      source_evidence_card: EC-1
+      destination_evidence_card: EC-2

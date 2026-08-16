@@ -54,17 +54,9 @@ def base_registry() -> dict:
                     "provenance": "confirmatory",
                     "status": "current",
                     "depends_on": [{"kind": "raw_field", "id": "outcome"}],
-                    "machine_comparison": {
-                        "source": {
-                            "pipeline_id": "p1",
-                            "artifact": "comparison/p1.yaml",
-                            "locator": "estimate",
-                        },
-                        "destination": {
-                            "pipeline_id": "p1",
-                            "artifact": "comparison/p1.yaml",
-                            "locator": "estimate",
-                        },
+                    "comparison_endpoint": {
+                        "artifact": "comparison/p1.yaml",
+                        "locator": "estimate",
                     },
                 }
             ]
@@ -204,17 +196,13 @@ def add_destination_evidence(registry: dict, claim_id: str = "H1.r1") -> None:
             "provenance": "confirmatory",
             "status": "current",
             "depends_on": [{"kind": "raw_field", "id": "outcome"}],
+            "comparison_endpoint": {
+                "artifact": "comparison/p2.yaml",
+                "locator": "estimate",
+            },
             "machine_comparison": {
-                "source": {
-                    "pipeline_id": "p1",
-                    "artifact": "comparison/p1.yaml",
-                    "locator": "estimate",
-                },
-                "destination": {
-                    "pipeline_id": "p2",
-                    "artifact": "comparison/p2.yaml",
-                    "locator": "estimate",
-                },
+                "source_evidence_card": "EC-1",
+                "destination_evidence_card": "EC-2",
             },
         }
     )
@@ -1042,6 +1030,23 @@ def test_semantic_correction_stays_stale_after_machine_revalidation(tmp_path):
     registry["evidence_cards"]["evidence_cards"][0]["depends_on"] = [
         {"kind": "derived_field", "id": "outcome_scaled"}
     ]
+    registry["evidence_cards"]["evidence_cards"][0]["machine_comparison"] = {
+        "source_evidence_card": "EC-source",
+        "destination_evidence_card": "EC-1",
+    }
+    registry["evidence_cards"]["evidence_cards"].append(
+        {
+            "evidence_card_id": "EC-source",
+            "pipeline_id": "p1",
+            "provenance": "confirmatory",
+            "status": "current",
+            "depends_on": [{"kind": "raw_field", "id": "outcome"}],
+            "comparison_endpoint": {
+                "artifact": "comparison/p1-source.yaml",
+                "locator": "estimate",
+            },
+        }
+    )
     registry["reported_figures"]["revalidations"] = [
         {
             "target": {"kind": "claim_revision", "id": "H1.r1"},
@@ -1056,7 +1061,11 @@ def test_semantic_correction_stays_stale_after_machine_revalidation(tmp_path):
             "evidence_card": "EC-1",
         }
     ]
-    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    root = write_registry(tmp_path, registry)
+    (root / "comparison" / "p1-source.yaml").write_text(
+        "estimate: 2.0\n", encoding="utf-8"
+    )
+    report = validate_registry(load_registry(root), "C")
     assert report["state"]["claims"]["H1.r1"]["availability"] == "stale"
     assert "SEMANTIC_STALE_CLAIM" in codes(report, "derived")
     assert "MACHINE_REVALIDATION_FORBIDDEN" in codes(report, "blocking")
@@ -1700,18 +1709,6 @@ def _artifact_authenticated_claim_revalidation(registry: dict) -> dict:
     registry["outputs"]["outputs"][0]["reported_figure_ids"] = []
     add_destination_evidence(registry)
     add_destination_gate_evaluation(registry)
-    registry["evidence_cards"]["evidence_cards"][-1]["machine_comparison"] = {
-        "source": {
-            "pipeline_id": "p1",
-            "artifact": "comparison/p1.yaml",
-            "locator": "estimate",
-        },
-        "destination": {
-            "pipeline_id": "p2",
-            "artifact": "comparison/p2.yaml",
-            "locator": "estimate",
-        },
-    }
     record = {
         "target": {"kind": "claim_revision", "id": "H1.r1"},
         "from_pipeline": "p1",
@@ -1766,6 +1763,136 @@ def test_inline_machine_claim_values_cannot_override_artifact_comparison(tmp_pat
     assert claim["availability"] == "stale"
 
 
+def test_machine_comparison_rejects_source_endpoint_bound_to_destination_artifact(
+    tmp_path,
+):
+    registry = base_registry()
+    _artifact_authenticated_claim_revalidation(registry)
+    registry["evidence_cards"]["evidence_cards"][0]["comparison_endpoint"] = {
+        "artifact": "comparison/p2.yaml",
+        "locator": "estimate",
+    }
+    root = write_registry(tmp_path, registry)
+    _write_comparison_artifacts(root, 2.0, 2.005)
+    report = validate_registry(load_registry(root), "C")
+    assert "REVALIDATION_COMPARISON_INVALID" in codes(report, "blocking")
+    claim = report["state"]["claims"]["H1.r1"]
+    assert claim["pipeline_id"] == "p1"
+    assert "REVALIDATED_CLAIM" not in codes(report, "derived")
+
+
+def test_unknown_revalidation_target_is_eagerly_rejected(tmp_path):
+    registry = base_registry()
+    registry["reported_figures"]["revalidations"] = [
+        {
+            "target": {"kind": "claim_revision", "id": "MISSING"},
+            "from_pipeline": "p1",
+            "to_pipeline": "p1",
+            "method": "manual",
+            "result": "not_revalidated",
+            "performed_by": "validator",
+            "performed_at": "2026-03-02T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "REVALIDATION_TARGET_UNKNOWN" in codes(report, "blocking")
+
+
+@pytest.mark.parametrize(
+    "target",
+    [{}, {"kind": "claim_revision"}, {"kind": 3, "id": "H1.r1"}],
+)
+def test_revalidation_target_has_complete_typed_schema(tmp_path, target):
+    registry = base_registry()
+    registry["reported_figures"]["revalidations"] = [
+        {
+            "target": target,
+            "from_pipeline": "p1",
+            "to_pipeline": "p1",
+            "method": "manual",
+            "result": "not_revalidated",
+            "performed_by": "validator",
+            "performed_at": "2026-03-02T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert codes(report, "blocking") == {"SCHEMA_INVALID"}
+
+
+def test_malformed_revalidation_target_cli_returns_stable_json(tmp_path, capsys):
+    registry = base_registry()
+    registry["reported_figures"]["revalidations"] = [
+        {
+            "target": {},
+            "from_pipeline": "p1",
+            "to_pipeline": "p1",
+            "method": "manual",
+            "result": "not_revalidated",
+            "performed_by": "validator",
+            "performed_at": "2026-03-02T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    root = write_registry(tmp_path, registry)
+    assert main([str(root), "--checkpoint", "C", "--format", "json"]) == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert codes(payload, "blocking") == {"SCHEMA_INVALID"}
+    assert "REGISTRY_VALIDATION_ERROR" not in codes(payload, "blocking")
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "expected"),
+    [
+        ("method", [], "REVALIDATION_METHOD_INVALID"),
+        ("result", {}, "REVALIDATION_RESULT_INVALID"),
+        ("performed_by", ["validator"], "REVALIDATION_PERFORMER_INVALID"),
+    ],
+)
+def test_malformed_revalidation_fields_return_stable_codes(
+    tmp_path, field, value, expected
+):
+    registry = base_registry()
+    record = {
+        "target": {"kind": "claim_revision", "id": "H1.r1"},
+        "from_pipeline": "p1",
+        "to_pipeline": "p1",
+        "method": "manual",
+        "result": "not_revalidated",
+        "performed_by": "validator",
+        "performed_at": "2026-03-02T00:00:00Z",
+        "evidence_card": "EC-1",
+    }
+    record[field] = value
+    registry["reported_figures"]["revalidations"] = [record]
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert expected in codes(report, "blocking")
+
+
+def test_dormant_machine_comparison_artifact_is_eagerly_resolved(tmp_path):
+    registry = base_registry()
+    registry["evidence_cards"]["evidence_cards"].append(
+        {
+            "evidence_card_id": "EC-dormant",
+            "pipeline_id": "p1",
+            "provenance": "confirmatory",
+            "status": "current",
+            "depends_on": [],
+            "comparison_endpoint": {
+                "artifact": "comparison/missing.yaml",
+                "locator": "estimate",
+            },
+            "machine_comparison": {
+                "source_evidence_card": "EC-1",
+                "destination_evidence_card": "EC-dormant",
+            },
+        }
+    )
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "REVALIDATION_SOURCE_INVALID" in codes(report, "blocking")
+
+
 def _split_semantic_window(registry: dict) -> None:
     first = registry["semantics"]["semantic_facts"][0]
     first["valid_range"] = ["2024-01-01", "2024-05-31"]
@@ -1787,7 +1914,9 @@ def test_semantic_equivalence_requires_typed_authorship_evidence_and_scope(tmp_p
     _split_semantic_window(registry)
     registry["semantics"]["semantic_equivalence_decisions"] = [
         {
-            "fact_key": "SEM-outcome",
+            "field": "outcome",
+            "fact_revision_ids": ["SEM-outcome.r1", "SEM-outcome.r2"],
+            "valid_range": ["2024-01-01", "2024-12-31"],
             "decision": "equivalent",
             "decided_by": {"bogus": True},
             "decided_at": "not-a-time",
@@ -1804,7 +1933,9 @@ def test_authenticated_semantic_equivalence_suppresses_only_its_resolved_scope(
     _split_semantic_window(registry)
     registry["semantics"]["semantic_equivalence_decisions"] = [
         {
-            "fact_key": "SEM-outcome",
+            "field": "outcome",
+            "fact_revision_ids": ["SEM-outcome.r1", "SEM-outcome.r2"],
+            "valid_range": ["2024-01-01", "2024-12-31"],
             "decision": "equivalent",
             "decided_by": "semantic-authority",
             "decided_at": "2026-02-01T00:00:00Z",
@@ -1820,7 +1951,9 @@ def test_semantic_equivalence_unknown_scope_reference_blocks(tmp_path):
     registry = base_registry()
     registry["semantics"]["semantic_equivalence_decisions"] = [
         {
-            "fact_key": "SEM-unknown",
+            "field": "outcome",
+            "fact_revision_ids": ["SEM-outcome.r1", "SEM-unknown.r1"],
+            "valid_range": ["2024-01-01", "2024-12-31"],
             "decision": "equivalent",
             "decided_by": "semantic-authority",
             "decided_at": "2026-02-01T00:00:00Z",
@@ -1829,6 +1962,59 @@ def test_semantic_equivalence_unknown_scope_reference_blocks(tmp_path):
     ]
     report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
     assert "UNKNOWN_REFERENCE" in codes(report, "blocking")
+
+
+def test_semantic_equivalence_cannot_suppress_unlisted_fact_transition(tmp_path):
+    registry = base_registry()
+    _split_semantic_window(registry)
+    third = copy.deepcopy(registry["semantics"]["semantic_facts"][-1])
+    registry["semantics"]["semantic_facts"][-1]["valid_range"] = [
+        "2024-06-01",
+        "2024-08-31",
+    ]
+    third.update(
+        {
+            "fact_key": "SEM-other",
+            "fact_revision_id": "SEM-other.r1",
+            "supersedes": None,
+            "valid_range": ["2024-09-01", None],
+        }
+    )
+    registry["semantics"]["semantic_facts"].append(third)
+    registry["semantics"]["semantic_equivalence_decisions"] = [
+        {
+            "field": "outcome",
+            "fact_revision_ids": ["SEM-outcome.r1", "SEM-outcome.r2"],
+            "valid_range": ["2024-01-01", "2024-08-31"],
+            "decision": "equivalent",
+            "decided_by": "semantic-authority",
+            "decided_at": "2026-02-01T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "SEMANTIC_DISCLOSURE_REQUIRED" in codes(report, "reports")
+
+
+def test_semantic_equivalence_evidence_must_depend_on_compared_field(tmp_path):
+    registry = base_registry()
+    _split_semantic_window(registry)
+    registry["evidence_cards"]["evidence_cards"][0]["depends_on"] = [
+        {"kind": "raw_field", "id": "unrelated"}
+    ]
+    registry["semantics"]["semantic_equivalence_decisions"] = [
+        {
+            "field": "outcome",
+            "fact_revision_ids": ["SEM-outcome.r1", "SEM-outcome.r2"],
+            "valid_range": ["2024-01-01", "2024-12-31"],
+            "decision": "equivalent",
+            "decided_by": "semantic-authority",
+            "decided_at": "2026-02-01T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "SEMANTIC_EQUIVALENCE_EVIDENCE_INVALID" in codes(report, "blocking")
 
 
 def test_claim_key_gate_requires_target_revision_on_evaluation_pipeline(tmp_path):
@@ -1884,6 +2070,88 @@ def test_same_pipeline_retired_revision_moots_gate_with_current_successor(tmp_pa
     report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
     assert "GATE_MOOT" in codes(report, "derived")
     assert "GATE_TRIGGERED" not in codes(report, "blocking")
+
+
+def _add_second_gate_target(registry: dict) -> None:
+    registry["claims"]["claims"].append(
+        {
+            "claim_key": "H2",
+            "claim_revision_id": "H2.r1",
+            "pipeline_id": "p1",
+            "availability": "current",
+            "assessment": "supported",
+        }
+    )
+    registry["gates"]["gate_definitions"][0]["applies_to"].append(
+        {"kind": "claim_key", "id": "H2"}
+    )
+    registry["gates"]["gate_evaluations"][0]["evaluated_against"] = {
+        "kind": "claim_key",
+        "id": "H2",
+    }
+
+
+def test_multi_target_gate_moot_uses_only_evaluated_claim(tmp_path):
+    registry = base_registry()
+    _add_second_gate_target(registry)
+    registry["claims"]["claims"].append(
+        {
+            "claim_key": "H1",
+            "claim_revision_id": "H1.r0",
+            "pipeline_id": "p1",
+            "availability": "retired",
+            "assessment": "supported",
+            "change_id": "D-H1-retired",
+        }
+    )
+    registry["gates"]["changes"] = [
+        {
+            "change_id": "D-H1-retired",
+            "object_kind": "claim_revision",
+            "object_id": "H1.r0",
+            "pipeline_id": "p1",
+            "new_state": "retired",
+            "authorized_by": "authority",
+            "occurred_at": "2026-02-01T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    registry["gates"]["gate_evaluations"][0]["status"] = "triggered"
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "GATE_MOOT" not in codes(report, "derived")
+    assert "GATE_TRIGGERED" in codes(report, "blocking")
+
+
+def test_multi_target_gate_release_uses_only_evaluated_claim(tmp_path):
+    registry = base_registry()
+    _add_second_gate_target(registry)
+    registry["gates"]["changes"] = [
+        {
+            "change_id": "D-H1-changed",
+            "object_kind": "claim_key",
+            "object_id": "H1",
+            "pipeline_id": "p1",
+            "new_state": "changed",
+            "authorized_by": "authority",
+            "occurred_at": "2026-02-01T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    registry["gates"]["gate_evaluations"][0].update(
+        {
+            "status": "released",
+            "release": {
+                "triggering_change_id": "D-H1-changed",
+                "reason": "Unrelated H1 change.",
+                "authorized_by": "authority",
+                "timing": "pre_result",
+                "evidence_card": "EC-1",
+                "compensation_disposition": "not required",
+            },
+        }
+    )
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "GATE_CHANGE_INVALID" in codes(report, "blocking")
 
 
 @pytest.mark.parametrize(
