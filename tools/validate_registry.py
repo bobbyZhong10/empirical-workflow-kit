@@ -4592,6 +4592,197 @@ def _figure_grounding_checks(
             )
 
 
+def _manuscript_sentences(source: Path, body: str) -> list[tuple[int, str]]:
+    """Split a manuscript into (line, sentence) pairs for discovery.
+
+    LaTeX comments, math, and structural control sequences are removed first so
+    a candidate is judged on what a reader sees.
+    """
+
+    sentences: list[tuple[int, str]] = []
+    is_tex = source.suffix.lower() == ".tex"
+    for offset, raw in enumerate(body.splitlines(), start=1):
+        line = _strip_tex_comment(raw) if is_tex else raw
+        if is_tex:
+            stripped = line.strip()
+            if stripped.startswith("\\") and "{" in stripped and " " not in stripped:
+                continue
+            line = _tex_visible_text(line)
+        for sentence in _sentence_segments(line):
+            if re.search(r"[A-Za-z]", sentence):
+                sentences.append((offset, sentence))
+    return sentences
+
+
+def _manuscript_sources(registry: dict, state: dict) -> dict[Path, str]:
+    """Resolve every file an output declares as manuscript text."""
+
+    sources: dict[Path, str] = {}
+    for output in registry.get("outputs", []):
+        for declared in output.get("manuscript_sources", []) or []:
+            try:
+                source = _resolve_registry_source(registry, declared)
+                sources[source] = str(declared)
+            except (OSError, ValueError):
+                continue
+    return sources
+
+
+def _manuscript_coverage_checks(
+    registry: dict, state: dict, blocking: list[dict], reports: list[dict]
+) -> None:
+    """Find assertions the manuscript makes that the registry does not.
+
+    Registration alone cannot tell an unfinished registry from a finished one:
+    omitting a site silently removes it from every check, and an empty registry
+    validates exactly like a complete one. Discovery inverts that. The
+    manuscript is scanned for sentences that commit to something, and each one
+    must be registered. Marker recall then bounds how many sentences the author
+    is asked about rather than how many overclaims can slip through.
+    """
+
+    settings = registry.get("writing_strength", {})
+    if not isinstance(settings, dict):
+        settings = {}
+    mode = settings.get("discovery", "enforce")
+    sources = _manuscript_sources(registry, state)
+    if not sources:
+        reports.append(
+            _issue(
+                "MANUSCRIPT_COVERAGE",
+                mode=mode,
+                status="inactive",
+                detail=(
+                    "no output declares manuscript_sources, so discovery cannot "
+                    "run and registration completeness is unknown"
+                ),
+            )
+        )
+        return
+
+    registered: dict[Path, list[tuple[int, int]]] = defaultdict(list)
+    site_count = 0
+    source_cache: dict[Path, tuple[str, list[str]]] = {}
+    # Prose that reports someone else's finding still contains causal verbs.
+    # An exclusion is explicit, carries a reason, and is counted in the
+    # coverage report, so switching discovery off by exclusion is visible.
+    excluded: dict[Path, list[tuple[int, int]]] = defaultdict(list)
+    exclusion_count = 0
+    for output in registry.get("outputs", []):
+        for exclusion in output.get("discovery_exclusions", []) or []:
+            if not isinstance(exclusion, dict) or not _nonempty_string(
+                exclusion.get("reason")
+            ):
+                blocking.append(
+                    _issue(
+                        "DISCOVERY_EXCLUSION_INVALID",
+                        output_id=output.get("output_id"),
+                        detail="an exclusion requires a path, anchors, and a reason",
+                    )
+                )
+                continue
+            try:
+                source = _resolve_registry_source(registry, exclusion.get("path"))
+                start, _ = _anchor_span(
+                    source, exclusion.get("start_anchor"), source_cache
+                )
+                _, end = _anchor_span(
+                    source, exclusion.get("end_anchor"), source_cache
+                )
+            except (OSError, UnicodeError, ValueError) as error:
+                blocking.append(
+                    _issue(
+                        "DISCOVERY_EXCLUSION_INVALID",
+                        output_id=output.get("output_id"),
+                        detail=str(error),
+                    )
+                )
+                continue
+            if start > end:
+                blocking.append(
+                    _issue(
+                        "DISCOVERY_EXCLUSION_INVALID",
+                        output_id=output.get("output_id"),
+                        detail="exclusion anchors are reversed",
+                    )
+                )
+                continue
+            excluded[source].append((start, end))
+            exclusion_count += 1
+    for claim in state["claims"].values():
+        for site in claim.get("assertion_sites", []) or []:
+            try:
+                _, start, end, source = _resolved_assertion_site(
+                    registry, site, source_cache
+                )
+            except (OSError, UnicodeError, ValueError):
+                continue
+            registered[source].append((start, end))
+            site_count += 1
+
+    markers = _compiled_lexical_markers(registry)
+    candidates = 0
+    unregistered: list[dict] = []
+    literals: list[dict] = []
+    for source, declared in sorted(sources.items(), key=lambda item: str(item[0])):
+        try:
+            body = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        spans = registered.get(source, [])
+        skips = excluded.get(source, [])
+        for line, sentence in _manuscript_sentences(source, body):
+            if any(start <= line <= end for start, end in skips):
+                continue
+            covered = any(start <= line <= end for start, end in spans)
+            matched = _matched_markers(sentence, markers)
+            if "causal" in matched:
+                candidates += 1
+                if not covered:
+                    unregistered.append(
+                        {
+                            "path": declared,
+                            "line": line,
+                            "markers": sorted(matched["causal"]),
+                            "excerpt": sentence[:120],
+                        }
+                    )
+            if not covered:
+                found = sorted(
+                    dict.fromkeys(
+                        match.group(0).strip()
+                        for match in QUANTITATIVE_VALUE.finditer(sentence)
+                    )
+                )
+                if found:
+                    literals.append(
+                        {"path": declared, "line": line, "literals": found}
+                    )
+
+    reports.append(
+        _issue(
+            "MANUSCRIPT_COVERAGE",
+            mode=mode,
+            status="active",
+            manuscript_sources=sorted(sources.values()),
+            registered_sites=site_count,
+            candidate_assertions=candidates,
+            unregistered_assertions=len(unregistered),
+            unregistered_quantitative_values=len(literals),
+            excluded_ranges=exclusion_count,
+        )
+    )
+
+    level = "BLOCK" if mode == "enforce" else "WARN"
+    sink = blocking if mode == "enforce" else reports
+    for item in unregistered:
+        sink.append(_issue("ASSERTION_SITE_UNREGISTERED", level=level, **item))
+    for item in literals:
+        sink.append(
+            _issue("QUANTITATIVE_VALUE_UNREGISTERED", level=level, **item)
+        )
+
+
 def _initial_state(registry: dict) -> dict:
     state = {
         "claims": copy.deepcopy(_id_map(registry.get("claims", []), "claim_revision_id")),
@@ -4678,6 +4869,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     _recompute_assessments(registry, state, derived_challenges, derived)
     if checkpoint == "C":
         _writing_strength_checks(registry, state, blocking, reports)
+        _manuscript_coverage_checks(registry, state, blocking, reports)
     _pipeline_binding_checks(registry, blocking, state)
     invalid_outputs = _output_checks(state, blocking)
     _publication_checks(registry, state, invalid_outputs, checkpoint, blocking)

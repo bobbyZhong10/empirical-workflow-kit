@@ -169,10 +169,32 @@ intended type and strength. A lexical classifier independently reads the text
 at the registered anchor so later editing cannot silently drift from that
 intent.
 
-The lexical scan is limited to **registered assertion sites**. It must never
-scan the manuscript as an undifferentiated document. Quoted scholarship,
-negated examples, literature review, and unrelated prose are consequently out
-of the classifier's domain unless authors deliberately register them.
+Classification is limited to **registered assertion sites**. Tier, residual,
+prominence, and scope are computed there and nowhere else, so quoted
+scholarship, negated examples, and unrelated prose are never graded.
+
+**Discovery** is a separate pass with a different job. Registration alone
+cannot distinguish an unfinished registry from a finished one: omitting a site
+removes it from every check, and an empty registry validates exactly like a
+complete one. So each output declares its `manuscript_sources`, and the
+manuscript is scanned for sentences carrying a causal marker. A candidate that
+no registered site covers is reported as `ASSERTION_SITE_UNREGISTERED`, and a
+quantitative literal outside a registered site is reported as
+`QUANTITATIVE_VALUE_UNREGISTERED`.
+
+This inverts what marker recall controls. Under registration alone, a marker
+the list omits is an overclaim that cannot be caught. Under discovery, an
+over-inclusive marker list costs one question to the author, and an
+under-inclusive one costs a missed prompt — the failure direction is the safe
+one.
+
+Discovery runs in `enforce` mode by default and may be set to `report` during
+adoption; either way the mode appears in the `MANUSCRIPT_COVERAGE` report.
+Prose that reports another author's finding can be excluded by an explicit
+range carrying a reason, and the number of excluded ranges is counted in that
+same report. An output that declares no `manuscript_sources` yields a coverage
+report of `inactive`: the system states that completeness is unknown rather
+than reporting success.
 
 Lexical markers are grouped into semantic classes: causal, scope-qualifying,
 evidential-weak, evidential-moderate, evidential-strong, descriptive, and

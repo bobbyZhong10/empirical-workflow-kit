@@ -270,7 +270,14 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
         "does not automatically cover an abstract, title, or conclusion site"
         in normalized_interface
     )
-    assert "must never scan the manuscript as an undifferentiated document" in normalized_lexical
+    assert (
+        "Tier, residual, prominence, and scope are computed there and nowhere else"
+        in normalized_lexical
+    )
+    assert "manuscript_sources" in normalized_lexical
+    assert "ASSERTION_SITE_UNREGISTERED" in normalized_lexical
+    assert "the failure direction is the safe one" in normalized_lexical
+    assert "completeness is unknown rather than reporting success" in normalized_lexical
     for semantic_class in (
         "causal",
         "scope-qualifying",

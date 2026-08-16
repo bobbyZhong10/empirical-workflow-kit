@@ -3860,3 +3860,129 @@ def test_challenge_disclosure_must_point_at_text_that_exists(tmp_path):
         load_registry(write_registry(tmp_path / "resolved", registry)), "C"
     )
     assert "PUBLICATION_INELIGIBLE" not in codes(report, "blocking")
+
+
+MANUSCRIPT = """\\section{Results}
+\\claimsite{registered}Treatment increases retention for participating firms.
+The subsidy also raises merchant revenue by 7.68 percent.
+We describe the sample construction in the appendix.
+"""
+
+
+def _discovery_registry(tmp_path, mode=None):
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("registered", section_role="results", declared_tier="T1"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    if mode is not None:
+        registry["claims"]["writing_strength"] = {"discovery": mode}
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
+    return validate_registry(load_registry(root), checkpoint="C")
+
+
+def test_discovery_finds_an_assertion_the_registry_never_registered(tmp_path):
+    """Registration alone cannot distinguish an empty registry from a complete one."""
+
+    report = _discovery_registry(tmp_path / "enforce")
+    unregistered = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "ASSERTION_SITE_UNREGISTERED"
+    ]
+    assert len(unregistered) == 1
+    assert unregistered[0]["line"] == 3
+    assert "raise" in unregistered[0]["markers"]
+
+    literals = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "QUANTITATIVE_VALUE_UNREGISTERED"
+    ]
+    assert literals and literals[0]["literals"] == ["7.68"]
+
+    coverage = next(
+        item for item in report["reports"] if item["code"] == "MANUSCRIPT_COVERAGE"
+    )
+    assert coverage["status"] == "active"
+    assert coverage["registered_sites"] == 1
+    assert coverage["candidate_assertions"] == 2
+    assert coverage["unregistered_assertions"] == 1
+
+
+def test_discovery_can_be_run_in_reporting_mode_but_the_mode_is_visible(tmp_path):
+    report = _discovery_registry(tmp_path / "report", mode="report")
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "reports")
+    coverage = next(
+        item for item in report["reports"] if item["code"] == "MANUSCRIPT_COVERAGE"
+    )
+    assert coverage["mode"] == "report"
+
+
+def test_registry_without_declared_manuscript_sources_reports_unknown_coverage(
+    tmp_path,
+):
+    """An empty registry must not be indistinguishable from a complete one."""
+
+    report = validate_registry(load_registry(write_registry(tmp_path)), "C")
+    coverage = next(
+        item for item in report["reports"] if item["code"] == "MANUSCRIPT_COVERAGE"
+    )
+    assert coverage["status"] == "inactive"
+    assert "registration completeness is unknown" in coverage["detail"]
+
+
+def test_discovery_exclusion_requires_a_reason_and_is_counted(tmp_path):
+    """Turning discovery off for a passage is allowed, and visible."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("registered", section_role="results", declared_tier="T1"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    registry["outputs"]["outputs"][0]["discovery_exclusions"] = [
+        {
+            "path": "paper/manuscript.tex",
+            "start_anchor": "lit-start",
+            "end_anchor": "lit-end",
+            "reason": "Related work reports other authors' findings.",
+        }
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        MANUSCRIPT
+        + "\\section{Related work}\n"
+        + "% lit-start\n"
+        + "Prior work shows that pricing increases churn.\n"
+        + "% lit-end\n",
+        encoding="utf-8",
+    )
+    report = validate_registry(load_registry(root), checkpoint="C")
+    unregistered = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "ASSERTION_SITE_UNREGISTERED"
+    ]
+    assert [item["line"] for item in unregistered] == [3]
+    coverage = next(
+        item for item in report["reports"] if item["code"] == "MANUSCRIPT_COVERAGE"
+    )
+    assert coverage["excluded_ranges"] == 1
+
+    registry["outputs"]["outputs"][0]["discovery_exclusions"][0].pop("reason")
+    root = write_registry(tmp_path / "noreason", registry)
+    (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
+    report = validate_registry(load_registry(root), checkpoint="C")
+    assert "DISCOVERY_EXCLUSION_INVALID" in codes(report, "blocking")
