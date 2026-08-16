@@ -67,6 +67,8 @@ Read a reference only when the selected stage calls for it:
   analysis data across one.
 - `references/delivery-contract.md`: what `output/` must contain before a
   submission is finished; read at Stage 7 and before Checkpoint C.
+- `references/writing-standards.md`: the house prose style, four rules of which
+  are checked; read before drafting and before the final pass.
 - `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
 - `references/latex-manuscript-adapter.md`: Stage 7 LaTeX binding of the
   manuscript to the registry; read only when the format adapter is applied.

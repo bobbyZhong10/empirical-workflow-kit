@@ -4121,6 +4121,53 @@ def test_a_misfiled_negative_is_told_which_type_it_actually_is(tmp_path):
     assert misfiled and "suggested_assertion_type" in misfiled[0]
 
 
+def test_the_mechanical_half_of_the_house_style_is_checked_not_remembered(tmp_path):
+    """Four rules an author cannot self-police across sixteen pages."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("registered", section_role="results", declared_tier="T1"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = ["paper/manuscript.tex"]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        MANUSCRIPT
+        + "\nThe result---which we did not expect---is clear.\n"
+        + "It doesn't hold everywhere.\n"
+        + "Uber's margin rose over the window.\n"
+        + "The estimates are reported (Table~\\ref{tab:main}).\n",
+        encoding="utf-8",
+    )
+    found = codes(validate_registry(load_registry(root), "C"), "blocking")
+    for code in (
+        "PROSE_EM_DASH",
+        "PROSE_CONTRACTION",
+        "PROSE_NAMED_POSSESSIVE",
+        "PROSE_PARENTHETICAL_REFERENCE",
+    ):
+        assert code in found, code
+
+
+def test_house_style_leaves_the_bibliography_alone(tmp_path):
+    """A reference list is transcribed, not written, and is exempt."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = ["paper/manuscript.tex"]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        MANUSCRIPT
+        + "\n\\begin{thebibliography}{}\n"
+        + "\\bibitem[A(2020)]{a} Author, A. (2020). What goes up---and down.\n"
+        + "\\end{thebibliography}\n",
+        encoding="utf-8",
+    )
+    found = codes(validate_registry(load_registry(root), "C"), "blocking")
+    assert "PROSE_EM_DASH" not in found
+
+
 def _delivered_registry(tmp_path, build=True):
     """A registry whose submission has been delivered into `output/`."""
 

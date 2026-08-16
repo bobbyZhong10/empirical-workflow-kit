@@ -13,6 +13,10 @@
 
 ## Automatic actions
 
+- Read `references/writing-standards.md` first. Six to eight sections; no em
+  dash, no contraction, no possessive on a named thing, no cross-reference
+  parked in parentheses. Policy text, prices, dates, company statements and
+  public datasets are footnotes with links, not reference-list entries.
 - Write in evidence-first order: theory, data, results, robustness, discussion
   and limitations, then introduction and conclusion. The last-written
   introduction summarizes observed results rather than constraining them.

@@ -6547,6 +6547,111 @@ def _output_layout_checks(
     )
 
 
+# Prose rules a house style fixes once and an author then has to remember on
+# every sentence. They are mechanical, so they are checked rather than
+# remembered: an em dash, a contraction, a possessive on a named thing, and a
+# cross-reference hidden in parentheses.
+EM_DASH = re.compile(r"---(?!-)|\u2014")
+# Two shapes: a negation (`does not` written `doesn't`) and a pronoun contraction
+# (`it is` written `it's`). The negation carries its `n` in the stem, which is
+# why one pattern cannot cover both.
+CONTRACTION = re.compile(
+    r"(?<![\w\\])(?:[A-Za-z]+n(?:'|\u2019)t"
+    r"|(?:it|that|there|here|what|who|he|she|we|they|you|i|let)"
+    r"(?:'|\u2019)(?:s|re|ve|ll|d|m))(?![\w])",
+    re.IGNORECASE,
+)
+# A possessive on a proper noun or an all-caps name: `Uber's`, `OLS's`. The
+# rule is a preference for `of`, a noun modifier, or the passive, because a
+# method or a system does not own anything.
+NAMED_POSSESSIVE = re.compile(r"(?<![\w\\])([A-Z][A-Za-z0-9]+)(?:'|\u2019)s(?![\w])")
+PARENTHETICAL_REFERENCE = re.compile(
+    r"\(\s*(?:see\s+)?(?:Table|Figure|Tables|Figures)~?\\ref\{[^{}]*\}\s*\)"
+)
+STYLE_EXEMPT_ENVIRONMENTS = re.compile(
+    r"\\begin\{thebibliography\}.*?\\end\{thebibliography\}", re.DOTALL
+)
+
+
+def _prose_style_checks(
+    registry: dict, state: dict, blocking: list[dict], reports: list[dict]
+) -> None:
+    """Enforce the mechanical half of the house writing style.
+
+    None of this makes a sentence good. All of it is the sort of thing a
+    referee notices and an author cannot reliably self-police across sixteen
+    pages, so it is checked once per build instead.
+    """
+
+    counts: dict[str, int] = defaultdict(int)
+    for source, label in _manuscript_sources(registry, state).items():
+        try:
+            body = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        body = STYLE_EXEMPT_ENVIRONMENTS.sub(" ", body)
+        lines = body.splitlines()
+        for number, line in enumerate(lines, start=1):
+            text = _strip_tex_comment(line)
+            if not text.strip():
+                continue
+            for match in EM_DASH.finditer(text):
+                counts["PROSE_EM_DASH"] += 1
+                blocking.append(
+                    _issue(
+                        "PROSE_EM_DASH",
+                        path=label,
+                        line=number,
+                        excerpt=text.strip()[:110],
+                        detail=(
+                            "the house style takes no em dash; recast as a "
+                            "comma, a colon, a semicolon or two sentences"
+                        ),
+                    )
+                )
+            for match in CONTRACTION.finditer(text):
+                counts["PROSE_CONTRACTION"] += 1
+                blocking.append(
+                    _issue(
+                        "PROSE_CONTRACTION",
+                        path=label,
+                        line=number,
+                        excerpt=match.group(0),
+                        detail="write the full form: `does not`, not `doesn't`",
+                    )
+                )
+            for match in NAMED_POSSESSIVE.finditer(text):
+                counts["PROSE_NAMED_POSSESSIVE"] += 1
+                blocking.append(
+                    _issue(
+                        "PROSE_NAMED_POSSESSIVE",
+                        path=label,
+                        line=number,
+                        excerpt=match.group(0),
+                        detail=(
+                            "prefer `of`, a noun modifier, or the passive: "
+                            f"`the margin of {match.group(1)}` or "
+                            f"`the {match.group(1)} margin`"
+                        ),
+                    )
+                )
+            for match in PARENTHETICAL_REFERENCE.finditer(text):
+                counts["PROSE_PARENTHETICAL_REFERENCE"] += 1
+                blocking.append(
+                    _issue(
+                        "PROSE_PARENTHETICAL_REFERENCE",
+                        path=label,
+                        line=number,
+                        excerpt=match.group(0),
+                        detail=(
+                            "name the table or figure in the sentence rather "
+                            "than parking it in brackets"
+                        ),
+                    )
+                )
+    reports.append(_issue("PROSE_STYLE", **{key: counts[key] for key in sorted(counts)}))
+
+
 def _citation_checks(
     registry: dict, state: dict, blocking: list[dict], reports: list[dict]
 ) -> None:
@@ -6985,6 +7090,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
         _manuscript_coverage_checks(registry, state, blocking, reports)
         _citation_checks(registry, state, blocking, reports)
         _output_layout_checks(registry, state, blocking, reports)
+        _prose_style_checks(registry, state, blocking, reports)
         _figure_direction_checks(registry, state, blocking)
     _pipeline_binding_checks(registry, blocking, state)
     invalid_outputs = _output_checks(state, blocking)
