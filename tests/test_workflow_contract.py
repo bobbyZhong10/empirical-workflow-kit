@@ -9,6 +9,25 @@ def read(path):
     return (ROOT / path).read_text(encoding="utf-8")
 
 
+def normalized_markdown_bullets(body):
+    bullets = []
+    current = []
+    for line in body.splitlines():
+        if line.startswith("- "):
+            if current:
+                bullets.append(" ".join(" ".join(current).split()))
+            current = [line[2:]]
+        elif current and (line.startswith("  ") or not line.strip()):
+            if line.strip():
+                current.append(line.strip())
+        elif current:
+            bullets.append(" ".join(" ".join(current).split()))
+            current = []
+    if current:
+        bullets.append(" ".join(" ".join(current).split()))
+    return bullets
+
+
 def test_portable_protocol_contract():
     assert (ROOT / "RESEARCH_PROTOCOL.md").is_file()
     assert (ROOT / "research.example.yaml").is_file()
@@ -82,7 +101,15 @@ def test_writing_strength_types_publish_and_route_conditional_fields():
         "detectable effect" in normalized_types
     )
     assert "`rule out` is prohibited" in normalized_types
-    assert "excluded from empirical-strength summaries" in normalized_types
+    methodological_row = next(
+        " ".join(line.split())
+        for line in types.splitlines()
+        if line.startswith("| `methodological` |")
+    )
+    assert methodological_row == (
+        "| `methodological` | A statement whose object is an estimator or method. "
+        "It is untiered and excluded from empirical-strength summaries. |"
+    )
     assert "must register that alternative explanation" in normalized_types
     assert "Low lexical strength is normal" in normalized_types
     assert "requires `as_modeled: true`" in normalized_types
@@ -262,6 +289,9 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
     structural_actions = " ".join(
         structural.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
     )
+    structural_action_bullets = normalized_markdown_bullets(
+        structural.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0]
+    )
     for rule in (
         "Keep `identified` and `calibrated` lexically distinct",
         "State identification as a property delivered by data variation and a "
@@ -271,9 +301,14 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
         "model_internal",
         "`as_modeled: true`",
         "`underlying_precision.has_sampling_distribution: false`",
-        "scope_declaration",
     ):
         assert rule in structural_actions
+    assert (
+        "Register every qualifier governing multiple counterfactuals as a "
+        "`scope_declaration` with an explicit manuscript coverage range. A body "
+        "declaration does not cover a title, abstract, or conclusion site outside "
+        "that range."
+    ) in structural_action_bullets
     structural_red_lines = " ".join(
         structural.split("## Red lines", 1)[1].split("## Exit condition", 1)[0].split()
     )
@@ -313,16 +348,21 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
     writing_actions = " ".join(
         writing.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
     )
+    writing_action_bullets = normalized_markdown_bullets(
+        writing.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0]
+    )
     for route in (
         "A positive `overclaim_residual` blocks and a negative residual is INFO",
         "Low lexical strength on a discriminating assertion is neutral",
-        "Enforce narrowing propagation to title, abstract, and conclusion",
-        "identifying-assumption counterevidence in a separate contrastive sentence in the main text",
-        "Treat immediate recovery",
-        "missing abstract/title `upgrade_justification` trace as WARN, not blockers",
-        "A dedicated limitations section does not replace disclosure beside the affected claim",
     ):
         assert route in writing_actions
+    assert (
+        "Enforce narrowing propagation to title, abstract, and conclusion; disclose "
+        "identifying-assumption counterevidence in a separate contrastive sentence "
+        "in the main text. Treat immediate recovery and a missing abstract/title "
+        "`upgrade_justification` trace as WARN, not blockers. A dedicated limitations "
+        "section does not replace disclosure beside the affected claim."
+    ) in writing_action_bullets
     assert " ".join(writing.split("## Exit condition", 1)[1].split()) == " ".join(
         """
         The manuscript has complete three-line economics tables, verified citations,
