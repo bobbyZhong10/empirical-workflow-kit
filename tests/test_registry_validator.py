@@ -3616,3 +3616,104 @@ def test_world_overclaim_and_model_internal_simulation_are_separate_failures(
     assert "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED" in model_blocking
     assert "OVERCLAIM_RESIDUAL" not in model_blocking
     assert "UNDERCLAIM_RESIDUAL" not in codes(model_report, "reports")
+
+
+LATEX_SOURCE = """\\documentclass{article}
+\\usepackage{claimsite}
+\\TITLE{Treatment increases retention}
+\\begin{abstract}
+\\claimsite{abstract-retention}Treatment increases retention for participating firms.
+\\end{abstract}
+\\section{Results}
+\\claimsite{result-retention}Treatment increases retention for participating firms. % however, this comment must not count
+\\claimsite{numeric-retention}Retention rises by 7.68\\% for participating firms.
+"""
+
+
+def _latex_registry(tmp_path, sites, registry=None, source=LATEX_SOURCE):
+    registry = copy.deepcopy(registry or base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = sites
+    root = write_registry(tmp_path, registry)
+    paper = root / "paper"
+    paper.mkdir(exist_ok=True)
+    (paper / "manuscript.tex").write_text(source, encoding="utf-8")
+    return validate_registry(load_registry(root), checkpoint="C")
+
+
+def _tex_site(anchor, section_role, **overrides):
+    site = assertion_site(anchor, section_role=section_role, declared_tier="T1")
+    site["path"] = "paper/manuscript.tex"
+    site.update(overrides)
+    return site
+
+
+def test_latex_section_role_is_resolved_from_the_source_not_self_declared(
+    tmp_path,
+):
+    report = _latex_registry(
+        tmp_path / "role",
+        [_tex_site("abstract-retention", "results")],
+    )
+    mismatches = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "SECTION_ROLE_MISMATCH"
+    ]
+    assert mismatches
+    assert mismatches[0]["declared_section_role"] == "results"
+    assert mismatches[0]["resolved_section_role"] == "abstract"
+
+
+def test_latex_comment_cannot_supply_a_counterevidence_cue(tmp_path):
+    site = _tex_site(
+        "result-retention",
+        "results",
+        counterevidence_prominence="separate_contrastive_sentence",
+    )
+    report = _latex_registry(tmp_path / "comment", [site])
+    assert "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED" in codes(
+        report, "blocking"
+    )
+
+
+def test_quantitative_value_typed_into_latex_is_rejected(tmp_path):
+    report = _latex_registry(
+        tmp_path / "numeral",
+        [_tex_site("numeric-retention", "results")],
+    )
+    literals = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "QUANTITATIVE_VALUE_NOT_REGISTERED"
+    ]
+    assert literals
+    assert literals[0]["literals"] == ["7.68"]
+
+
+def test_registered_figure_macro_is_not_a_bare_numeral(tmp_path):
+    report = _latex_registry(
+        tmp_path / "macro",
+        [_tex_site("macro-retention", "results")],
+        source=(
+            "\\section{Results}\n"
+            "\\claimsite{macro-retention}Retention rises by "
+            "\\figval{retention_pp} for participating firms.\n"
+        ),
+    )
+    assert "QUANTITATIVE_VALUE_NOT_REGISTERED" not in codes(report, "blocking")
+
+
+def test_stale_reported_figure_is_withheld_from_the_latex_macro_file(tmp_path):
+    """A retired value must fail the build, not reach the PDF."""
+
+    from tools.render_figure_macros import render
+
+    fixtures = Path(__file__).resolve().parents[1] / "tests/smoke/registry-fixtures"
+    body, withheld = render(fixtures / "pipeline-stale")
+    assert withheld == ["RF-1"]
+    assert "\\defineFigureValue{RF-1}" not in body
+
+    live = write_registry(tmp_path / "live")
+    body, withheld = render(live)
+    assert not withheld
+    assert "\\defineFigureValue{RF-1}{2.0}" in body

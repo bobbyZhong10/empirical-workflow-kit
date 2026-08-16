@@ -7,6 +7,9 @@
 - Verified bibliography and literature map, selected target-outlet row from
   `references/outlet-positioning.md`, and all current tables, figures, and
   audit records.
+- When the journal format adapter is applied, and not before:
+  `references/latex-manuscript-adapter.md` and the target outlet's class
+  files.
 
 ## Automatic actions
 
@@ -52,6 +55,12 @@
   simulation, then an independent-runtime identification review before
   submission. Record CLEAR, CONDITIONAL, or HOLD, findings, and resolution in
   the review record and decision log.
+
+- When the journal format adapter is applied, bind each assertion site to its
+  sentence with a marker that changes no typeset output, generate the
+  reported-figure macros from the registry rather than typing numerals, and
+  build only after the submission export gate passes. See
+  `references/latex-manuscript-adapter.md`.
 
 ## Required artifacts
 

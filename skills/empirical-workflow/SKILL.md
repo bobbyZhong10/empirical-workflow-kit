@@ -64,6 +64,8 @@ Read a reference only when the selected stage calls for it:
 - `references/r-standards.md`: R consumer layout and verification helpers;
   read before validation, construction, diagnostics, or estimation in R.
 - `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
+- `references/latex-manuscript-adapter.md`: Stage 7 LaTeX binding of the
+  manuscript to the registry; read only when the format adapter is applied.
 - `templates/status-template.md`: project status record.
 
 ## Shared recordkeeping

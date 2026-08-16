@@ -3385,6 +3385,87 @@ def _resolve_registry_source(registry: dict, authored_path: Any) -> Path:
     return source
 
 
+TEX_SECTION_ROLE_KEYWORDS = (
+    ("introduction", "introduction"),
+    ("results", "results"),
+    ("findings", "results"),
+    ("mechanism", "mechanism"),
+    ("discussion", "discussion"),
+    ("conclusion", "conclusion"),
+    ("concluding", "conclusion"),
+)
+
+# A quantitative value is a numeral carrying a decimal point, a percent sign, a
+# currency symbol, or a magnitude suffix. Section numbers, table references and
+# hypothesis labels are deliberately out of scope.
+QUANTITATIVE_VALUE = re.compile(
+    r"(?<![\\\w])"
+    r"(?:[$\u00a3\u20ac]\s?\d[\d,]*(?:\.\d+)?"
+    r"|\d[\d,]*\.\d+\s?%?"
+    r"|\d[\d,]*\s?%"
+    r"|\d[\d,]*(?:\.\d+)?\s?(?:bn|m|k|million|billion|thousand)(?![a-z]))",
+    flags=re.IGNORECASE,
+)
+
+
+def _strip_tex_comment(line: str) -> str:
+    """Remove a trailing LaTeX comment, honouring an escaped percent sign."""
+
+    out: list[str] = []
+    index = 0
+    while index < len(line):
+        char = line[index]
+        if char == "\\" and index + 1 < len(line):
+            out.append(line[index : index + 2])
+            index += 2
+            continue
+        if char == "%":
+            break
+        out.append(char)
+        index += 1
+    return "".join(out)
+
+
+def _tex_visible_text(text: str) -> str:
+    """Approximate the typeset text: drop control sequences, keep arguments."""
+
+    without_math = re.sub(r"\$[^$]*\$", " ", text)
+    return re.sub(r"\\[A-Za-z@]+\*?\s*(\[[^\]]*\])?", " ", without_math)
+
+
+def _tex_section_role(lines: list[str], line_number: int) -> str | None:
+    """Resolve the section role governing ``line_number`` in a LaTeX source."""
+
+    role: str | None = None
+    depth = 0
+    for index in range(line_number):
+        line = _strip_tex_comment(lines[index])
+        if re.search(r"\\begin\{abstract\}", line):
+            depth += 1
+            role = "abstract"
+            continue
+        if re.search(r"\\end\{abstract\}", line):
+            depth = max(depth - 1, 0)
+            role = None
+            continue
+        if depth:
+            continue
+        if re.search(r"\\(?:TITLE|title)\{", line):
+            role = "title"
+            continue
+        heading = re.search(
+            r"\\(?:section|SECTION)\*?\{([^}]*)\}", line
+        )
+        if heading:
+            name = heading.group(1).casefold()
+            role = None
+            for keyword, resolved in TEX_SECTION_ROLE_KEYWORDS:
+                if keyword in name:
+                    role = resolved
+                    break
+    return role
+
+
 def _anchor_span(
     source: Path, anchor: Any, source_cache: dict[Path, tuple[str, list[str]]]
 ) -> tuple[int, int]:
@@ -3419,6 +3500,8 @@ def _anchor_text(
     line = lines[line_number - 1]
     without_marker = line.replace(marker, "", 1)
     anchored_text = re.sub(r"<!--\s*-->|\\label\{\}|^[%#]\s*", " ", without_marker)
+    if source.suffix.lower() == ".tex":
+        anchored_text = _strip_tex_comment(anchored_text)
     visible = anchored_text.strip()
     if re.search(r"[A-Za-z]", visible):
         return visible, line_number, line_number
@@ -3897,6 +3980,37 @@ def _writing_strength_checks(
                 )
                 blocking.append(_issue(code, detail=str(error), **identity))
                 continue
+
+            if source.suffix.lower() == ".tex":
+                _, source_lines = source_cache[source]
+                resolved_role = _tex_section_role(source_lines, start_line)
+                declared_role = site.get("section_role")
+                if resolved_role is not None and resolved_role != declared_role:
+                    blocking.append(
+                        _issue(
+                            "SECTION_ROLE_MISMATCH",
+                            declared_section_role=declared_role,
+                            resolved_section_role=resolved_role,
+                            line=start_line,
+                            **identity,
+                        )
+                    )
+                literals = sorted(
+                    dict.fromkeys(
+                        match.group(0).strip()
+                        for match in QUANTITATIVE_VALUE.finditer(
+                            _tex_visible_text(text)
+                        )
+                    )
+                )
+                if literals:
+                    blocking.append(
+                        _issue(
+                            "QUANTITATIVE_VALUE_NOT_REGISTERED",
+                            literals=literals,
+                            **identity,
+                        )
+                    )
 
             scope_error = False
             try:
