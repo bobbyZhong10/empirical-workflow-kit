@@ -25,9 +25,12 @@
 - Draft from the v2.2 assertion registry. At every substantive manuscript use,
   register `assertion_type`, `declared_tier`, `qualifier_scope`,
   `counterevidence_prominence`, `underlying_precision`, `scope_declaration`,
-  `power_basis`, and `upgrade_justification`. Apply T0--T4 only to `world`
-  assertions; keep negative, methodological, discriminating, model-internal,
-  and hypothesis sites untiered.
+  `power_basis`, `upgrade_justification`, `alternative_explanation`, and
+  `as_modeled`. Apply T0--T4 only to `world` assertions; keep negative,
+  methodological, discriminating, model-internal, and hypothesis sites
+  untiered. Record `alternative_explanation` only for discriminating sites and
+  `as_modeled: true` only for model-internal sites; each field is `null` or
+  absent for every other assertion type.
 - Run the writing-strength validator on registered assertion sites only. Use
   project-extensible causal, scope-qualifying, associational, descriptive, and
   framing semantic classes; do not turn the check into a manuscript-wide
@@ -39,6 +42,9 @@
   in the main text. Treat immediate recovery and a missing abstract/title
   `upgrade_justification` trace as WARN, not blockers. A dedicated limitations
   section does not replace disclosure beside the affected claim.
+- Compare `declared_tier` only among `world` sites for upgrade traces; untiered
+  sites are excluded. Keep lexical drift in declaration/residual strength
+  enforcement, and do not let a trace waive propagation or another blocker.
 - Verify every citation's bibliographic facts, stable source, and purpose label
   before it supports text. Match the outlet framing to the verified
   theory-source, empirical-analogue, and method-authority roles.

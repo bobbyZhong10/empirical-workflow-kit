@@ -77,6 +77,8 @@ assertion_sites:
     scope_declaration: null
     power_basis: null
     upgrade_justification: null
+    alternative_explanation: null
+    as_modeled: null
 ```
 
 Allowed `section_role` values are `title | abstract | introduction | results |
@@ -95,8 +97,14 @@ fields to the validator:
 - `scope_declaration`: `null` for sentence scope; otherwise a mapping locating
   the qualifying statement and explicitly bounding its coverage.
 - `power_basis`: required for `negative`, `null` for other types.
-- `upgrade_justification`: a trace for a site stronger than the same claim's
-  results-site expression; otherwise `null`.
+- `upgrade_justification`: required when a `world` site's `declared_tier` is
+  stronger than the same claim's results-site `declared_tier`; otherwise
+  `null`. Untiered assertion types leave it `null` or absent.
+- `alternative_explanation`: required for `discriminating` sites as a
+  nonempty, specific account that the assertion distinguishes from the focal
+  account; `null` or absent for every other type.
+- `as_modeled`: required with the literal value `true` for `model_internal`
+  sites; `null` or absent for all other types.
 
 ### Scope declarations
 
@@ -230,11 +238,16 @@ calls for review; it does not infer dishonesty or block output.
 
 ### 4. Upgrade trace
 
-If any site is lexically stronger than the same claim's results site, that site
-must carry `upgrade_justification`. Missing justification emits
+Upgrade checks compare `declared_tier` only among `world` assertion sites for
+the same claim. When a site's declared tier is stronger than that claim's
+results-site declared tier, the stronger site must carry
+`upgrade_justification`. Untiered sites never enter this comparison. Lexical
+drift remains part of declaration/residual strength enforcement; it cannot be
+converted into a trace-only warning. Missing justification emits
 `UPGRADE_TRACE_MISSING` at WARN level. Abstract and title upgrades therefore
 require a recorded trace, but missing that trace is WARN only, never BLOCK.
-Strengthening these high-visibility locations is not itself an error.
+Strengthening these high-visibility locations is not itself an error, and an
+upgrade trace cannot waive propagation and cannot waive another blocking rule.
 
 ## Structural-estimation contract
 

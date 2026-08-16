@@ -59,52 +59,296 @@ def test_v21_spec_has_per_evaluation_post_hoc_and_figure_revalidation():
     assert "Checkpoint C reports post-hoc evaluations" in body
 
 
-def test_writing_strength_design_routes_structural_and_stage7_rules():
+def test_writing_strength_types_publish_and_route_conditional_fields():
     design = read("docs/superpowers/specs/2026-08-15-writing-strength-v2.2-design.md")
-    assert "Assertion type is prior to tier" in design
-    assert "overclaim_residual" in design
-    assert "Low lexical strength is normal" in design
-    for field in (
-        "assertion_type",
-        "declared_tier",
-        "qualifier_scope",
-        "counterevidence_prominence",
-        "underlying_precision",
-        "scope_declaration",
-        "power_basis",
-        "upgrade_justification",
-    ):
-        assert field in design
-    for check in (
-        "propagation",
-        "counterevidence prominence",
-        "immediate recovery",
-        "upgrade trace",
-    ):
-        assert check in design.lower()
-    assert "registered assertion sites" in design
-    assert "project-extensible" in design
-    assert "WARN" in design
-
-    structural = read("skills/empirical-workflow/stages/stage6b-structural.md")
-    for phrase in (
-        "identified",
-        "calibrated",
-        "identified → simulated",
+    types = design.split("## Type before strength", 1)[1].split(
+        "## Assertion-site registry", 1
+    )[0]
+    normalized_types = " ".join(types.split())
+    assert "Assertion type is prior to tier" in normalized_types
+    assert "A tier is meaningful only when `assertion_type: world`" in normalized_types
+    for assertion_type in (
+        "world",
+        "negative",
+        "methodological",
+        "discriminating",
         "model_internal",
-        "scope_declaration",
     ):
-        assert phrase in structural
+        assert f"| `{assertion_type}` |" in types
+    assert "`hypothesis` is also an accepted `assertion_type` value" in normalized_types
+    assert "Every untiered site records `declared_tier: null`" in normalized_types
+    assert (
+        "requires `power_basis` naming the test, sample size, and minimum "
+        "detectable effect" in normalized_types
+    )
+    assert "`rule out` is prohibited" in normalized_types
+    assert "excluded from empirical-strength summaries" in normalized_types
+    assert "must register that alternative explanation" in normalized_types
+    assert "Low lexical strength is normal" in normalized_types
+    assert "requires `as_modeled: true`" in normalized_types
+    assert (
+        "may use `significant` only when "
+        "`underlying_precision.has_sampling_distribution` is true" in normalized_types
+    )
+
+    interface = design.split("## Assertion-site registry", 1)[1].split(
+        "## Declaration and lexical enforcement", 1
+    )[0]
+    normalized_interface = " ".join(interface.split())
+    for yaml_field in (
+        "assertion_type: world",
+        "declared_tier: T1",
+        "qualifier_scope: sentence",
+        "counterevidence_prominence: null",
+        "underlying_precision:",
+        "scope_declaration: null",
+        "power_basis: null",
+        "upgrade_justification: null",
+        "alternative_explanation: null",
+        "as_modeled: null",
+    ):
+        assert yaml_field in interface
+    assert (
+        "`qualifier_scope`: `sentence | paragraph | section | cross_reference`"
+        in normalized_interface
+    )
+    assert (
+        "`counterevidence_prominence`: `parenthetical | clause_appended | "
+        "separate_contrastive_sentence | footnote | appendix`" in normalized_interface
+    )
+    assert (
+        "an object containing `significant_at`, `has_sampling_distribution`, "
+        "`n`, and `estimate_id`" in normalized_interface
+    )
+    assert (
+        "`scope_declaration`: `null` for sentence scope; otherwise a mapping"
+        in normalized_interface
+    )
+    assert "`power_basis`: required for `negative`, `null` for other types" in normalized_interface
+    assert (
+        "`upgrade_justification`: required when a `world` site's `declared_tier` "
+        "is stronger than the same claim's results-site `declared_tier`"
+        in normalized_interface
+    )
+    assert "`alternative_explanation`: required for `discriminating`" in normalized_interface
+    assert "`null` or absent for every other type" in normalized_interface
+    assert (
+        "`as_modeled`: required with the literal value `true` for `model_internal`"
+        in normalized_interface
+    )
+    assert "`null` or absent for all other types" in normalized_interface
 
     writing = read("skills/empirical-workflow/stages/stage7-writing.md")
-    for phrase in (
-        "assertion registry",
-        "registered assertion sites",
-        "overclaim_residual",
-        "upgrade_justification",
-        "WARN",
+    routed = " ".join(
+        writing.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
+    )
+    for field in (
+        "`assertion_type`",
+        "`declared_tier`",
+        "`qualifier_scope`",
+        "`counterevidence_prominence`",
+        "`underlying_precision`",
+        "`scope_declaration`",
+        "`power_basis`",
+        "`upgrade_justification`",
+        "`alternative_explanation`",
+        "`as_modeled`",
     ):
-        assert phrase in writing
+        assert field in routed
+    assert "`alternative_explanation` only for discriminating sites" in routed
+    assert "`as_modeled: true` only for model-internal sites" in routed
+    assert "Compare `declared_tier` only among `world` sites for upgrade traces" in routed
+    assert "untiered sites are excluded" in routed
+
+
+def test_writing_strength_world_ladder_and_residual_severities():
+    design = read("docs/superpowers/specs/2026-08-15-writing-strength-v2.2-design.md")
+    ladder = design.split("### World-only ladder", 1)[1].split(
+        "## Assertion-site registry", 1
+    )[0]
+    assert [ladder.index(f"| `T{tier}` |") for tier in range(5)] == sorted(
+        ladder.index(f"| `T{tier}` |") for tier in range(5)
+    )
+    for row in (
+        "| `T0` | An unqualified causal commitment | 4 |",
+        "| `T1` | A causal commitment constrained by a registered scope qualifier | 3 |",
+        "| `T2` | A causal commitment accompanied by material counterevidence | 2 |",
+        "| `T3` | Association, interpretation, or consistency with an account | 1 |",
+        "| `T4` | Description without an effect or causal commitment | 0 |",
+    ):
+        assert row in ladder
+
+    residual = design.split("## Residual rule", 1)[1].split(
+        "## Cross-site checks", 1
+    )[0]
+    normalized = " ".join(residual.split())
+    assert "overclaim_residual = lexical_tier_strength - evidence_strength" in normalized
+    for evidence_input in (
+        "claim assessment",
+        "revision_reason: bounded_by_*",
+        "gate status",
+        "provenance",
+        "underlying_precision",
+    ):
+        assert evidence_input in normalized
+    assert "`overclaim_residual > 0` emits blocking `OVERCLAIM_RESIDUAL`" in normalized
+    assert "`overclaim_residual < 0` emits informational `UNDERCLAIM_RESIDUAL`" in normalized
+    assert "Only `world` sites participate" in normalized
+    assert "low-strength language on a `discriminating` site is neutral" in normalized
+    assert "Tier compliance is not a separate check" in normalized
+
+
+def test_writing_strength_checks_bind_rules_codes_and_severities():
+    design = read("docs/superpowers/specs/2026-08-15-writing-strength-v2.2-design.md")
+    checks = design.split("## Cross-site checks", 1)[1].split(
+        "## Structural-estimation contract", 1
+    )[0]
+    normalized = " ".join(checks.split())
+    assert "`revision_reason: bounded_by_*`" in normalized
+    assert "`title`, `abstract`, and `conclusion`" in normalized
+    assert "blocking `NARROWING_NOT_PROPAGATED`" in normalized
+    assert "An `upgrade_justification` cannot override this finding" in normalized
+    assert "at least a `separate_contrastive_sentence`" in normalized
+    assert "footnote or appendix placement is insufficient" in normalized
+    assert "blocking `COUNTEREVIDENCE_BURIED`" in normalized
+    assert "within one sentence" in normalized
+    for recovery in ("`However`", "`Nevertheless`", "`Overall`", "`Encouragingly`"):
+        assert recovery in checks
+    assert "reporting-only `IMMEDIATE_RECOVERY` at WARN level" in normalized
+    assert "without a tier reduction" in normalized
+    assert "compare `declared_tier` only among `world` assertion sites" in normalized
+    assert "Untiered sites never enter this comparison" in normalized
+    assert "Lexical drift remains part of declaration/residual strength enforcement" in normalized
+    assert "`UPGRADE_TRACE_MISSING` at WARN level" in normalized
+    assert "never BLOCK" in normalized
+    assert "cannot waive another blocking rule" in normalized
+    assert "Strengthening these high-visibility locations is not itself an error" in normalized
+
+
+def test_writing_strength_scope_scan_structural_and_stage_boundaries():
+    design = read("docs/superpowers/specs/2026-08-15-writing-strength-v2.2-design.md")
+    interface = design.split("## Assertion-site registry", 1)[1].split(
+        "## Declaration and lexical enforcement", 1
+    )[0]
+    lexical = design.split("## Declaration and lexical enforcement", 1)[1].split(
+        "## Residual rule", 1
+    )[0]
+    normalized_interface = " ".join(interface.split())
+    normalized_lexical = " ".join(lexical.split())
+    assert "`title` is a first-class section role" in normalized_interface
+    assert "coverage is a closed manuscript range" in normalized_interface
+    for coverage_field in ("path:", "start_anchor:", "end_anchor:"):
+        assert coverage_field in interface
+    assert (
+        "does not automatically cover an abstract, title, or conclusion site"
+        in normalized_interface
+    )
+    assert "must never scan the manuscript as an undifferentiated document" in normalized_lexical
+    for semantic_class in (
+        "causal",
+        "scope-qualifying",
+        "associational",
+        "descriptive",
+        "framing",
+    ):
+        assert semantic_class in normalized_lexical
+    assert "project-extensible" in normalized_lexical
+    assert (
+        "does not create a global banned-word list or prescribe sentence form"
+        in normalized_lexical
+    )
+
+    structural = read("skills/empirical-workflow/stages/stage6b-structural.md")
+    structural_actions = " ".join(
+        structural.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
+    )
+    for rule in (
+        "Keep `identified` and `calibrated` lexically distinct",
+        "State identification as a property delivered by data variation and a "
+        "moment/likelihood component",
+        "state calibration as an analyst-authored setting with its fixed value and source",
+        "identified → simulated",
+        "model_internal",
+        "`as_modeled: true`",
+        "`underlying_precision.has_sampling_distribution: false`",
+        "scope_declaration",
+    ):
+        assert rule in structural_actions
+    structural_red_lines = " ".join(
+        structural.split("## Red lines", 1)[1].split("## Exit condition", 1)[0].split()
+    )
+    assert (
+        "Never present a simulated model-internal quantity as identified empirical "
+        "evidence or use `significant` for it without a sampling distribution"
+        in structural_red_lines
+    )
+
+    assert " ".join(structural.split("## Exit condition", 1)[1].split()) == " ".join(
+        """
+        The structural Checkpoint C record shows that every parameter is identified or
+        labeled calibrated and sourced; multiple starts and uncertainty are reported;
+        targeted and untargeted fit, sensitivity, and reduced-form discipline are
+        visible; and each counterfactual has a support boundary. Every claim traces to
+        its Evidence card and output.
+
+        ## 6b operating sequence
+
+        1. Lock primitives, parameter statuses, identification table, and estimation
+           plan before running the solver.
+        2. Estimate from multiple starts; record convergence, targeted and untargeted
+           fit, and parameter uncertainty.
+        3. Run sensitivity and reduced-form companion checks; return to primitives on
+           a material fit failure.
+        4. Produce bounded counterfactuals, evidence cards, three-line tables, and the
+           structural Checkpoint C record.
+        """.split()
+    )
+    assert (
+        "Pause before changing approved primitives, moments, sample, equilibrium, "
+        "estimator, or counterfactual after results are observed."
+        in " ".join(structural.split())
+    )
+
+    writing = read("skills/empirical-workflow/stages/stage7-writing.md")
+    writing_actions = " ".join(
+        writing.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
+    )
+    for route in (
+        "A positive `overclaim_residual` blocks and a negative residual is INFO",
+        "Low lexical strength on a discriminating assertion is neutral",
+        "Enforce narrowing propagation to title, abstract, and conclusion",
+        "identifying-assumption counterevidence in a separate contrastive sentence in the main text",
+        "Treat immediate recovery",
+        "missing abstract/title `upgrade_justification` trace as WARN, not blockers",
+        "A dedicated limitations section does not replace disclosure beside the affected claim",
+    ):
+        assert route in writing_actions
+    assert " ".join(writing.split("## Exit condition", 1)[1].split()) == " ".join(
+        """
+        The manuscript has complete three-line economics tables, verified citations,
+        and a claim-to-evidence audit in which each substantive claim traces to a
+        recorded result and limitation. Independent-runtime identification review is
+        CLEAR or CONDITIONAL with tracked resolution; no unresolved HOLD remains; and
+        the publication decision and remaining limitations are documented.
+
+        ## 7 operating sequence
+
+        1. Assemble evidence-backed sections and tables before drafting the
+           introduction and conclusion.
+        2. Complete the claim-to-evidence and citation-verification audits, including
+           every number in the abstract and introduction.
+        3. Run review at the required depth; give the independent runtime the
+           identification memo, diagnostic evidence, Evidence cards, and relevant
+           manuscript section rather than an executor summary.
+        4. Resolve findings, verify cross-references and table order, document the
+           publication decision, then apply the outlet formatting adapter.
+        """.split()
+    )
+    assert (
+        "External circulation or submission requires the protocol-required recorded "
+        "decision."
+        in " ".join(writing.split())
+    )
 
 
 def test_example_config_values():
