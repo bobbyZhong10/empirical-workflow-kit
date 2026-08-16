@@ -147,7 +147,7 @@ ALLOWED = {
     "assessment": {"supported", "challenged", "unresolved"},
     "relation": {"supports", "challenges", "bounds"},
     "relation_status": {"current", "withdrawn"},
-    "provenance": {"confirmatory", "exploratory"},
+    "provenance": {"confirmatory", "exploratory", "analytical"},
     "gate_status": {
         "passed",
         "triggered",
@@ -169,6 +169,15 @@ ALLOWED = {
 # its own evidentiary burden below; none of them can carry coverage, because
 # nothing was measured.
 UNEVALUATED_GATE_STATUSES = {"released", "moot", "inapplicable"}
+
+# A claim can be warranted by a derivation rather than by an estimate, and the
+# card vocabulary had nowhere to put one: every route to `supported` ran through
+# a confirmatory card, which is shaped around an artifact of numbers. An
+# `analytical` card names the document that carries the argument. It can support
+# a claim made entirely of model-internal and hypothesis sites, and it cannot
+# support a claim about the world, because a proof is not evidence about a
+# world.
+ANALYTICAL_SITE_TYPES = {"model_internal", "hypothesis"}
 
 DISCOVERY_MODES = {"enforce", "report"}
 # Parts a reader consumes on their own. A qualification met in the body is met
@@ -1063,6 +1072,21 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 "a confirmatory evidence card must name the artifact its "
                 "numbers come from",
             )
+        if card.get("provenance") == "analytical":
+            if not _nonempty_string(card.get("derivation")):
+                _schema_error(
+                    blocking,
+                    f"evidence_cards[{index}].derivation",
+                    "an analytical evidence card must name the document that "
+                    "carries the derivation",
+                )
+            elif card.get("estimates"):
+                _schema_error(
+                    blocking,
+                    f"evidence_cards[{index}].estimates",
+                    "an analytical evidence card warrants an argument, not an "
+                    "estimate; move the numbers to a confirmatory card",
+                )
         estimates = card.get("estimates")
         if estimates is not None and not (
             isinstance(estimates, dict)
@@ -1170,6 +1194,21 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 "a confirmatory evidence card must name the artifact its "
                 "numbers come from",
             )
+        if card.get("provenance") == "analytical":
+            if not _nonempty_string(card.get("derivation")):
+                _schema_error(
+                    blocking,
+                    f"evidence_cards[{index}].derivation",
+                    "an analytical evidence card must name the document that "
+                    "carries the derivation",
+                )
+            elif card.get("estimates"):
+                _schema_error(
+                    blocking,
+                    f"evidence_cards[{index}].estimates",
+                    "an analytical evidence card warrants an argument, not an "
+                    "estimate; move the numbers to a confirmatory card",
+                )
         estimates = card.get("estimates")
         if estimates is not None and not (
             isinstance(estimates, dict)
@@ -4067,6 +4106,7 @@ def _recompute_assessments(
     state: dict,
     derived_challenges: dict[str, set[str]],
     derived: list[dict],
+    blocking: list[dict] | None = None,
 ) -> None:
     # Read the cascaded cards, not the declared ones. `_claim_evidence_strength`
     # already reads state, so the two disagreed about the same fact: a claim
@@ -4086,11 +4126,38 @@ def _recompute_assessments(
             if relation.get("status") != "withdrawn"
             and relation.get("relation") == "supports"
             and cards.get(str(relation.get("evidence_card_id")), {}).get("provenance")
-            == "confirmatory"
+            in {"confirmatory", "analytical"}
             and not cards.get(
                 str(relation.get("evidence_card_id")), {}
             ).get("_stale_reasons")
         ]
+        # A derivation warrants a proposition, not a finding. If the only thing
+        # holding a claim up is an analytical card, no site under it may assert
+        # something about the world.
+        if supports and all(
+            cards.get(str(relation.get("evidence_card_id")), {}).get("provenance")
+            == "analytical"
+            for relation in supports
+        ):
+            worldly = [
+                site
+                for site in claim.get("assertion_sites", []) or []
+                if site.get("assertion_type") not in ANALYTICAL_SITE_TYPES
+            ]
+            if worldly:
+                (blocking if blocking is not None else derived).append(
+                    _issue(
+                        "ANALYTICAL_SUPPORT_MISPLACED",
+                        level="BLOCK",
+                        claim_revision_id=claim_id,
+                        sites=[_site_reference(site) for site in worldly],
+                        detail=(
+                            "a derivation warrants a proposition; a site that "
+                            "asserts something about the world needs a "
+                            "confirmatory card behind it"
+                        ),
+                    )
+                )
         challenges = [
             relation
             for relation in relations
@@ -4186,8 +4253,25 @@ def _disclosure_location_resolves(
 
 
 def _challenge_is_disclosed(claim_id: str, registry: dict, claim: dict) -> bool:
+    """Has the reader been told, next to the claim, what is wrong with it?
+
+    There are two ways to record that, and they used to be independent: a
+    `disclosure` block on the relation, and a corroborated
+    `counterevidence_prominence` on an assertion site. Requiring both meant
+    authoring the same fact twice in two vocabularies, with only one of them
+    named by the writing checks. A site disclosure that the prominence check has
+    already corroborated *is* a disclosure of the claim's live challenges, so it
+    now satisfies this one too; the relation-level block remains for a claim
+    with no assertion site to hang the disclosure on.
+    """
+
     live_challenges = set(claim.get("_live_challenge_ids", []))
     source_cache: dict[Path, tuple[str, list[str]]] = {}
+    if any(
+        site.get("_counterevidence_corroborated") is True
+        for site in claim.get("assertion_sites", []) or []
+    ):
+        return bool(live_challenges)
     disclosed = {
         str(item["challenge_id"])
         for item in claim.get("challenge_disclosures", [])
@@ -4284,7 +4368,12 @@ def _publication_checks(
             elif assessment == "challenged" and not _challenge_is_disclosed(
                 claim_id, registry, claim
             ):
-                reasons.append(f"challenge_undisclosed:{claim_id}")
+                reasons.append(
+                    f"challenge_undisclosed:{claim_id}"
+                    " (record it once: either a corroborated"
+                    " counterevidence_prominence on an assertion site, or a"
+                    " disclosure block on the challenging relation)"
+                )
         for figure_id_value in output.get("reported_figure_ids", []) or []:
             figure_id = str(figure_id_value)
             figure = state["reported_figures"].get(figure_id)
@@ -4521,6 +4610,60 @@ def _assertion_sentence(text: str) -> str:
 
     segments = _sentence_segments(text)
     return segments[0] if segments else text
+
+
+# What `negative` is not. The type means one thing -- an estimate that failed to
+# reject -- and in practice it collects three other kinds of sentence, because
+# all four sound negative in English. Each has its own type, and the check that
+# rejects the misfiling should say which.
+_LIMITATION_CUES = (
+    "assumption", "assumptions", "identif", "design", "specification",
+    "limitation", "we do not", "we cannot", "we did not", "not attempted",
+    "not reported", "should be read", "we report", "is not satisfied",
+    "not identified", "beyond the scope", "leave", "leaves",
+)
+_MODEL_CUES = (
+    "under linear demand", "benchmark", "the model", "implies", "holds fixed",
+    "first-order condition", "equilibrium", "by construction", "identity",
+    "proposition", "corollary",
+)
+_FINDING_CUES = (
+    "reject", "rejects", "distinguishable from zero", "significant at",
+    "coefficients", "estimates are", "p-value", "per cent", "percent",
+)
+
+
+def _misfiled_negative(text: str) -> tuple[str | None, str]:
+    """Guess the type a sentence filed as `negative` actually is."""
+
+    if any(_contains_marker(text, cue) for cue in _FINDING_CUES):
+        return (
+            "world",
+            "This sentence reports what an estimate did show, not what it "
+            "failed to show; a non-zero pre-trend or a rejected test is a "
+            "`world` assertion with a tier.",
+        )
+    if any(_contains_marker(text, cue) for cue in _LIMITATION_CUES):
+        return (
+            "methodological",
+            "This sentence is about the design, the sample or what the authors "
+            "did not do, rather than about an estimate that came back null. A "
+            "statement about the analysis is `methodological`, and carries no "
+            "power obligation.",
+        )
+    if any(_contains_marker(text, cue) for cue in _MODEL_CUES):
+        return (
+            "model_internal",
+            "This sentence is about what a model implies rather than what the "
+            "data showed, so its type is `model_internal`.",
+        )
+    return (
+        None,
+        "If the sentence is about the design or a scope limit it is "
+        "`methodological`; if it is about what a model implies it is "
+        "`model_internal`; if it reports an estimate that did move it is "
+        "`world`. Only a null result is `negative`.",
+    )
 
 
 def _classify_assertion_text(
@@ -5639,20 +5782,17 @@ def _writing_strength_checks(
             if assertion_type == "negative":
                 complete_power = _complete_power_basis(site.get("power_basis"))
                 if not complete_power:
+                    suggested, because = _misfiled_negative(text)
                     blocking.append(
                         _issue(
                             "NEGATIVE_POWER_BASIS_REQUIRED",
-                            # A statement about what a model does not deliver
-                            # has no sampling distribution and cannot have a
-                            # power basis. Registering it as `negative` reads
-                            # it as a failure to reject, which is a different
-                            # and much weaker claim.
+                            suggested_assertion_type=suggested,
                             detail=(
-                                "a negative empirical result requires a power "
-                                "basis or a hedge; if the assertion is about "
-                                "what a model implies rather than what the "
-                                "data failed to show, its assertion_type is "
-                                "model_internal"
+                                "`negative` means a null empirical result -- an "
+                                "estimate that failed to reject -- and such a "
+                                "result needs a power basis or a hedge, because "
+                                "otherwise absence of evidence reads as evidence "
+                                f"of absence. {because}"
                             ),
                             **identity,
                         )
@@ -6263,6 +6403,150 @@ def _figure_direction_checks(
             )
 
 
+# The delivery contract. A finished project is not a directory of whatever the
+# work happened to leave behind; it is four things a reader can pick up without
+# asking anyone a question: the data that produced the result and a note saying
+# how it was assembled, the code that ran on it, the figures and tables the
+# paper shows in formats that open outside LaTeX, and the sources that compile
+# the PDF, with the PDF.
+OUTPUT_ROOT = "output"
+OUTPUT_DIRECTORIES: dict[str, str] = {
+    "data": "the final data the paper was produced from, plus a markdown note "
+            "explaining how it was assembled",
+    "code": "the code that runs the paper's empirical work",
+    "result": "every figure the paper shows, as PNG, and every table, as CSV "
+              "or markdown",
+    "LaTeX": "the sources that compile the final PDF, and the PDF",
+}
+DATA_NOTE_NAMES = ("README.md", "DATA.md", "data.md", "merge.md", "MERGE.md")
+FIGURE_SUFFIXES = (".png",)
+TABLE_SUFFIXES = (".csv", ".md")
+PDF_SUFFIX = ".pdf"
+
+
+def _output_layout_checks(
+    registry: dict, state: dict, blocking: list[dict], reports: list[dict]
+) -> None:
+    """Check that a submission has been delivered, not merely produced.
+
+    Runs only on outputs that declare manuscript sources, and only at
+    Checkpoint C, because it is a statement about a finished thing.
+    """
+
+    root = Path(registry.get("_root", "."))
+    outputs = [
+        output
+        for output in state.get("outputs", {}).values()
+        if output.get("kind") == "submission" and output.get("manuscript_sources")
+    ]
+    if not outputs:
+        return
+    base = root / OUTPUT_ROOT
+    if not base.is_dir():
+        blocking.append(
+            _issue(
+                "OUTPUT_ROOT_MISSING",
+                path=OUTPUT_ROOT,
+                detail=(
+                    "a finished project delivers into `output/` with "
+                    + ", ".join(sorted(OUTPUT_DIRECTORIES))
+                    + " beneath it"
+                ),
+            )
+        )
+        return
+    for name, purpose in sorted(OUTPUT_DIRECTORIES.items()):
+        directory = base / name
+        if not directory.is_dir():
+            blocking.append(
+                _issue(
+                    "OUTPUT_DIRECTORY_MISSING",
+                    path=f"{OUTPUT_ROOT}/{name}",
+                    detail=purpose,
+                )
+            )
+            continue
+        if not any(item.is_file() for item in directory.rglob("*")):
+            blocking.append(
+                _issue("OUTPUT_DIRECTORY_EMPTY", path=f"{OUTPUT_ROOT}/{name}",
+                       detail=purpose)
+            )
+
+    data = base / "data"
+    if data.is_dir() and not any(
+        (data / name).is_file() for name in DATA_NOTE_NAMES
+    ):
+        blocking.append(
+            _issue(
+                "OUTPUT_DATA_NOTE_MISSING",
+                path=f"{OUTPUT_ROOT}/data",
+                detail=(
+                    "the delivered data needs a markdown note saying how it was "
+                    "assembled; a reader cannot infer a merge from its output"
+                ),
+                accepted_names=sorted(DATA_NOTE_NAMES),
+            )
+        )
+
+    result = base / "result"
+    figures = tables = 0
+    if result.is_dir():
+        for item in result.rglob("*"):
+            if not item.is_file():
+                continue
+            if item.suffix.lower() in FIGURE_SUFFIXES:
+                figures += 1
+            elif item.suffix.lower() in TABLE_SUFFIXES:
+                tables += 1
+    latex = base / "LaTeX"
+    compiled = (
+        any(item.suffix.lower() == PDF_SUFFIX for item in latex.rglob("*"))
+        if latex.is_dir()
+        else False
+    )
+    if latex.is_dir() and not compiled:
+        blocking.append(
+            _issue(
+                "OUTPUT_PDF_MISSING",
+                path=f"{OUTPUT_ROOT}/LaTeX",
+                detail="the compiled PDF belongs beside the sources that made it",
+            )
+        )
+
+    # How many tables the manuscript typesets. A table the paper shows and the
+    # result directory does not carry is the failure this counts.
+    typeset = 0
+    for source in _manuscript_sources(registry, state):
+        try:
+            body = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        typeset += len(re.findall(r"\\begin\{table\}", body))
+    if typeset and tables < typeset:
+        blocking.append(
+            _issue(
+                "OUTPUT_TABLE_EXPORT_INCOMPLETE",
+                path=f"{OUTPUT_ROOT}/result",
+                typeset_tables=typeset,
+                exported_tables=tables,
+                detail=(
+                    "every table the paper shows needs a CSV or markdown export "
+                    "a reader can open without LaTeX"
+                ),
+            )
+        )
+    reports.append(
+        _issue(
+            "OUTPUT_DELIVERY",
+            root=OUTPUT_ROOT,
+            figures=figures,
+            tables=tables,
+            typeset_tables=typeset,
+            pdf=compiled,
+        )
+    )
+
+
 def _citation_checks(
     registry: dict, state: dict, blocking: list[dict], reports: list[dict]
 ) -> None:
@@ -6695,11 +6979,12 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     _gate_checks(registry, state, checkpoint, blocking, reports, derived)
     _figure_grounding_checks(registry, state, blocking)
     _applicability_checks(registry, blocking, checkpoint)
-    _recompute_assessments(registry, state, derived_challenges, derived)
+    _recompute_assessments(registry, state, derived_challenges, derived, blocking)
     if checkpoint == "C":
         _writing_strength_checks(registry, state, blocking, reports)
         _manuscript_coverage_checks(registry, state, blocking, reports)
         _citation_checks(registry, state, blocking, reports)
+        _output_layout_checks(registry, state, blocking, reports)
         _figure_direction_checks(registry, state, blocking)
     _pipeline_binding_checks(registry, blocking, state)
     invalid_outputs = _output_checks(state, blocking)

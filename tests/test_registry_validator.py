@@ -4003,6 +4003,205 @@ We describe the sample construction in the appendix.
 """
 
 
+def test_a_derivation_can_warrant_a_proposition_but_not_a_finding(tmp_path):
+    """Every route to `supported` used to run through an estimate.
+
+    A claim whose warrant is a proof had nowhere to point, so the only way to
+    register one was to dress a derivation up as a confirmatory card.
+    """
+
+    registry = copy.deepcopy(base_registry())
+    registry["evidence_cards"]["evidence_cards"].append(
+        {
+            "evidence_card_id": "EC-proof",
+            "pipeline_id": "p1",
+            "provenance": "analytical",
+            "status": "current",
+            "derivation": "evidence/derivations.md",
+            "depends_on": [{"kind": "raw_field", "id": "outcome"}],
+        }
+    )
+    registry["claims"]["claims"].append(
+        {
+            "claim_key": "T1",
+            "claim_revision_id": "T1.r1",
+            "pipeline_id": "p1",
+            "availability": "current",
+            "assessment": "supported",
+            "assertion_sites": [
+                {
+                    **assertion_site("proof", section_role="framework"),
+                    "assertion_type": "model_internal",
+                    "declared_tier": None,
+                    "as_modeled": True,
+                }
+            ],
+        }
+    )
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-proof",
+            "claim_revision_id": "T1.r1",
+            "evidence_card_id": "EC-proof",
+            "relation": "supports",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-03-01T00:00:00Z",
+            "rationale": "Proposition 1.",
+        }
+    )
+    registry["outputs"]["outputs"][0]["claim_revision_ids"].append("T1.r1")
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert report["state"]["claims"]["T1.r1"]["assessment"] == "supported"
+    assert "ANALYTICAL_SUPPORT_MISPLACED" not in codes(report, "blocking")
+
+    # The same card cannot hold up a claim about the world.
+    registry["claims"]["claims"][-1]["assertion_sites"][0].update(
+        {"assertion_type": "world", "declared_tier": "T2", "as_modeled": None}
+    )
+    worldly = validate_registry(
+        load_registry(write_registry(tmp_path / "world", registry)), "C"
+    )
+    assert "ANALYTICAL_SUPPORT_MISPLACED" in codes(worldly, "blocking")
+
+
+def test_an_analytical_card_names_a_derivation_and_holds_no_estimates(tmp_path):
+    registry = copy.deepcopy(base_registry())
+    registry["evidence_cards"]["evidence_cards"].append(
+        {
+            "evidence_card_id": "EC-proof",
+            "pipeline_id": "p1",
+            "provenance": "analytical",
+            "status": "current",
+            "depends_on": [{"kind": "raw_field", "id": "outcome"}],
+        }
+    )
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "B")
+    assert any(
+        item["code"] == "SCHEMA_INVALID" and "derivation" in item.get("location", "")
+        for item in report["blocking"]
+    )
+
+
+def test_a_misfiled_negative_is_told_which_type_it_actually_is(tmp_path):
+    """`negative` means a null result. Three other things sound like one."""
+
+    from tools.validate_registry import _misfiled_negative
+
+    limitation, _ = _misfiled_negative(
+        "The parallel-trends assumption is not satisfied cleanly."
+    )
+    assert limitation == "methodological"
+    model, _ = _misfiled_negative(
+        "Under linear demand the volume weight drops out of the benchmark."
+    )
+    assert model == "model_internal"
+    finding, _ = _misfiled_negative(
+        "Six of twelve pre-period coefficients reject at five percent."
+    )
+    assert finding == "world"
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("registered", section_role="results"),
+            "path": "paper/manuscript.tex",
+            "assertion_type": "negative",
+            "declared_tier": None,
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = ["paper/manuscript.tex"]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
+    report = validate_registry(load_registry(root), "C")
+    misfiled = [
+        item for item in report["blocking"]
+        if item["code"] == "NEGATIVE_POWER_BASIS_REQUIRED"
+    ]
+    assert misfiled and "suggested_assertion_type" in misfiled[0]
+
+
+def _delivered_registry(tmp_path, build=True):
+    """A registry whose submission has been delivered into `output/`."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("registered", section_role="results", declared_tier="T1"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = ["paper/manuscript.tex"]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
+    if build:
+        output = root / "output"
+        for name in ("data", "code", "result", "LaTeX"):
+            (output / name).mkdir(parents=True, exist_ok=True)
+        (output / "data" / "README.md").write_text("How the panel was merged.\n",
+                                                   encoding="utf-8")
+        (output / "data" / "panel.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+        (output / "code" / "01_estimate.R").write_text("# estimation\n",
+                                                       encoding="utf-8")
+        (output / "result" / "fig1.png").write_bytes(b"\x89PNG\r\n")
+        (output / "result" / "table1.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+        (output / "LaTeX" / "manuscript.tex").write_text("% source\n", encoding="utf-8")
+        (output / "LaTeX" / "manuscript.pdf").write_bytes(b"%PDF-1.5\n")
+    return validate_registry(load_registry(root), checkpoint="C")
+
+
+def test_a_submission_must_be_delivered_into_the_output_contract(tmp_path):
+    """Producing a result is not the same as handing one over."""
+
+    missing = _delivered_registry(tmp_path / "bare", build=False)
+    assert "OUTPUT_ROOT_MISSING" in codes(missing, "blocking")
+
+    delivered = _delivered_registry(tmp_path / "built")
+    for code in (
+        "OUTPUT_ROOT_MISSING",
+        "OUTPUT_DIRECTORY_MISSING",
+        "OUTPUT_DIRECTORY_EMPTY",
+        "OUTPUT_DATA_NOTE_MISSING",
+        "OUTPUT_PDF_MISSING",
+    ):
+        assert code not in codes(delivered, "blocking")
+    assert "OUTPUT_DELIVERY" in codes(delivered, "reports")
+
+
+def test_delivered_data_needs_a_note_saying_how_it_was_assembled(tmp_path):
+    registry = copy.deepcopy(base_registry())
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = ["paper/manuscript.tex"]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
+    output = root / "output"
+    for name in ("data", "code", "result", "LaTeX"):
+        (output / name).mkdir(parents=True, exist_ok=True)
+    (output / "data" / "panel.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+    (output / "code" / "01.R").write_text("# code\n", encoding="utf-8")
+    (output / "result" / "fig.png").write_bytes(b"\x89PNG\r\n")
+    (output / "LaTeX" / "m.pdf").write_bytes(b"%PDF-1.5\n")
+    report = validate_registry(load_registry(root), checkpoint="C")
+    assert "OUTPUT_DATA_NOTE_MISSING" in codes(report, "blocking")
+
+
+def test_every_typeset_table_needs_an_export_a_reader_can_open(tmp_path):
+    registry = copy.deepcopy(base_registry())
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = ["paper/manuscript.tex"]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        MANUSCRIPT + "\n\\begin{table}\n\\end{table}\n", encoding="utf-8"
+    )
+    output = root / "output"
+    for name in ("data", "code", "result", "LaTeX"):
+        (output / name).mkdir(parents=True, exist_ok=True)
+    (output / "data" / "README.md").write_text("merge note\n", encoding="utf-8")
+    (output / "code" / "01.R").write_text("# code\n", encoding="utf-8")
+    (output / "result" / "fig.png").write_bytes(b"\x89PNG\r\n")
+    (output / "LaTeX" / "m.pdf").write_bytes(b"%PDF-1.5\n")
+    report = validate_registry(load_registry(root), checkpoint="C")
+    assert "OUTPUT_TABLE_EXPORT_INCOMPLETE" in codes(report, "blocking")
+
+
 def _discovery_registry(tmp_path, mode=None):
     registry = copy.deepcopy(base_registry())
     registry["claims"]["claims"][0]["assertion_sites"] = [

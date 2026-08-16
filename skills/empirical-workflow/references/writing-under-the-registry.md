@@ -72,6 +72,82 @@ about warrant, and warrant is the registry's subject.
 A reporting convention is a fact about the document. State it once where
 conventions are stated, not beside each estimate it governs.
 
+## Choosing the assertion type
+
+The type is chosen before the tier, and it decides which checks apply at all.
+Four of the six sound alike in English and are routinely confused, so:
+
+| The sentence says | Type | What it owes |
+|---|---|---|
+| something about the world, from an estimate | `world` | a tier, and a residual no greater than its evidence |
+| an estimate came back null | `negative` | a power basis, or a hedge |
+| something about the design, the sample, or what you did not do | `methodological` | nothing beyond being true |
+| what a model implies | `model_internal` | `as_modeled: true` |
+| that this explanation fits and a named rival does not | `discriminating` | the rival, named specifically |
+| a proposition awaiting a test | `hypothesis` | to read like one |
+
+**`negative` is the one that gets over-used.** It means an estimate that failed
+to reject — nothing else. These are *not* negative results:
+
+> ~~*negative*~~ → *methodological*: "The parallel-trends assumption is not
+> satisfied cleanly, and this is the binding limitation."
+> A statement about the design, not about a null estimate.
+
+> ~~*negative*~~ → *world*: "Six of twelve pre-period coefficients are
+> distinguishable from zero at five percent."
+> A pre-trend that rejects is a finding. It has a sign and a magnitude, so it
+> takes a tier.
+
+> ~~*negative*~~ → *model_internal*: "Under linear demand the volume weight
+> drops out of the comparative static."
+> About what the model implies, not about what the data failed to show.
+
+> ~~*negative*~~ → *methodological*: "This is one charge, in one city, on two
+> firms, over six weeks."
+> A scope limit.
+
+A genuine negative reads like this: *"We find no effect on trip volume; with
+53 clusters the design can detect a change of 4 percent or more."* It names
+what was not found and what could have been found, which is what the power
+basis is for.
+
+`NEGATIVE_POWER_BASIS_REQUIRED` now reports a `suggested_assertion_type`
+alongside the block. It reads the sentence; take the suggestion as a prompt to
+re-read it yourself, not as an answer.
+
+## When the warrant is a proof
+
+A claim can rest on a derivation rather than an estimate — an inertness result,
+an identity, a benchmark's predictions. Register it with an `analytical`
+evidence card, which names the document carrying the argument:
+
+```yaml
+- evidence_card_id: EC-derivations
+  provenance: analytical
+  derivation: evidence/framework-derivations.md
+```
+
+An analytical card carries no `estimates`, and it can support a claim only if
+every one of that claim's sites is `model_internal` or `hypothesis`. Point a
+`world` site at one and the validator blocks with
+`ANALYTICAL_SUPPORT_MISPLACED`: a proof warrants a proposition, not a finding.
+
+## Disclosing a challenge, once
+
+A challenged claim must show the reader what is wrong with it, and there are two
+places the registry will take that from:
+
+- `counterevidence_prominence` plus `counterevidence_disclosure` on the
+  assertion site — the ordinary case, and the one the writing checks talk about;
+- a `disclosure: {adjacent: true, paper_location: ...}` block on the challenging
+  relation — for a claim with no assertion site to hang it on.
+
+**Either satisfies both checks.** A corroborated site disclosure now also
+discharges the publication gate's `challenge_undisclosed`, so the fact is
+recorded once. If you see that reason at Checkpoint C, the site disclosure is
+missing or uncorroborated — fix it there rather than adding a second record on
+the relation.
+
 ## Where the judgement goes instead
 
 Every check that changes prose leaves a judgement behind: why this wording, why

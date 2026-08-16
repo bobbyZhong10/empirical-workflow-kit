@@ -71,13 +71,57 @@ confirmatory work from exploration, label deviations, and record their
 rationale and timing in `decision-log.md`. Do not promote a result-dependent
 choice to the main specification without a Mandatory pause decision.
 
-## Python-R boundary
+## Language
 
-Use Python for ingestion, cleaning, joins, validation, and portable data
-artifacts unless the project documents another choice. Use R for estimation
-when its model or inference implementation is selected. Exchange data through
-documented, stable files such as Parquet; record versions, commands, and
-parameters at the boundary.
+**R is the default language for a project's empirical work**, end to end:
+panel construction, estimation, inference, tables, and figures. A project that
+uses something else is making a choice, and the choice has to be recorded and
+justified.
+
+Python is permitted where R cannot do the work, or cannot do it at the required
+scale or precision. Typical grounds are a library with no R equivalent, a
+performance ceiling reached in R, or an upstream dependency that only emits
+Python. Record the reason in `decision-log.md` at the point of the exception,
+name the boundary in the code, and exchange data across it through a
+documented, stable file such as Parquet. "It was faster to write" is not a
+ground.
+
+The rule exists because a mixed codebase is a codebase nobody can rerun. Where
+an exception is taken, the two halves must still compose into one runnable
+pipeline, and the delivered `output/code` must contain both.
+
+## Delivery contract
+
+A finished project delivers into `output/`. This is not a filing preference; it
+is what "finished" means, and Checkpoint C enforces it.
+
+```
+output/
+  data/     the final data the paper was produced from, plus a markdown note
+            saying how it was assembled -- sources, joins, filters, row counts
+  code/     the code that runs the paper's empirical work, R unless an
+            exception is recorded
+  result/   every figure the paper shows, as PNG, and every table, as CSV or
+            markdown
+  LaTeX/    the sources that compile the final PDF, and the PDF
+```
+
+Three rules govern it:
+
+1. **The data note is not optional.** A reader cannot infer a merge from its
+   output. `output/data` needs a markdown file that says where each input came
+   from, what was joined to what on which key, what was dropped and why, and
+   what the row count was at each step.
+2. **Every typeset table has an export.** A table a reader can only get by
+   compiling LaTeX is a table they cannot check. One CSV or markdown file per
+   table in the paper.
+3. **Every figure is a PNG.** Whatever the paper embeds, `output/result` also
+   carries a raster a reader can open.
+
+The validator reports `OUTPUT_ROOT_MISSING`, `OUTPUT_DIRECTORY_MISSING`,
+`OUTPUT_DIRECTORY_EMPTY`, `OUTPUT_DATA_NOTE_MISSING`, `OUTPUT_PDF_MISSING` and
+`OUTPUT_TABLE_EXPORT_INCOMPLETE` against this contract, and `OUTPUT_DELIVERY`
+as the summary.
 
 ## Evidence records
 
