@@ -22,7 +22,8 @@ failed_identification_output=$(mktemp)
 invalid_output=$(mktemp)
 invalid_identity_output=$(mktemp)
 registry_output=$(mktemp)
-trap 'rm -f "$failed_identification_output" "$invalid_output" "$invalid_identity_output" "$registry_output"' EXIT
+writing_registry_root=$(mktemp -d)
+trap 'rm -f "$failed_identification_output" "$invalid_output" "$invalid_identity_output" "$registry_output"; rm -rf "$writing_registry_root"' EXIT
 
 registry_python="$repo_root/.venv/bin/python"
 
@@ -60,6 +61,34 @@ run_registry_fixture() {
     if "$registry_python" tools/validate_registry.py "$fixture_path" \
       --checkpoint C --format json >"$registry_output"; then
       echo "$fixture registry unexpectedly passed" >&2
+      cat "$registry_output" >&2
+      exit 1
+    fi
+  fi
+  assert_registry_code "$expected_code"
+}
+
+run_writing_registry_fixture() {
+  local expected_status=$1
+  local fixture=$2
+  local expected_code=$3
+  local staged_fixture="$writing_registry_root/$fixture"
+
+  mkdir -p "$staged_fixture"
+  cp -R tests/smoke/registry-fixtures/handoff/. "$staged_fixture"
+  cp -R "tests/smoke/registry-fixtures/writing-strength/$fixture/." "$staged_fixture"
+
+  if [[ "$expected_status" == pass ]]; then
+    if ! "$registry_python" tools/validate_registry.py "$staged_fixture" \
+      --checkpoint C --format json >"$registry_output"; then
+      echo "$fixture writing-strength registry unexpectedly failed" >&2
+      cat "$registry_output" >&2
+      exit 1
+    fi
+  else
+    if "$registry_python" tools/validate_registry.py "$staged_fixture" \
+      --checkpoint C --format json >"$registry_output"; then
+      echo "$fixture writing-strength registry unexpectedly passed" >&2
       cat "$registry_output" >&2
       exit 1
     fi
@@ -123,6 +152,23 @@ assert payload["state"]["outputs"]["reconciliation"]["status"] == "current"
 PY
 
 run_registry_fixture fail incomplete-substitute APPLICABILITY_SUBSTITUTE_INCOMPLETE
+
+run_writing_registry_fixture pass traced-upgrade UPGRADE_TRACE_MISSING
+"$registry_python" - "$registry_output" <<'PY'
+import json
+import sys
+
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+warnings = [item for item in payload["reports"] if item["code"] == "UPGRADE_TRACE_MISSING"]
+assert [item["site"] for item in warnings] == ["paper/assertions.md#title-retention"]
+assert not payload["blocking"]
+assert not any(
+    item.get("site") == "paper/assertions.md#abstract-retention"
+    for item in payload["blocking"] + warnings
+)
+PY
+
+run_writing_registry_fixture fail overclaim OVERCLAIM_RESIDUAL
 
 if Rscript tests/smoke/verify_panel.R tests/smoke/panel-contract.yaml "$project_config" \
   tests/smoke/failed-identification.yaml >"$failed_identification_output" 2>&1; then

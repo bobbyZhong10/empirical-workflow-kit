@@ -188,6 +188,63 @@ def codes(report: dict, section: str) -> set[str]:
     return {item["code"] for item in report[section]}
 
 
+def report_codes(report: dict) -> set[str]:
+    return {
+        item["code"]
+        for section in ("blocking", "reports", "derived")
+        for item in report[section]
+    }
+
+
+def assertion_site(
+    anchor: str,
+    *,
+    section_role: str = "results",
+    assertion_type: str = "world",
+    declared_tier: str | None = "T0",
+    qualifier_scope: str = "sentence",
+    counterevidence_prominence: str | None = None,
+    significant_at: float | None = 0.05,
+    has_sampling_distribution: bool | None = True,
+    n: int | None = 1000,
+    estimate_id: str | None = "EC-1#estimate",
+    **conditional,
+) -> dict:
+    return {
+        "path": "paper/assertions.md",
+        "anchor": anchor,
+        "section_role": section_role,
+        "assertion_type": assertion_type,
+        "declared_tier": declared_tier,
+        "qualifier_scope": qualifier_scope,
+        "counterevidence_prominence": counterevidence_prominence,
+        "underlying_precision": {
+            "estimate_id": estimate_id,
+            "significant_at": significant_at,
+            "has_sampling_distribution": has_sampling_distribution,
+            "n": n,
+        },
+        "scope_declaration": None,
+        "power_basis": None,
+        "upgrade_justification": None,
+        "alternative_explanation": None,
+        "as_modeled": None,
+        **conditional,
+    }
+
+
+def write_assertion_registry(
+    root: Path, sites: list[dict], source: str, registry: dict | None = None
+) -> dict:
+    registry = copy.deepcopy(registry or base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = sites
+    registry_root = write_registry(root, registry)
+    paper = registry_root / "paper"
+    paper.mkdir(exist_ok=True)
+    (paper / "assertions.md").write_text(source, encoding="utf-8")
+    return validate_registry(load_registry(registry_root), checkpoint="C")
+
+
 def add_destination_evidence(registry: dict, claim_id: str = "H1.r1") -> None:
     registry["evidence_cards"]["evidence_cards"].append(
         {
@@ -2601,5 +2658,594 @@ def test_gate_release_nested_fields_are_typed_before_closure(tmp_path):
             "evidence_card": "EC-1",
             "compensation_disposition": "not required",
         },
+    )
+    assert "SCHEMA_INVALID" in codes(report, "blocking")
+
+
+def test_discriminating_site_with_low_lexical_strength_is_not_an_underclaim(
+    tmp_path,
+):
+    site = assertion_site(
+        "discriminating-site",
+        assertion_type="discriminating",
+        declared_tier=None,
+        alternative_explanation="differential pre-trend selection",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- discriminating-site --> The pattern is difficult to reconcile with differential selection.\n",
+    )
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
+    assert "UNDERCLAIM_RESIDUAL" not in report_codes(report)
+
+
+def test_writing_strength_findings_run_at_checkpoint_c_without_changing_b(tmp_path):
+    registry = base_registry()
+    site = assertion_site(
+        "checkpoint-site", declared_tier="T0", has_sampling_distribution=False
+    )
+    registry["claims"]["claims"][0]["assertion_sites"] = [site]
+    root = write_registry(tmp_path, registry)
+    paper = root / "paper"
+    paper.mkdir()
+    (paper / "assertions.md").write_text(
+        "<!-- checkpoint-site --> Treatment causes retention.\n", encoding="utf-8"
+    )
+    report_b = validate_registry(load_registry(root), checkpoint="B")
+    report_c = validate_registry(load_registry(root), checkpoint="C")
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report_b)
+    assert "OVERCLAIM_RESIDUAL" in codes(report_c, "blocking")
+
+
+def test_negative_site_requires_complete_power_basis_and_prohibits_rule_out(
+    tmp_path,
+):
+    site = assertion_site(
+        "negative-site",
+        assertion_type="negative",
+        declared_tier=None,
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- negative-site --> We rule out an effect on retention.\n",
+    )
+    assert "NEGATIVE_POWER_BASIS_REQUIRED" in codes(report, "blocking")
+    assert "NEGATIVE_RULE_OUT_UNSUPPORTED" in codes(report, "blocking")
+
+
+def test_complete_negative_power_basis_licenses_exclusion_wording(tmp_path):
+    site = assertion_site(
+        "powered-negative-site",
+        assertion_type="negative",
+        declared_tier=None,
+        power_basis={
+            "test": "equivalence_test",
+            "sample_size": 1000,
+            "minimum_detectable_effect": 0.03,
+        },
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- powered-negative-site --> We rule out an effect larger than three percentage points.\n",
+    )
+    assert "NEGATIVE_POWER_BASIS_REQUIRED" not in report_codes(report)
+    assert "NEGATIVE_RULE_OUT_UNSUPPORTED" not in report_codes(report)
+
+
+@pytest.mark.parametrize(
+    ("as_modeled", "has_sampling_distribution", "expected_code"),
+    [
+        (None, False, "MODEL_INTERNAL_AS_MODELED_REQUIRED"),
+        (True, False, "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED"),
+    ],
+)
+def test_model_internal_sites_require_model_marker_and_sampling_distribution(
+    tmp_path, as_modeled, has_sampling_distribution, expected_code
+):
+    site = assertion_site(
+        "model-site",
+        assertion_type="model_internal",
+        declared_tier=None,
+        as_modeled=as_modeled,
+        has_sampling_distribution=has_sampling_distribution,
+        significant_at=None,
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- model-site --> As modeled, the simulated effect is significant.\n",
+    )
+    assert expected_code in codes(report, "blocking")
+
+
+def test_world_positive_and_negative_residuals_follow_derived_evidence_strength(
+    tmp_path,
+):
+    registry = base_registry()
+    registry["claims"]["claims"][0]["assessment"] = "challenged"
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "The diagnostic materially bounds the claim.",
+        }
+    )
+    positive = assertion_site("positive-residual")
+    report = write_assertion_registry(
+        tmp_path / "positive",
+        [positive],
+        "<!-- positive-residual --> The intervention causes retention to increase.\n",
+        registry,
+    )
+    finding = next(
+        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+    )
+    assert finding["residual"] > 0
+
+    negative = assertion_site(
+        "negative-residual", declared_tier="T3", significant_at=0.01
+    )
+    report = write_assertion_registry(
+        tmp_path / "negative",
+        [negative],
+        "<!-- negative-residual --> Retention is associated with treatment.\n",
+    )
+    finding = next(
+        item for item in report["reports"] if item["code"] == "UNDERCLAIM_RESIDUAL"
+    )
+    assert finding["residual"] < 0
+
+
+@pytest.mark.parametrize(
+    ("mutate", "expected_strength", "expected_basis"),
+    [
+        (
+            lambda registry, site: registry["evidence_cards"]["evidence_cards"][0].__setitem__(
+                "provenance", "exploratory"
+            ),
+            0,
+            "no_live_confirmatory_support",
+        ),
+        (
+            lambda registry, site: registry["gates"]["gate_evaluations"][0].__setitem__(
+                "status", "triggered"
+            ),
+            0,
+            "applicable_gate_unresolved",
+        ),
+        (
+            lambda registry, site: site["underlying_precision"].__setitem__(
+                "significant_at", None
+            ),
+            1,
+            "sampling_precision_not_significant",
+        ),
+    ],
+    ids=["provenance", "gate", "precision"],
+)
+def test_evidence_strength_uses_provenance_gate_and_site_precision(
+    tmp_path, mutate, expected_strength, expected_basis
+):
+    registry = base_registry()
+    site = assertion_site("evidence-input-site")
+    mutate(registry, site)
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- evidence-input-site --> Treatment causes retention.\n",
+        registry,
+    )
+    finding = next(
+        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+    )
+    assert finding["evidence_strength"] == expected_strength
+    assert expected_basis in finding["evidence_basis"]
+
+
+def test_narrowing_must_propagate_strength_and_scope_to_high_visibility_sites(
+    tmp_path,
+):
+    registry = base_registry()
+    registry["claims"]["claims"][0]["revision_reason"] = "bounded_by_population"
+    sites = [
+        assertion_site(
+            "bounded-result", declared_tier="T1", section_role="results"
+        ),
+        assertion_site(
+            "unbounded-abstract", declared_tier="T0", section_role="abstract"
+        ),
+    ]
+    report = write_assertion_registry(
+        tmp_path,
+        sites,
+        "<!-- bounded-result --> Among urban firms, the intervention increases retention.\n"
+        "<!-- unbounded-abstract --> The intervention increases retention.\n",
+        registry,
+    )
+    assert "NARROWING_NOT_PROPAGATED" in codes(report, "blocking")
+
+
+def test_identifying_assumption_counterevidence_must_be_a_main_text_sentence(
+    tmp_path,
+):
+    registry = base_registry()
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-identification-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "The diagnostic bears on the identifying assumption.",
+            "bears_on": "identifying_assumption",
+        }
+    )
+    site = assertion_site(
+        "buried-counterevidence",
+        declared_tier="T2",
+        counterevidence_prominence="clause_appended",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- buried-counterevidence --> Treatment increases retention, although pre-trends are imprecise.\n",
+        registry,
+    )
+    assert "COUNTEREVIDENCE_BURIED" in codes(report, "blocking")
+
+
+def test_identifying_counterevidence_declaration_must_match_contrastive_text(
+    tmp_path,
+):
+    registry = base_registry()
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-identification-bound",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-02",
+            "rationale": "The diagnostic bears on the identifying assumption.",
+            "identifying_assumption": True,
+        }
+    )
+    site = assertion_site(
+        "contrastive-counterevidence",
+        declared_tier="T2",
+        counterevidence_prominence="separate_contrastive_sentence",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- contrastive-counterevidence --> Treatment increases retention. "
+        "However, differential pre-trends weaken the identifying assumption.\n",
+        registry,
+    )
+    assert "COUNTEREVIDENCE_BURIED" not in report_codes(report)
+
+
+def test_immediate_recovery_is_reporting_only(tmp_path):
+    site = assertion_site("recovery-site", declared_tier="T0")
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- recovery-site --> Although pre-trends are imprecise, the estimate is stable. "
+        "However, the intervention causes retention to increase.\n",
+    )
+    finding = next(
+        item for item in report["reports"] if item["code"] == "IMMEDIATE_RECOVERY"
+    )
+    assert finding["level"] == "WARN"
+    assert "IMMEDIATE_RECOVERY" not in codes(report, "blocking")
+
+
+def test_abstract_upgrade_without_trace_warns_but_does_not_block(tmp_path):
+    sites = [
+        assertion_site("result-site", declared_tier="T3", section_role="results"),
+        assertion_site(
+            "abstract-site",
+            declared_tier="T1",
+            section_role="abstract",
+        ),
+    ]
+    report = write_assertion_registry(
+        tmp_path,
+        sites,
+        "<!-- result-site --> Retention is associated with treatment.\n"
+        "<!-- abstract-site --> Among urban firms, treatment increases retention.\n",
+    )
+    finding = next(
+        item for item in report["reports"] if item["code"] == "UPGRADE_TRACE_MISSING"
+    )
+    assert finding["level"] == "WARN"
+    assert "UPGRADE_TRACE_MISSING" not in codes(report, "blocking")
+
+
+def test_title_upgrade_with_complete_trace_has_no_upgrade_warning(tmp_path):
+    site_reference = "paper/assertions.md#result-site"
+    sites = [
+        assertion_site("result-site", declared_tier="T3", section_role="results"),
+        assertion_site(
+            "title-site",
+            declared_tier="T1",
+            section_role="title",
+            upgrade_justification={
+                "results_site": site_reference,
+                "rationale": "The title states the estimand within the registered population.",
+                "evidence_card": "EC-1",
+                "recorded_by": "lead_author",
+                "recorded_at": "2026-08-15T20:00:00Z",
+            },
+        ),
+    ]
+    report = write_assertion_registry(
+        tmp_path,
+        sites,
+        "<!-- result-site --> Retention is associated with treatment.\n"
+        "<!-- title-site --> Treatment increases retention among urban firms.\n",
+    )
+    assert "UPGRADE_TRACE_MISSING" not in report_codes(report)
+
+
+def test_incomplete_upgrade_trace_remains_warning_only(tmp_path):
+    sites = [
+        assertion_site("result-site", declared_tier="T3", section_role="results"),
+        assertion_site(
+            "title-site",
+            declared_tier="T1",
+            section_role="title",
+            upgrade_justification={},
+        ),
+    ]
+    report = write_assertion_registry(
+        tmp_path,
+        sites,
+        "<!-- result-site --> Retention is associated with treatment.\n"
+        "<!-- title-site --> Among urban firms, treatment increases retention.\n",
+    )
+    finding = next(
+        item for item in report["reports"] if item["code"] == "UPGRADE_TRACE_MISSING"
+    )
+    assert finding["trace_status"] == "invalid"
+    assert "SCHEMA_INVALID" not in report_codes(report)
+    assert "UPGRADE_TRACE_MISSING" not in codes(report, "blocking")
+
+
+@pytest.mark.parametrize("assertion_type", ["methodological", "hypothesis"])
+def test_non_empirical_untiered_sites_are_excluded_from_residuals(
+    tmp_path, assertion_type
+):
+    site = assertion_site(
+        "untiered-site", assertion_type=assertion_type, declared_tier=None
+    )
+    site.pop("upgrade_justification")
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- untiered-site --> Estimating a static model causes biased elasticities.\n",
+    )
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
+    assert "UNDERCLAIM_RESIDUAL" not in report_codes(report)
+
+
+def test_specific_one_word_discriminating_alternative_is_accepted(tmp_path):
+    site = assertion_site(
+        "seasonality-site",
+        assertion_type="discriminating",
+        declared_tier=None,
+        alternative_explanation="seasonality",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- seasonality-site --> The timing is difficult to reconcile with seasonality.\n",
+    )
+    assert "DISCRIMINATING_ALTERNATIVE_REQUIRED" not in report_codes(report)
+
+
+def test_lexical_scan_is_limited_to_registered_sites(tmp_path):
+    site = assertion_site("registered-description", declared_tier="T4")
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "The unregistered literature review claims treatment causes every outcome.\n"
+        "<!-- registered-description --> We report the observed retention rate.\n",
+    )
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
+
+
+@pytest.mark.parametrize(
+    ("lexical_class", "marker", "text"),
+    [
+        ("causal", "supercharges", "Treatment supercharges retention."),
+        ("scope_qualifying", "inside metro firms", "Treatment increases retention inside metro firms."),
+        ("associational", "co-moves with", "Retention co-moves with treatment."),
+        ("descriptive", "enumerates", "The table enumerates retention rates."),
+        ("framing", "granting that", "Granting that precision is limited, the estimate remains stable."),
+    ],
+)
+def test_project_can_extend_each_registered_site_lexical_class(
+    tmp_path, lexical_class, marker, text
+):
+    registry = base_registry()
+    registry["claims"]["writing_strength"] = {
+        "lexical_markers": {lexical_class: [marker]}
+    }
+    site = assertion_site("custom-marker", declared_tier="T0")
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        f"<!-- custom-marker --> {text}\n",
+        registry,
+    )
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert marker in site_state["_matched_lexical_classes"][lexical_class]
+
+
+@pytest.mark.parametrize(
+    ("anchor", "source"),
+    [
+        ("missing-anchor", "No registered marker is present.\n"),
+        ("duplicate-anchor", "duplicate-anchor\nduplicate-anchor\n"),
+    ],
+    ids=["missing", "ambiguous"],
+)
+def test_assertion_site_anchor_must_resolve_unambiguously(tmp_path, anchor, source):
+    report = write_assertion_registry(
+        tmp_path,
+        [assertion_site(anchor, declared_tier="T4")],
+        source,
+    )
+    assert "ASSERTION_ANCHOR_INVALID" in codes(report, "blocking")
+
+
+@pytest.mark.parametrize(
+    "mutate",
+    [
+        lambda site: site.__setitem__("assertion_type", "anecdote"),
+        lambda site: site.__setitem__("declared_tier", None),
+        lambda site: site["underlying_precision"].pop("estimate_id"),
+        lambda site: site.__setitem__("qualifier_scope", "section"),
+    ],
+    ids=["type", "world-tier", "precision", "scope-declaration"],
+)
+def test_assertion_site_declarations_have_an_executable_schema(tmp_path, mutate):
+    site = assertion_site("typed-site")
+    mutate(site)
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- typed-site --> Treatment causes retention.\n",
+    )
+    assert "SCHEMA_INVALID" in codes(report, "blocking")
+
+
+def test_untiered_types_reject_world_tiers_and_generic_alternatives(tmp_path):
+    site = assertion_site(
+        "generic-alternative",
+        assertion_type="discriminating",
+        declared_tier="T3",
+        alternative_explanation="selection",
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- generic-alternative --> The pattern differs from selection.\n",
+    )
+    assert "UNTIERED_ASSERTION_TIERED" in codes(report, "blocking")
+    assert "DISCRIMINATING_ALTERNATIVE_REQUIRED" in codes(report, "blocking")
+
+
+def test_line_range_anchor_reads_only_the_registered_lines(tmp_path):
+    site = assertion_site("L2-L2", declared_tier="T4")
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "Treatment causes every outcome.\nWe report the observed retention rate.\n",
+    )
+    assert "ASSERTION_ANCHOR_INVALID" not in report_codes(report)
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
+
+
+def test_assertion_source_path_cannot_escape_the_registry(tmp_path):
+    site = assertion_site("external-anchor", declared_tier="T4")
+    site["path"] = str(Path(__file__).resolve())
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- external-anchor --> We report the observed rate.\n",
+    )
+    assert "ASSERTION_SOURCE_INVALID" in codes(report, "blocking")
+
+
+def test_registered_paragraph_scope_must_bound_the_site_and_qualify_its_tier(
+    tmp_path,
+):
+    registry = base_registry()
+    registry["claims"]["claims"][0]["revision_reason"] = "bounded_by_population"
+    site = assertion_site(
+        "bounded-site",
+        section_role="abstract",
+        declared_tier="T1",
+        qualifier_scope="paragraph",
+        scope_declaration={
+            "path": "paper/assertions.md",
+            "anchor": "scope-statement",
+            "coverage": {
+                "path": "paper/assertions.md",
+                "start_anchor": "coverage-start",
+                "end_anchor": "coverage-end",
+            },
+        },
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- scope-statement --> Among participating firms, the following claim applies.\n"
+        "<!-- coverage-start -->\n"
+        "<!-- bounded-site --> Treatment increases retention.\n"
+        "<!-- coverage-end -->\n",
+        registry,
+    )
+    assert "SCOPE_DECLARATION_INVALID" not in report_codes(report)
+    assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
+    assert "NARROWING_NOT_PROPAGATED" not in report_codes(report)
+
+
+def test_scope_declaration_outside_coverage_does_not_qualify_the_site(tmp_path):
+    site = assertion_site(
+        "outside-site",
+        declared_tier="T1",
+        qualifier_scope="paragraph",
+        scope_declaration={
+            "path": "paper/assertions.md",
+            "anchor": "scope-statement",
+            "coverage": {
+                "path": "paper/assertions.md",
+                "start_anchor": "coverage-start",
+                "end_anchor": "coverage-end",
+            },
+        },
+    )
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- scope-statement --> Among participating firms, the following claim applies.\n"
+        "<!-- coverage-start -->\n"
+        "<!-- coverage-end -->\n"
+        "<!-- outside-site --> Treatment increases retention.\n",
+    )
+    assert "SCOPE_DECLARATION_INVALID" in codes(report, "blocking")
+
+
+def test_duplicate_assertion_site_for_one_claim_is_rejected(tmp_path):
+    site = assertion_site("duplicate-site", declared_tier="T4")
+    report = write_assertion_registry(
+        tmp_path,
+        [site, copy.deepcopy(site)],
+        "<!-- duplicate-site --> We report the observed retention rate.\n",
+    )
+    assert "DUPLICATE_ASSERTION_SITE" in codes(report, "blocking")
+
+
+def test_malformed_assertion_scalar_types_return_schema_errors(tmp_path):
+    site = assertion_site("malformed-site")
+    site["assertion_type"] = {"not": "a scalar"}
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- malformed-site --> Treatment causes retention.\n",
     )
     assert "SCHEMA_INVALID" in codes(report, "blocking")

@@ -1,0 +1,24 @@
+claims:
+  - claim_key: H1
+    claim_revision_id: H1.r1
+    pipeline_id: p1
+    availability: current
+    assessment: supported
+    assertion_sites:
+      - path: paper/assertions.md
+        anchor: simulated-world-claim
+        section_role: results
+        assertion_type: world
+        declared_tier: T0
+        qualifier_scope: sentence
+        counterevidence_prominence: null
+        underlying_precision:
+          estimate_id: EC-1#simulation
+          significant_at: null
+          has_sampling_distribution: false
+          n: null
+        scope_declaration: null
+        power_basis: null
+        upgrade_justification: null
+        alternative_explanation: null
+        as_modeled: null
