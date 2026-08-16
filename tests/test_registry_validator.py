@@ -1812,6 +1812,41 @@ def test_machine_comparison_rejects_canonical_endpoint_aliases(
     assert "REVALIDATED_CLAIM" not in codes(report, "derived")
 
 
+@pytest.mark.parametrize(
+    ("source_locator", "expected_code"),
+    [
+        ("values.1", "REVALIDATION_COMPARISON_INVALID"),
+        ("values.01", "REVALIDATION_SOURCE_INVALID"),
+        ("values.+1", "REVALIDATION_SOURCE_INVALID"),
+        ("values.-1", "REVALIDATION_SOURCE_INVALID"),
+    ],
+)
+def test_machine_comparison_rejects_list_index_locator_aliases(
+    tmp_path, source_locator, expected_code
+):
+    registry = base_registry()
+    _artifact_authenticated_claim_revalidation(registry)
+    source_card, destination_card = registry["evidence_cards"]["evidence_cards"]
+    source_card["comparison_endpoint"] = {
+        "artifact": "comparison/p2.yaml",
+        "locator": source_locator,
+    }
+    destination_card["comparison_endpoint"] = {
+        "artifact": "comparison/p2.yaml",
+        "locator": "/values/1",
+    }
+    root = write_registry(tmp_path, registry)
+    (root / "comparison" / "p2.yaml").write_text(
+        "values:\n  - 99\n  - 2.005\n", encoding="utf-8"
+    )
+
+    report = validate_registry(load_registry(root), "C")
+
+    assert expected_code in codes(report, "blocking")
+    assert report["state"]["claims"]["H1.r1"]["pipeline_id"] == "p1"
+    assert "REVALIDATED_CLAIM" not in codes(report, "derived")
+
+
 def test_machine_comparison_rejects_symlinked_endpoint_alias(tmp_path):
     registry = base_registry()
     _artifact_authenticated_claim_revalidation(registry)

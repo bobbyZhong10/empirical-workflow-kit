@@ -1915,8 +1915,43 @@ def _artifact_endpoint_identity(
     """Return underlying file identity plus canonical locator token sequence."""
 
     artifact_path, parts = _canonical_artifact_endpoint(registry, source)
+    payload = _load_artifact_payload(artifact_path)
+    _, parts = _traverse_artifact_locator(payload, parts, source["locator"])
     stat = artifact_path.stat()
     return (stat.st_dev, stat.st_ino), parts
+
+
+def _load_artifact_payload(artifact_path: Path) -> Any:
+    try:
+        return yaml.safe_load(artifact_path.read_text(encoding="utf-8"))
+    except (OSError, yaml.YAMLError) as error:
+        raise ValueError(f"destination source artifact is unreadable: {error}") from error
+
+
+def _traverse_artifact_locator(
+    payload: Any, parts: tuple[str, ...], locator: str
+) -> tuple[Any, tuple[str, ...]]:
+    """Resolve locator tokens while enforcing one spelling for list indexes."""
+
+    value = payload
+    canonical_parts: list[str] = []
+    try:
+        for part in parts:
+            if isinstance(value, list):
+                if re.fullmatch(r"(?:0|[1-9][0-9]*)", part) is None:
+                    raise ValueError(
+                        "source_locator list indexes must use canonical "
+                        "nonnegative decimal syntax"
+                    )
+                index = int(part)
+                value = value[index]
+                canonical_parts.append(str(index))
+            else:
+                value = value[part]
+                canonical_parts.append(part)
+    except (KeyError, IndexError, TypeError) as error:
+        raise ValueError(f"source_locator not found: {locator}") from error
+    return value, tuple(canonical_parts)
 
 
 def _resolve_artifact_locator(registry: dict, source: dict) -> float:
@@ -1924,16 +1959,8 @@ def _resolve_artifact_locator(registry: dict, source: dict) -> float:
 
     artifact_path, parts = _canonical_artifact_endpoint(registry, source)
     locator = source["locator"]
-    try:
-        payload = yaml.safe_load(artifact_path.read_text(encoding="utf-8"))
-    except (OSError, yaml.YAMLError) as error:
-        raise ValueError(f"destination source artifact is unreadable: {error}") from error
-    value = payload
-    try:
-        for part in parts:
-            value = value[int(part)] if isinstance(value, list) else value[part]
-    except (KeyError, IndexError, TypeError, ValueError) as error:
-        raise ValueError(f"source_locator not found: {locator}") from error
+    payload = _load_artifact_payload(artifact_path)
+    value, _ = _traverse_artifact_locator(payload, parts, locator)
     if (
         not isinstance(value, (int, float))
         or isinstance(value, bool)
