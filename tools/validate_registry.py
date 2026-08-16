@@ -1829,7 +1829,13 @@ def _semantic_checks(
 
     window = registry.get("analysis_window")
     if not isinstance(window, list) or len(window) != 2:
-        blocking.append(_issue("ANALYSIS_WINDOW_INVALID"))
+        blocking.append(_issue(
+            "ANALYSIS_WINDOW_INVALID",
+            detail=(
+                "analysis_window requires ISO start and end dates with start "
+                "no later than end"
+            ),
+        ))
         return corrected_fact_keys
     window_start, window_end = (_as_date(window[0]), _as_date(window[1]))
     if window_start is None or window_end is None or window_start > window_end:
@@ -3479,8 +3485,45 @@ def _marker_regex(marker: str, inflected: bool) -> re.Pattern[str]:
     return re.compile(rf"(?<!\w){body}(?!\w)", flags=re.IGNORECASE)
 
 
+# Only determiners that force an attributive reading. Demonstratives and
+# relative pronouns precede finite verbs ("the instrument that produced X"),
+# so including them suppressed genuine assertions.
+ATTRIBUTIVE_DETERMINERS = (
+    "a", "an", "the", "its", "their", "our", "his", "her",
+)
+
+
+def _is_verbal_use(text: str, match: re.Match[str]) -> bool:
+    """Reject a marker that is a modifier or part of a compound, not a verb.
+
+    A curated list is a vocabulary of actions. ``a reduced base rate`` and
+    ``differentiated-products competition`` contain no claim about an effect,
+    and reporting them as candidate assertions spends the author's attention
+    without buying anything.
+    """
+
+    before = text[: match.start()]
+    after = text[match.end() :]
+    # Part of a hyphenated compound: differentiated-products, cost-reducing.
+    if before.endswith("-") or after.startswith("-"):
+        return False
+    matched = match.group(0).casefold()
+    preceding = re.findall(r"[A-Za-z']+", before)
+    previous = preceding[-1].casefold() if preceding else ""
+    # Attributive participle: "a reduced rate", "the increased share".
+    if matched.endswith("ed") and previous in ATTRIBUTIVE_DETERMINERS:
+        return False
+    # Fixed collocations in which the head word is not the verb.
+    if matched.startswith("effect") and previous in {"took", "take", "takes", "taking", "in", "into"}:
+        return False
+    return True
+
+
 def _contains_marker(text: str, marker: str, inflected: bool = False) -> bool:
-    return _marker_regex(marker, inflected).search(text) is not None
+    for match in _marker_regex(marker, inflected).finditer(text):
+        if _is_verbal_use(text, match):
+            return True
+    return False
 
 
 def _sentence_segments(text: str) -> list[str]:
@@ -3515,16 +3558,34 @@ def _matched_markers(
     return matched
 
 
+def _assertion_sentence(text: str) -> str:
+    """The anchored assertion is the first sentence after the marker.
+
+    The rest of the anchored span is context: adjacency checks need the
+    sentences around a claim, but a following sentence's verb must not raise
+    the tier of the sentence the anchor marks.
+    """
+
+    segments = _sentence_segments(text)
+    return segments[0] if segments else text
+
+
 def _classify_assertion_text(
     text: str,
     site: dict,
     markers: dict[str, tuple[str, ...]],
     registered_scope_applies: bool = False,
     counterevidence_corroborated: bool = False,
+    classify_all_sentences: bool = False,
 ) -> tuple[int, str, dict[str, list[str]], bool]:
     sentence_results: list[tuple[int, dict[str, list[str]], bool]] = []
     aggregate: dict[str, list[str]] = defaultdict(list)
-    for sentence in _sentence_segments(text):
+    considered = (
+        _sentence_segments(text)
+        if classify_all_sentences
+        else [_assertion_sentence(text)]
+    )
+    for sentence in considered:
         matched = _matched_markers(sentence, markers)
         for name, values in matched.items():
             aggregate[name].extend(values)
@@ -3630,24 +3691,53 @@ def _tex_visible_text(text: str) -> str:
 
 
 def _tex_section_role(lines: list[str], line_number: int) -> str | None:
-    """Resolve the section role governing ``line_number`` in a LaTeX source."""
+    """Resolve the section role governing ``line_number`` in a LaTeX source.
+
+    Both the ``abstract`` environment and the braced ``\\ABSTRACT{...}`` macro
+    used by the INFORMS class are recognised, and a title command governs only
+    the line it appears on. Resolving a whole abstract as a title, which is what
+    the earlier environment-only rule did on the class this kit ships, made the
+    role check fire on every abstract sentence.
+    """
 
     role: str | None = None
-    depth = 0
+    in_abstract = False
+    macro_depth = 0
     for index in range(line_number):
         line = _strip_tex_comment(lines[index])
+        if macro_depth:
+            macro_depth += line.count("{") - line.count("}")
+            if macro_depth <= 0:
+                macro_depth = 0
+                in_abstract = False
+                role = None
+            else:
+                role = "abstract"
+            continue
         if re.search(r"\\begin\{abstract\}", line):
-            depth += 1
+            in_abstract = True
             role = "abstract"
             continue
         if re.search(r"\\end\{abstract\}", line):
-            depth = max(depth - 1, 0)
+            in_abstract = False
             role = None
             continue
-        if depth:
+        if in_abstract:
+            role = "abstract"
+            continue
+        macro = re.search(r"\\(?:ABSTRACT|abstract)\{", line)
+        if macro:
+            tail = line[macro.end() - 1 :]
+            macro_depth = tail.count("{") - tail.count("}")
+            role = "abstract"
+            if macro_depth <= 0:
+                macro_depth = 0
+                role = None
             continue
         if re.search(r"\\(?:TITLE|title)\{", line):
-            role = "title"
+            # A title command governs its own line only. Letting it persist made
+            # everything between the title and the first section resolve as one.
+            role = "title" if index == line_number - 1 else None
             continue
         heading = re.search(
             r"\\(?:section|SECTION)\*?\{([^}]*)\}", line
@@ -3676,9 +3766,14 @@ def _anchor_span(
             raise ValueError("line range lies outside the source")
         return start, end
     marker = str(anchor)
-    if body.count(marker) != 1:
+    # Match the anchor as a token. Substring counting made any anchor that
+    # prefixes another ambiguous, and authors name anchors after the sentence
+    # they mark, so prefix collisions are the normal case.
+    pattern = re.compile(rf"(?<![\w-]){re.escape(marker)}(?![\w-])")
+    occurrences = list(pattern.finditer(body))
+    if len(occurrences) != 1:
         raise ValueError("stable marker must occur exactly once")
-    offset = body.index(marker)
+    offset = occurrences[0].start()
     line_number = body.count("\n", 0, offset) + 1
     return line_number, line_number
 
@@ -3711,7 +3806,7 @@ def _anchor_text(
     # marker's line would let a line break hide the half of the sentence that
     # carries the commitment, which is the default way LaTeX is written.
     end_line = line_number
-    while not re.search(r"[.!?](?:\s*[)\]}\"']*)?$", visible.rstrip()):
+    while not re.search(r"[.!?]", visible):
         if end_line >= len(lines):
             raise ValueError(
                 "anchored sentence is unterminated: no sentence end before the "
@@ -4657,16 +4752,36 @@ def _manuscript_sentences(source: Path, body: str) -> list[tuple[int, str]]:
 
     sentences: list[tuple[int, str]] = []
     is_tex = source.suffix.lower() == ".tex"
+    buffer = ""
+    buffer_line = 0
+    # Sentences are assembled across lines before they are split. Splitting per
+    # line reports hard-wrapped prose as fragments, which is how LaTeX is
+    # ordinarily written.
     for offset, raw in enumerate(body.splitlines(), start=1):
         line = _strip_tex_comment(raw) if is_tex else raw
         if is_tex:
             stripped = line.strip()
             if stripped.startswith("\\") and "{" in stripped and " " not in stripped:
-                continue
-            line = _tex_visible_text(line)
-        for sentence in _sentence_segments(line):
-            if re.search(r"[A-Za-z]", sentence):
-                sentences.append((offset, sentence))
+                line = ""
+            else:
+                line = _tex_visible_text(line)
+        if not line.strip():
+            buffer, buffer_line = "", 0
+            continue
+        if not buffer:
+            buffer_line = offset
+        buffer = f"{buffer} {line.strip()}".strip()
+        segments = _sentence_segments(buffer)
+        if len(segments) > 1 or re.search(r"[.!?]\s*$", buffer):
+            complete = segments if re.search(r"[.!?]\s*$", buffer) else segments[:-1]
+            for sentence in complete:
+                if re.search(r"[A-Za-z]", sentence):
+                    sentences.append((buffer_line, sentence))
+            remainder = "" if re.search(r"[.!?]\s*$", buffer) else segments[-1]
+            buffer = remainder
+            buffer_line = offset if remainder else 0
+    if buffer.strip() and re.search(r"[A-Za-z]", buffer):
+        sentences.append((buffer_line or 1, buffer.strip()))
     return sentences
 
 

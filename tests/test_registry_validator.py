@@ -3534,6 +3534,13 @@ def test_scope_declaration_outside_coverage_does_not_qualify_the_site(tmp_path):
 
 
 def test_sentence_scope_does_not_leak_to_a_neighboring_causal_sentence(tmp_path):
+    """A qualifier in the preceding sentence does not qualify this one.
+
+    The anchor marks one sentence. Text after it is context for adjacency
+    checks, and text before it is not the assertion at all, so neither can
+    lend a scope qualifier to the sentence the anchor marks.
+    """
+
     registry = base_registry()
     registry["claims"]["claims"][0]["revision_reason"] = "bounded_by_population"
     site = assertion_site(
@@ -3544,12 +3551,31 @@ def test_sentence_scope_does_not_leak_to_a_neighboring_causal_sentence(tmp_path)
     report = write_assertion_registry(
         tmp_path,
         [site],
-        "<!-- neighboring-sentence --> Among urban firms, data were collected. "
-        "Treatment increases retention.\n",
+        "Among urban firms, data were collected.\n"
+        "<!-- neighboring-sentence --> Treatment increases retention.\n",
         registry,
     )
     assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
     assert "NARROWING_NOT_PROPAGATED" in codes(report, "blocking")
+
+
+def test_a_following_sentence_does_not_raise_the_anchored_tier(tmp_path):
+    """Context must not be read as commitment.
+
+    Two sentences on one line are two claims. Taking the maximum over the whole
+    anchored span attributed the second sentence's verb to the first, which is
+    how an unrelated causal clause could raise a descriptive sentence to T0.
+    """
+
+    report = write_assertion_registry(
+        tmp_path / "following",
+        [assertion_site("anchored", section_role="results", declared_tier="T4")],
+        "<!-- anchored --> The sample is described in the appendix. "
+        "The instrument that produced the divergence is the driver-pay share.\n",
+        base_registry(),
+    )
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert site_state["_lexical_tier"] == "T4"
 
 
 def test_closed_scope_must_contain_the_full_line_range_site(tmp_path):
@@ -4193,3 +4219,75 @@ def test_inapplicable_gate_does_not_score_as_a_passed_gate(tmp_path):
     assert "applicable_gate_declared_inapplicable" in site_state["_evidence_basis"]
     assert site_state["_evidence_strength"] <= 2
     assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
+
+
+INFORMS_SOURCE = """\\documentclass[opre]{informs3}
+\\begin{document}
+\\TITLE{Who Pays When Algorithms Price}
+\\ABSTRACT{%
+\\claimsite{abs-claim}Treatment increases retention for participating firms.
+}
+\\section{Results}
+\\claimsite{res-claim}Treatment increases retention.
+\\claimsite{res-claim-share}The driver-pay share falls.
+"""
+
+
+def test_informs_abstract_macro_resolves_as_abstract_not_title(tmp_path):
+    """The role resolver must understand the class the kit tells authors to use.
+
+    Recognising only the abstract environment, and letting a title command
+    persist, resolved every abstract sentence of an INFORMS manuscript as a
+    title and fired the role check on all of them.
+    """
+
+    from tools.validate_registry import _tex_section_role
+
+    lines = INFORMS_SOURCE.splitlines()
+    assert _tex_section_role(lines, 3) == "title"
+    assert _tex_section_role(lines, 5) == "abstract"
+    assert _tex_section_role(lines, 8) == "results"
+
+
+def test_anchor_that_prefixes_another_anchor_is_not_ambiguous(tmp_path):
+    """Authors name anchors after the sentence, so prefixes collide routinely."""
+
+    report = write_assertion_registry(
+        tmp_path / "prefix",
+        [assertion_site("res-claim", section_role="results", declared_tier="T0")],
+        "<!-- res-claim --> Treatment increases retention.\n"
+        "<!-- res-claim-share --> The driver-pay share falls.\n",
+        base_registry(),
+    )
+    assert "ASSERTION_ANCHOR_INVALID" not in codes(report, "blocking")
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert site_state["_lexical_tier"] == "T0"
+
+
+@pytest.mark.parametrize(
+    ("sentence", "is_candidate"),
+    [
+        ("The congestion charge took effect on January 5, 2025.", False),
+        ("The programme resumed at a reduced base rate in November.", False),
+        ("A standard differentiated-products benchmark applies here.", False),
+        ("The instrument that produced the divergence is the share.", True),
+        ("Treatment increases retention.", True),
+        ("The platform reduced the driver-pay share.", True),
+    ],
+)
+def test_markers_require_a_verbal_use(sentence, is_candidate):
+    """A vocabulary of actions, not of word shapes.
+
+    Institutional description contains the same word stems as an assertion.
+    Under discovery an over-inclusive marker costs the author a question, which
+    is the safe direction, but a question asked of every date and every
+    adjective is not free either.
+    """
+
+    from tools.validate_registry import (
+        _compiled_lexical_markers,
+        _matched_markers,
+    )
+
+    matched = _matched_markers(sentence, _compiled_lexical_markers({}))
+    assert ("causal" in matched) is is_candidate
