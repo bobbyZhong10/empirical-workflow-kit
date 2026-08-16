@@ -148,25 +148,28 @@ wrong against the body text, check the option before touching the class.
 
 ### Bibliography
 
-The class ships the INFORMS citation convention, which omits the comma between
-author and year and abbreviates journal names in the reference list. Neither is
-APA. For APA 7th:
+The class ships the INFORMS citation convention, which is correct for an
+INFORMS outlet and wrong for APA. Do not choose by eye: generate both the
+punctuation line and the entries from one table, and switch on the outlet.
 
 ```latex
-\bibpunct[, ]{(}{)}{;}{a}{,}{,}%   % (Author, 2020; Other, 2021)
-\def\bibhang{0.5in}%
-\def\BIBand{\&}%
-```
+% INFORMS: (Hall et al. 2018), abbreviated journal, no DOI
+\bibpunct[, ]{(}{)}{,}{a}{}{,}%  \def\BIBand{and}%
+\bibitem[Hall et al.(2018)]{hallpalsson2018} Hall JD, Palsson C, Price J
+(2018) Is Uber a substitute or complement for public transit? J. Urban Econom.
+108:36--50.
 
-and write reference entries with **full journal names**, the volume italicised,
-the issue in parentheses unitalicised, and the DOI as a resolvable URL:
-
-```latex
+% APA 7th: (Hall et al., 2018), full journal, DOI required
+\bibpunct[, ]{(}{)}{;}{a}{,}{,}%  \def\BIBand{\&}%
 \bibitem[Hall et al.(2018)]{hallpalsson2018} Hall, J. D., Palsson, C., \&
 Price, J. (2018). Is Uber a substitute or complement for public transit?
 \emph{Journal of Urban Economics}, \emph{108}, 36--50.
 https://doi.org/10.1016/j.jue.2018.09.003
 ```
+
+`writing-standards.md` carries the full comparison. Write the `\bibpunct` line
+to its own generated file and `\input` it, so a change of outlet cannot leave
+the in-text form and the reference list disagreeing.
 
 The `\bibitem` label drives `\citet`/`\citep`, so it carries the short form
 (`Hall et al.(2018)`) while the entry carries the full one. Both are checked

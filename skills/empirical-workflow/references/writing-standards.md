@@ -93,12 +93,28 @@ dictionary over a landing page.
 
 ## Citation format
 
-The default is APA 7th. Note that APA 7th **does** require a DOI when one
-exists, formatted as a bare `https://doi.org/...` link at the end of the entry.
-Some outlets strip DOIs from the reference list; that is an outlet rule, not an
-APA rule, and it is applied at submission rather than while drafting.
+**The outlet decides, and the two common ones disagree on every point.** Check
+the target before drafting, and hold the bibliography as fields rather than as
+rendered strings so that switching is a flag and not a rewrite.
 
-In-text citations take a comma between author and year, and a semicolon between
-works: `(Weyl \& Fabinger, 2013; Bulow \& Pfleiderer, 1983)`. The INFORMS class
-ships a different convention and has to be overridden; see
-`latex-manuscript-adapter.md`.
+| | INFORMS journals (ISR, Management Science, Operations Research) | MIS Quarterly |
+|---|---|---|
+| Style | author-year, Harvard | APA 7th |
+| In text | `(Rochet and Tirole 2003)`, no comma | `(Rochet & Tirole, 2003)`, comma |
+| Between works | comma, chronological | semicolon |
+| Author names | `Rochet JC, Tirole J`, no periods after initials | `Rochet, J.-C., & Tirole, J.` |
+| Journal name | abbreviated, roman: `J. Eur. Econom. Assoc.` | full, italic |
+| Volume and pages | `1(4):990--1029` | `1(4), 990--1029` |
+| DOI | **omitted** for an ordinary journal article; used only for ahead-of-print and electronic sources | **included** on every work that has one |
+
+Two traps. First, APA 7th does require a DOI, so a paper drafted in APA and
+submitted to an INFORMS journal carries sixty links that the house style does
+not want. Second, MIS Quarterly abandoned its former bespoke style in favour of
+APA 7th, so the `Author, A. "Title," MIS Quarterly (25:1), 2001, pp. 107-136`
+form that many templates and reference managers still emit is now wrong for
+that journal too.
+
+The INFORMS class ships INFORMS punctuation and it is correct for an INFORMS
+outlet. Override it only when the target is APA. Generate the `\bibpunct`
+line from the same script that generates the entries, so the in-text form and
+the reference list cannot disagree; see `latex-manuscript-adapter.md`.
