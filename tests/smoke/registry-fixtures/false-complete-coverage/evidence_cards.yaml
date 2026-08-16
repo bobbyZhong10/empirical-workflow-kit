@@ -4,8 +4,3 @@ evidence_cards:
     provenance: confirmatory
     status: current
     depends_on: []
-  - evidence_card_id: EC-gate-p2
-    pipeline_id: p2
-    provenance: confirmatory
-    status: current
-    depends_on: []

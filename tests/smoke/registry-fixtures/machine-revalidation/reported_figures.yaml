@@ -5,7 +5,8 @@ revalidations:
     to_pipeline: p2
     method: machine
     tolerance: abs(delta) <= 0.01 and sign unchanged
+    comparison: {from_value: 2.0, to_value: 2.005}
     result: revalidated
     performed_by: validator
     performed_at: "2026-03-02T00:00:00Z"
-    evidence_card: EC-1
+    evidence_card: EC-2

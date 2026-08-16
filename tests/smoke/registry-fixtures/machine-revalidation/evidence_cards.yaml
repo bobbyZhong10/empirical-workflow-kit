@@ -5,3 +5,9 @@ evidence_cards:
     status: current
     depends_on:
       - {kind: raw_field, id: outcome}
+  - evidence_card_id: EC-2
+    pipeline_id: p2
+    provenance: confirmatory
+    status: current
+    depends_on:
+      - {kind: raw_field, id: outcome}

@@ -75,10 +75,13 @@ run_registry_fixture pass machine-revalidation REVALIDATED_CLAIM
 import json
 import sys
 
-claim = json.load(open(sys.argv[1], encoding="utf-8"))["state"]["claims"]["H1.r1"]
+payload = json.load(open(sys.argv[1], encoding="utf-8"))
+claim = payload["state"]["claims"]["H1.r1"]
 assert claim["availability"] == "current"
 assert claim["assessment"] == "supported"
 assert claim["pipeline_id"] == "p2"
+assert claim["revalidation"]["evidence_card"] == "EC-2"
+assert payload["state"]["evidence_cards"]["EC-2"]["pipeline_id"] == "p2"
 PY
 
 run_registry_fixture fail semantic-correction MACHINE_REVALIDATION_FORBIDDEN
@@ -87,6 +90,8 @@ run_registry_fixture fail semantic-disclosure SEMANTIC_DISCLOSURE_REQUIRED
 run_registry_fixture fail incomplete-release GATE_RELEASE_INCOMPLETE
 run_registry_fixture pass handoff REGISTRY_VALID
 run_registry_fixture fail failed-identification GATE_TRIGGERED
+run_registry_fixture fail missing-gate-evaluation GATE_NOT_EVALUATED
+run_registry_fixture fail false-complete-coverage GATE_COVERAGE_MISMATCH
 
 run_registry_fixture pass per-evaluation-post-hoc GATE_POST_HOC
 "$registry_python" - "$registry_output" <<'PY'
