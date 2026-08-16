@@ -165,6 +165,11 @@ ALLOWED = {
     "applicability_status": {"completed", "pending", "blocked", "inapplicable"},
 }
 
+# Statuses that close a gate without an evaluation behind them. Each carries
+# its own evidentiary burden below; none of them can carry coverage, because
+# nothing was measured.
+UNEVALUATED_GATE_STATUSES = {"released", "moot", "inapplicable"}
+
 DISCOVERY_MODES = {"enforce", "report"}
 # Parts a reader consumes on their own. A qualification met in the body is met
 # for the whole body, because the body is read in sequence; these three are
@@ -547,6 +552,13 @@ def _required_field_checks(registry: dict, blocking: list[dict]) -> None:
             exempt: tuple[str, ...] = ()
             if collection == "reported_figures" and item.get("derived_from"):
                 exempt = REQUIRED_FIELDS["_derived_reported_figure_exempt"]
+            elif (
+                collection == "gate_evaluations"
+                and item.get("status") in UNEVALUATED_GATE_STATUSES
+            ):
+                # Nothing was measured, so there is no scope to report having
+                # covered. The status carries its own record instead.
+                exempt = ("coverage",)
             for field in fields:
                 if field in exempt:
                     continue
@@ -1365,7 +1377,9 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 "must be a kind/id target mapping",
             )
         coverage = evaluation.get("coverage")
-        if not isinstance(coverage, dict):
+        if coverage is None and evaluation.get("status") in UNEVALUATED_GATE_STATUSES:
+            coverage = None
+        elif not isinstance(coverage, dict):
             _schema_error(
                 blocking,
                 f"gate_evaluations[{index}].coverage",
@@ -3833,7 +3847,15 @@ def _gate_checks(
         coverage = evaluation.get("coverage")
         declared_scope = coverage.get("declared_scope") if isinstance(coverage, dict) else None
         evaluated_scope = coverage.get("evaluated_scope") if isinstance(coverage, dict) else None
-        if (
+        # Coverage describes an evaluation. A released, inapplicable or moot
+        # gate has none: nothing was measured, which is the point of the status.
+        # Demanding complete coverage of them forced every such gate to
+        # not_evaluated, so the release and inapplicability records the schema
+        # defines could never be reached -- the only way to close a gate was to
+        # claim an evaluation that had not happened.
+        if status in UNEVALUATED_GATE_STATUSES:
+            pass
+        elif (
             not isinstance(coverage, dict)
             or coverage.get("complete") is not True
             or not isinstance(declared_scope, str)

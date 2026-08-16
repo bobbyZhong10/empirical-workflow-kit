@@ -1371,6 +1371,50 @@ def test_release_requires_valid_timing_change_and_evidence(
     assert expected_code in codes(report, "blocking")
 
 
+def test_released_gate_needs_no_coverage(tmp_path):
+    """A released gate measured nothing, so it has no scope to have covered.
+
+    Requiring coverage of it forced the status to not_evaluated and made the
+    release record unreachable: the only way to close a gate was to claim an
+    evaluation that had not happened.
+    """
+
+    registry = base_registry()
+    registry["gates"]["changes"] = [
+        {
+            "change_id": "D-1",
+            "object_kind": "claim_key",
+            "object_id": "H1",
+            "pipeline_id": "p1",
+            "new_state": "changed",
+            "authorized_by": "authority",
+            "occurred_at": "2026-02-01T00:00:00Z",
+            "evidence_card": "EC-1",
+            "commit": None,
+        }
+    ]
+    evaluation = registry["gates"]["gate_evaluations"][0]
+    evaluation.pop("coverage", None)
+    evaluation.update(
+        {
+            "status": "released",
+            "release": {
+                "triggering_change_id": "D-1",
+                "reason": "The metric is not computable from the delivered panel.",
+                "authorized_by": "authority",
+                "timing": "post_result",
+                "evidence_card": "EC-1",
+                "compensation_disposition": "carried",
+            },
+        }
+    )
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "GATE_COVERAGE_INCOMPLETE" not in codes(report, "blocking")
+    assert "GATE_NOT_EVALUATED" not in codes(report, "blocking")
+    assert "MISSING_REQUIRED_FIELD" not in codes(report, "blocking")
+    assert "GATE_RELEASED" in codes(report, "reports")
+
+
 def test_release_change_must_match_gate_scope(tmp_path):
     registry = base_registry()
     registry["gates"]["changes"] = [
