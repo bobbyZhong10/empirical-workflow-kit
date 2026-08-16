@@ -117,10 +117,62 @@ disagrees:
 BLOCK SECTION_ROLE_MISMATCH  declared: results  resolved: abstract
 ```
 
+Only `\section` participates. A `\subsection{Robustness}` nested under
+`\section{Results}` resolves to `results`, so a correctly declared `robustness`
+site inside it blocks. Give a section role its own `\section` when the
+distinction matters to a claim; do not relabel the site to satisfy the parser.
+
 This is what makes the propagation and upgrade-trace checks trustworthy. It
 matters most for `title`, which is a checked role: a title can promise more
 than the body delivers, and in the reference corpus one paper's title asserts
 an optimality claim its own text explicitly disclaims.
+
+## Class furniture
+
+The INFORMS class prints three things that are submission apparatus rather than
+content: a banner and a red usage notice at the top of page 1, and a running
+head repeating `Article submitted to <journal>; manuscript no.` on every page
+after it. Suppress all three in the preamble:
+
+```latex
+\makeatletter
+\def\theARTICLETOP{\vspace*{-24pt}}
+\makeatother
+\RRHFirstLine{}\RRHSecondLine{}
+\LRHFirstLine{}\LRHSecondLine{}
+```
+
+Heading fonts come from the class option. `mnsc` uses the body serif; `opre`
+sets `\if@OPRE` and imposes sans-serif headings. If subsection headings look
+wrong against the body text, check the option before touching the class.
+
+### Bibliography
+
+The class ships the INFORMS citation convention, which omits the comma between
+author and year and abbreviates journal names in the reference list. Neither is
+APA. For APA 7th:
+
+```latex
+\bibpunct[, ]{(}{)}{;}{a}{,}{,}%   % (Author, 2020; Other, 2021)
+\def\bibhang{0.5in}%
+\def\BIBand{\&}%
+```
+
+and write reference entries with **full journal names**, the volume italicised,
+the issue in parentheses unitalicised, and the DOI as a resolvable URL:
+
+```latex
+\bibitem[Hall et al.(2018)]{hallpalsson2018} Hall, J. D., Palsson, C., \&
+Price, J. (2018). Is Uber a substitute or complement for public transit?
+\emph{Journal of Urban Economics}, \emph{108}, 36--50.
+https://doi.org/10.1016/j.jue.2018.09.003
+```
+
+The `\bibitem` label drives `\citet`/`\citep`, so it carries the short form
+(`Hall et al.(2018)`) while the entry carries the full one. Both are checked
+against `references.yaml`, which holds the locator and the person who verified
+it — the citation checks read keys and counts, not formatting, so a
+well-formatted entry with a wrong DOI still fails.
 
 ## Adopting on an existing draft
 

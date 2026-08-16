@@ -18,14 +18,29 @@
 
 % Private macros here (check that there is no clash with the style)
 
-% Natbib setup for author-year style
+%% Class furniture that is submission apparatus, not content.
+%% informs3 prints a banner and a red usage notice at the top of page 1, and
+%% repeats "Article submitted to <journal>; manuscript no." in the running head
+%% on every page after it. None of it is part of the paper. Comment these five
+%% lines out if the target outlet wants the submission status shown.
+\makeatletter
+\def\theARTICLETOP{\vspace*{-24pt}}
+\makeatother
+\RRHFirstLine{}\RRHSecondLine{}
+\LRHFirstLine{}\LRHSecondLine{}
+
+% Natbib setup for author-year style, APA 7th.
+% The class ships the INFORMS convention, which omits the comma between author
+% and year: \bibpunct[, ]{(}{)}{,}{a}{}{,}. APA 7th wants "(Author, 2020)" and
+% semicolons between works, an ampersand before the final author, and a half-inch
+% hanging indent. Journal names go in the reference list in full, not abbreviated.
 \usepackage{natbib}
- \bibpunct[, ]{(}{)}{,}{a}{}{,}%
+ \bibpunct[, ]{(}{)}{;}{a}{,}{,}%
  \def\bibfont{\small}%
  \def\bibsep{\smallskipamount}%
- \def\bibhang{24pt}%
+ \def\bibhang{0.5in}%
  \def\newblock{\ }%
- \def\BIBand{and}%
+ \def\BIBand{\&}%
 
 %% Setup of theorem styles. Outcomment only one.
 %% Preferred default is the first option.
