@@ -106,6 +106,7 @@ def base_registry() -> dict:
                 "complete": True,
                 "signed_by": "authority",
                 "signed_at": "2025-12-01T00:00:00Z",
+                "gate_ids": ["G-1"],
             },
             "gate_definitions": [
                 {
@@ -129,6 +130,7 @@ def base_registry() -> dict:
                     "pipeline_id": "p1",
                     "evaluated_against": {"kind": "claim_key", "id": "H1"},
                     "status": "passed",
+                    "observed_value": "pass",
                     "coverage": {
                         "declared_scope": "all observations",
                         "evaluated_scope": "all observations",
@@ -661,6 +663,7 @@ def test_claim_revision_bindings_must_come_from_one_pipeline(tmp_path):
             "evidence_card_id": "EC-2",
             "claim_revision_id": "H1.r1",
             "relation": "challenges",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "auditor",
             "date": "2026-03-02",
@@ -1442,6 +1445,7 @@ def _add_challenge(
             "evidence_card_id": card_id,
             "claim_revision_id": "H1.r1",
             "relation": "challenges",
+            "bears_on": "identifying_assumption",
             "status": status,
             "author": "auditor",
             "date": "2026-02-02",
@@ -1676,6 +1680,7 @@ def test_failed_semantic_verification_blocks_analysis(tmp_path):
                 "applicability_reason": "Not measured for this population.",
                 "declared_by": "analyst",
                 "accepted_by": "authority",
+                "accepted_at": "2026-03-01T00:00:00Z",
             },
             "GATE_INAPPLICABLE",
         ),
@@ -2818,6 +2823,7 @@ def test_world_positive_and_negative_residuals_follow_derived_evidence_strength(
             "evidence_card_id": "EC-1",
             "claim_revision_id": "H1.r1",
             "relation": "bounds",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "analyst",
             "date": "2026-02-02",
@@ -2994,6 +3000,7 @@ def test_identifying_assumption_counterevidence_must_be_a_main_text_sentence(
             "evidence_card_id": "EC-1",
             "claim_revision_id": "H1.r1",
             "relation": "bounds",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "analyst",
             "date": "2026-02-02",
@@ -3025,6 +3032,7 @@ def test_identifying_counterevidence_declaration_must_match_contrastive_text(
             "evidence_card_id": "EC-1",
             "claim_revision_id": "H1.r1",
             "relation": "bounds",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "analyst",
             "date": "2026-02-02",
@@ -3057,6 +3065,7 @@ def test_prominence_metadata_without_counterevidence_text_cannot_lower_strength(
             "evidence_card_id": "EC-1",
             "claim_revision_id": "H1.r1",
             "relation": "bounds",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "analyst",
             "date": "2026-02-02",
@@ -3091,6 +3100,7 @@ def test_resolved_site_disclosure_can_corroborate_prominence(tmp_path):
             "evidence_card_id": "EC-1",
             "claim_revision_id": "H1.r1",
             "relation": "bounds",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "analyst",
             "date": "2026-02-02",
@@ -3267,6 +3277,7 @@ def test_identifying_prominence_check_covers_all_empirical_untiered_types(
             "evidence_card_id": "EC-1",
             "claim_revision_id": "H1.r1",
             "relation": "bounds",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "analyst",
             "date": "2026-02-02",
@@ -3300,6 +3311,7 @@ def test_identifying_prominence_scope_excludes_hypotheses_awaiting_test(tmp_path
             "evidence_card_id": "EC-1",
             "claim_revision_id": "H1.r1",
             "relation": "bounds",
+            "bears_on": "identifying_assumption",
             "status": "current",
             "author": "analyst",
             "date": "2026-02-02",
@@ -3785,7 +3797,8 @@ def test_quantitative_value_typed_into_latex_is_rejected(tmp_path):
         if item["code"] == "QUANTITATIVE_VALUE_NOT_REGISTERED"
     ]
     assert literals
-    assert literals[0]["literals"] == ["7.68"]
+    # The escaped percent sign is part of the numeral a reader sees.
+    assert literals[0]["literals"] == ["7.68\\%"]
 
 
 def test_registered_figure_macro_is_not_a_bare_numeral(tmp_path):
@@ -4190,6 +4203,7 @@ def test_omitting_the_estimate_reference_cannot_outscore_naming_one(tmp_path):
 
 
 def _gate_registry(registry, status, **evaluation_fields):
+    registry["gates"]["gate_set_confirmation"]["gate_ids"] = ["G-9"]
     registry["gates"]["gate_definitions"] = [
         {
             "gate_id": "G-9",
@@ -4231,6 +4245,7 @@ def test_inapplicable_gate_needs_two_authorities_and_evidence(tmp_path):
         applicability_reason="The panel is not in scope.",
         declared_by="analyst",
         accepted_by="analyst",
+        accepted_at="2026-03-01T00:00:00Z",
     )
     report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
     incomplete = [
@@ -4251,6 +4266,7 @@ def test_inapplicable_gate_does_not_score_as_a_passed_gate(tmp_path):
         applicability_reason="The panel is not in scope.",
         declared_by="analyst",
         accepted_by="principal",
+        accepted_at="2026-03-01T00:00:00Z",
     )
     registry["claims"]["claims"][0]["assertion_sites"] = [
         assertion_site("gated", section_role="results", declared_tier="T0")
@@ -4394,6 +4410,412 @@ def test_a_transform_takes_a_literal_or_a_figure_but_not_both(tmp_path):
     )
     report = validate_registry(
         load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    assert "SCHEMA_INVALID" in codes(report, "blocking")
+
+
+def test_a_second_sentence_on_the_anchor_line_is_not_covered_by_it(tmp_path):
+    """An anchor marks one sentence, not one line.
+
+    Coverage was a line range, so putting a harmless sentence in front of a
+    strong one moved the anchor onto the harmless one while the strong one
+    still counted as registered -- the residual scored the decoy and discovery
+    stayed quiet.
+    """
+
+    from tools.validate_registry import load_registry, validate_registry
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("site", section_role="results", declared_tier="T0"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\n"
+        "\\claimsite{site}We describe the sample. Treatment increases retention.\n",
+        encoding="utf-8",
+    )
+    report = validate_registry(load_registry(root), "C")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+
+
+def test_a_sentence_may_span_a_display_equation(tmp_path):
+    """A line blanked by markup sits inside a sentence; only a blank source
+    line ends a paragraph. Flushing at the equation cut the sentence in half
+    and reported the tail as unregistered."""
+
+    report = _coverage_report(
+        tmp_path,
+        "\\section{Results}\n"
+        "\\claimsite{site}Because\n"
+        "\\begin{equation}\n"
+        "\\Delta m = 2\n"
+        "\\end{equation}\n"
+        "treatment increases retention.\n",
+    )
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+
+
+def test_footnote_prose_is_scanned_as_its_own_stream(tmp_path):
+    """Inline, a footnote welded itself to the sentence it interrupts. Dropped,
+    it would be a hiding place. It is scanned separately."""
+
+    report = _coverage_report(
+        tmp_path,
+        "\\section{Results}\n"
+        "\\claimsite{site}Treatment increases retention."
+        "\\footnote{Standard errors are clustered. The charge causes margin to rise.}\n",
+    )
+    unregistered = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "ASSERTION_SITE_UNREGISTERED"
+    ]
+    assert unregistered
+    assert all("Treatment increases" not in item["excerpt"] for item in unregistered)
+    assert any("causes margin" in item["excerpt"] for item in unregistered)
+
+
+def test_a_heading_is_not_part_of_the_sentence_after_it():
+    from tools.validate_registry import _manuscript_sentences
+    from pathlib import Path as _Path
+
+    sentences = _manuscript_sentences(
+        _Path("paper.tex"),
+        "\\section{Related work}\nPrior work shows that pricing increases churn.\n",
+    )
+    assert [item[0] for item in sentences] == [2]
+
+
+@pytest.mark.parametrize("band", ["[0, 1e-2]", "[0, .01]", "(-1E-3, 1e-3)"])
+def test_a_band_may_be_written_in_scientific_notation(band):
+    from tools.validate_registry import _band_contains
+
+    assert _band_contains(band, 0.203) is False
+
+
+def test_a_nested_footnote_does_not_end_the_sentence_it_interrupts():
+    from tools.validate_registry import _has_sentence_terminator
+
+    assert not _has_sentence_terminator(
+        "the estimate\\footnote{See \\citet{a} for $\\beta_{i}^{p}$.} and we"
+    )
+
+
+@pytest.mark.parametrize(
+    ("name", "interruption"),
+    [
+        ("footnote", "\\footnote{The charge is remitted monthly.}"),
+        ("page-cited", " \\citep[p.~7]{source2023}"),
+    ],
+)
+def test_an_aside_does_not_separate_a_claim_from_its_disclosure(
+    tmp_path, name, interruption
+):
+    """A footnote or a page-numbered citation carries a period and a closing
+    brace. Reading either as the end of the sentence truncated the claim and
+    then reported the author for burying a disclosure sitting right after it."""
+
+    from tools.validate_registry import _has_sentence_terminator
+
+    assert not _has_sentence_terminator(f"the estimate{interruption} and we")
+    assert _has_sentence_terminator(f"the estimate rises{interruption}.")
+
+
+@pytest.mark.parametrize(
+    "sentence",
+    [
+        "Treatment in the U.S. increases retention.",
+        "Treatment, cf. the control, increases retention.",
+    ],
+)
+def test_an_abbreviation_does_not_end_a_sentence(sentence):
+    from tools.validate_registry import _sentence_segments
+
+    assert _sentence_segments(sentence) == [sentence]
+
+
+def test_a_conventional_threshold_is_not_a_reported_figure(tmp_path):
+    """Asking an author to register 0.05 trains them to ignore the check."""
+
+    report = _coverage_report(
+        tmp_path,
+        "\\section{Results}\n"
+        "\\claimsite{site}Treatment increases retention.\n"
+        "\nStars denote significance at the 0.05 level.\n",
+    )
+    assert "QUANTITATIVE_VALUE_UNREGISTERED" not in codes(report, "blocking")
+
+
+def test_prose_in_an_included_file_is_scanned(tmp_path):
+    """A per-section `\\input` file is standard practice, and prose in one used
+    to be invisible to discovery."""
+
+    from tools.validate_registry import load_registry, validate_registry
+
+    root = write_registry(tmp_path, _coverage_registry())
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\n"
+        "\\claimsite{site}Treatment increases retention.\n"
+        "\\input{extra}\n",
+        encoding="utf-8",
+    )
+    (root / "paper" / "extra.tex").write_text(
+        "The charge causes margin to increase in every direction.\n",
+        encoding="utf-8",
+    )
+    report = validate_registry(load_registry(root), "C")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+
+
+def test_a_line_range_site_may_not_stand_in_for_several_assertions(tmp_path):
+    """A site is one judgement about one assertion. A range holding several
+    registers them all under the judgement made about the first, which is an
+    unreported and unbounded discovery exclusion."""
+
+    from tools.validate_registry import load_registry, validate_registry
+
+    registry = _coverage_registry()
+    registry["claims"]["claims"][0]["assertion_sites"][0]["anchor"] = {
+        "start_line": 2,
+        "end_line": 4,
+    }
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\n"
+        "Treatment increases retention.\n"
+        "The charge causes margin to rise.\n"
+        "The fee produced a divergence.\n",
+        encoding="utf-8",
+    )
+    report = validate_registry(load_registry(root), "C")
+    assert "ASSERTION_RANGE_COVERS_MULTIPLE_ASSERTIONS" in codes(report, "blocking")
+
+
+def test_an_integer_percentage_is_a_quantitative_value(tmp_path):
+    """An unregistered headline number passed if the author rounded."""
+
+    from tools.validate_registry import QUANTITATIVE_VALUE
+
+    assert QUANTITATIVE_VALUE.search("pass-through is 87\\% of the fee")
+    assert QUANTITATIVE_VALUE.search("pass-through is 87 percent of the fee")
+    assert not QUANTITATIVE_VALUE.search("section 87 of the code")
+
+
+def _coverage_registry(anchor="site"):
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site(anchor, section_role="results", declared_tier="T0"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    return registry
+
+
+def _coverage_report(tmp_path, manuscript, registry=None):
+    from tools.validate_registry import load_registry, validate_registry
+
+    root = write_registry(tmp_path, registry or _coverage_registry())
+    (root / "paper" / "manuscript.tex").write_text(manuscript, encoding="utf-8")
+    return validate_registry(load_registry(root), "C")
+
+
+@pytest.mark.parametrize(
+    ("name", "manuscript"),
+    [
+        # A printed dollar sign is not a math delimiter.
+        (
+            "currency",
+            "\\section{Results}\n"
+            "\\claimsite{site}A fee of \\$1.50 increases retention by \\$2.\n",
+        ),
+        # An abbreviation ending in a period does not end a sentence.
+        (
+            "abbreviation",
+            "\\section{Results}\n"
+            "\\claimsite{site}Treatment, cf. the control, increases retention.\n",
+        ),
+    ],
+)
+def test_ordinary_prose_does_not_report_itself_as_unregistered(
+    tmp_path, name, manuscript
+):
+    """A check that fails closed on correct writing teaches authors to ignore it."""
+
+    report = _coverage_report(tmp_path / name, manuscript)
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+
+
+def test_a_reference_list_is_not_scanned_for_assertions(tmp_path):
+    """A bibliography is full of other people's causal verbs."""
+
+    manuscript = (
+        "\\section{Results}\n"
+        "\\claimsite{site}Treatment increases retention.\n"
+        "\n\\begin{thebibliography}{9}\n"
+        "\\bibitem{a} Nonlinear pricing increases electricity consumption.\n"
+        "\\end{thebibliography}\n"
+    )
+    report = _coverage_report(tmp_path, manuscript)
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+
+
+def test_a_paragraph_without_a_full_stop_is_still_examined(tmp_path):
+    """A list item is an assertion. Discarding the buffer at a paragraph break
+    meant it was never looked at."""
+
+    manuscript = (
+        "\\section{Results}\n"
+        "\\claimsite{site}Treatment increases retention.\n"
+        "\n\\begin{itemize}\n"
+        "\\item The fee produced a divergence in margin\n"
+        "\\end{itemize}\n"
+    )
+    report = _coverage_report(tmp_path, manuscript)
+    unregistered = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "ASSERTION_SITE_UNREGISTERED"
+    ]
+    assert unregistered and "divergence" in unregistered[0]["excerpt"]
+
+
+def test_an_anchor_style_without_a_sentinel_still_covers_its_sentence(tmp_path):
+    """Not every valid anchor construct is one discovery can see inside.
+
+    A `\\label{}` or bare-marker anchor registers fine and injects no sentinel,
+    so it keeps the line span it always had rather than reporting its own
+    sentence as unregistered.
+    """
+
+    manuscript = (
+        "\\section{Results}\n"
+        "\\label{site}Treatment increases retention.\n"
+    )
+    report = _coverage_report(tmp_path, manuscript)
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+
+
+def test_an_interval_band_requires_a_numeric_observation(tmp_path):
+    """Quoting the number turned a contradiction into a non-blocking report."""
+
+    registry = _gate_registry(base_registry(), "passed", observed_value="0.9")
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    assert "GATE_OBSERVATION_INVALID" in codes(report, "blocking")
+
+
+def test_a_gate_status_must_be_measured_against_its_band(tmp_path):
+    """`triggered` -> `passed` was a one-word edit with no record at all."""
+
+    registry = _gate_registry(
+        base_registry(), "passed", observed_value=0.9  # band is [-0.03, 0.03]
+    )
+    report = validate_registry(
+        load_registry(write_registry(tmp_path / "contradicts", registry)), "C"
+    )
+    assert "GATE_STATUS_CONTRADICTS_OBSERVATION" in codes(report, "blocking")
+
+    registry = _gate_registry(base_registry(), "passed")
+    report = validate_registry(
+        load_registry(write_registry(tmp_path / "unmeasured", registry)), "C"
+    )
+    assert "GATE_OBSERVATION_MISSING" in codes(report, "blocking")
+
+
+def test_a_gate_cannot_leave_the_confirmed_set_without_a_trace(tmp_path):
+    registry = base_registry()
+    registry["gates"]["gate_definitions"] = []
+    registry["gates"]["gate_evaluations"] = []
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    assert "GATE_SET_DIVERGED" in codes(report, "blocking")
+
+
+def test_unfinished_applicability_requirements_block_at_checkpoint_c(tmp_path):
+    """`inapplicable` was heavily checked and `pending` not at all, so
+    declaring a requirement unfinished was cheaper than documenting it."""
+
+    registry = base_registry()
+    registry["applicability"]["applicability"] = [
+        {"requirement_id": "REQ-1", "status": "pending"},
+        {"requirement_id": "REQ-2", "status": "blocked"},
+    ]
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    assert "APPLICABILITY_UNRESOLVED" in codes(report, "blocking")
+
+
+def test_what_a_challenge_bears_on_is_declared_not_inferred(tmp_path):
+    """The adjacency obligation could be switched off by rewording a rationale."""
+
+    registry = base_registry()
+    registry["evidence_relations"]["evidence_relations"].append(
+        {
+            "relation_id": "ER-9",
+            "evidence_card_id": "EC-1",
+            "claim_revision_id": "H1.r1",
+            "relation": "bounds",
+            "status": "current",
+            "author": "analyst",
+            "date": "2026-02-01",
+            "rationale": "It bears on how far the estimate travels.",
+        }
+    )
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    locations = [
+        item.get("location")
+        for item in report["blocking"]
+        if item["code"] == "SCHEMA_INVALID"
+    ]
+    assert "evidence_relations[1].bears_on" in locations
+
+
+def test_a_hypothesis_site_must_read_as_a_proposition(tmp_path):
+    """`hypothesis` is untiered and exempt from the residual and the disclosure
+    rule, so relabelling a finished claim removed every writing check at once."""
+
+    report = write_assertion_registry(
+        tmp_path,
+        [
+            assertion_site(
+                "finding",
+                section_role="results",
+                assertion_type="hypothesis",
+                declared_tier=None,
+            )
+        ],
+        "<!-- finding --> Treatment increases retention.\n",
+        base_registry(),
+    )
+    assert "HYPOTHESIS_WITHOUT_PROPOSITION" in codes(report, "blocking")
+
+
+def test_a_significance_level_must_be_a_significance_level(tmp_path):
+    """`0.99` scored exactly like `0.05`."""
+
+    site = assertion_site("site", section_role="results", declared_tier="T0")
+    site["underlying_precision"]["significant_at"] = 0.99
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- site --> Treatment increases retention.\n",
+        base_registry(),
     )
     assert "SCHEMA_INVALID" in codes(report, "blocking")
 

@@ -163,6 +163,16 @@ ALLOWED = {
 }
 
 DISCOVERY_MODES = {"enforce", "report"}
+# What a challenging or bounding relation bears on. Declared, not inferred:
+# while it was read out of the relation's free-text rationale, the adjacency
+# obligation could be switched off by rewording a sentence nobody reads.
+RELATION_BEARS_ON = {
+    "identifying_assumption",
+    "magnitude",
+    "external_validity",
+    "measurement",
+    "precision",
+}
 ASSERTION_TYPES = {
     "world",
     "negative",
@@ -783,13 +793,16 @@ def _assertion_site_schema_checks(
         else:
             significant_at = precision.get("significant_at")
             sample_size = precision.get("n")
+            # A conventional level, not any probability. `0.99` scored exactly
+            # like `0.05`, so "significant at 99 percent" -- which is not a
+            # significance level at all -- bought full evidence strength.
             if significant_at is not None and not (
-                _finite_number(significant_at) and 0 < float(significant_at) <= 1
+                _finite_number(significant_at) and 0 < float(significant_at) <= 0.1
             ):
                 _schema_error(
                     blocking,
                     f"{site_location}.underlying_precision.significant_at",
-                    "must be null or a finite probability in (0, 1]",
+                    "must be null or a conventional significance level in (0, 0.1]",
                 )
             distribution = precision.get("has_sampling_distribution")
             if distribution is not True and distribution is not False and distribution is not None:
@@ -1012,6 +1025,16 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 blocking,
                 f"pipelines[{index}].first_formal_batch_at",
                 "must be an ISO timestamp",
+            )
+    for index, relation in enumerate(registry["evidence_relations"]):
+        if relation.get("relation") in {"challenges", "bounds"} and (
+            relation.get("bears_on") not in RELATION_BEARS_ON
+        ):
+            _schema_error(
+                blocking,
+                f"evidence_relations[{index}].bears_on",
+                "a challenging or bounding relation must declare what it bears "
+                "on: " + ", ".join(sorted(RELATION_BEARS_ON)),
             )
     for index, claim in enumerate(registry["claims"]):
         if (
@@ -2980,6 +3003,33 @@ def _gate_scope_matches(definition: dict, evaluation: dict) -> bool:
     return _matched_gate_scope_target(definition, evaluation) is not None
 
 
+_BAND_NUMBER = r"-?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?"
+INTERVAL_BAND = re.compile(
+    rf"^\s*([\[\(])\s*({_BAND_NUMBER})\s*,\s*({_BAND_NUMBER})\s*([\]\)])\s*$"
+)
+
+
+def _band_contains(band: Any, value: Any) -> bool | None:
+    """Is ``value`` inside ``band``? None when the band is not an interval.
+
+    A gate is a pre-committed threshold, and until now nothing was ever
+    compared to it: the status was an author's word, and `triggered` -> `passed`
+    was a one-word edit with no record, no author and no timestamp. Where the
+    band is written as an interval the validator can do the comparison itself.
+    """
+
+    match = INTERVAL_BAND.match(str(band or ""))
+    if match is None or not isinstance(value, (int, float)) or isinstance(value, bool):
+        return None
+    low_open, low, high, high_open = match.groups()
+    low_value, high_value = float(low), float(high)
+    if low_value > high_value:
+        return None
+    above = value > low_value if low_open == "(" else value >= low_value
+    below = value < high_value if high_open == ")" else value <= high_value
+    return bool(above and below)
+
+
 def _gate_evaluation_key(evaluation: dict) -> str:
     return f"{evaluation.get('gate_id')}@{evaluation.get('pipeline_id')}"
 
@@ -3055,6 +3105,33 @@ def _gate_checks(
         blocking.append(_issue("GATE_SET_INCOMPLETE", checkpoint="B"))
 
     definitions = _id_map(registry.get("gate_definitions", []), "gate_id")
+    # The requirement set used to be whatever `gate_definitions` currently
+    # contained, so deleting a gate that fired left no trace at all. The
+    # confirmation now names the gates it froze, and a gate that leaves the set
+    # has to leave a diff in the signed record too.
+    if isinstance(confirmation, dict) and checkpoint in {"B", "C"}:
+        confirmed = confirmation.get("gate_ids")
+        if not _string_list(confirmed):
+            blocking.append(
+                _issue(
+                    "GATE_SET_UNBOUND",
+                    detail=(
+                        "gate_set_confirmation must list the gate_ids it froze; "
+                        "without them a gate can be deleted without a trace"
+                    ),
+                )
+            )
+        else:
+            missing = sorted(set(confirmed) - set(definitions))
+            added = sorted(set(definitions) - set(confirmed))
+            if missing or added:
+                blocking.append(
+                    _issue(
+                        "GATE_SET_DIVERGED",
+                        removed_since_confirmation=missing,
+                        added_since_confirmation=added,
+                    )
+                )
     pipelines = _id_map(registry.get("pipelines", []), "pipeline_id")
     # Gates are evaluated after the cascade, so the card's cascaded state is
     # what matters. Reading the declared record instead let a gate pass on
@@ -3153,6 +3230,65 @@ def _gate_checks(
         )
 
         status = evaluation.get("status")
+        # A gate that reports an outcome must report what it measured. Without
+        # an observed value the status was an unfalsifiable assertion and
+        # `triggered` -> `passed` was a one-word edit.
+        if status in {"passed", "triggered", "satisfied"}:
+            observed = evaluation.get("observed_value")
+            if observed is None:
+                blocking.append(
+                    _issue(
+                        "GATE_OBSERVATION_MISSING",
+                        gate_id=gate_id,
+                        pipeline_id=pipeline_id,
+                        detail=(
+                            "an evaluation reporting an outcome must record the "
+                            "observed_value it was measured against"
+                        ),
+                    )
+                )
+            else:
+                inside = _band_contains(definition.get("allowed_band"), observed)
+                if inside is None and INTERVAL_BAND.match(
+                    str(definition.get("allowed_band") or "")
+                ):
+                    # The band is numeric, so the observation must be too.
+                    # Quoting the number turned a contradiction into a report.
+                    blocking.append(
+                        _issue(
+                            "GATE_OBSERVATION_INVALID",
+                            gate_id=gate_id,
+                            pipeline_id=pipeline_id,
+                            allowed_band=definition.get("allowed_band"),
+                            observed_value=observed,
+                            detail="an interval band requires a numeric observed_value",
+                        )
+                    )
+                elif inside is None:
+                    reports.append(
+                        _issue(
+                            "GATE_BAND_UNVERIFIED",
+                            gate_id=gate_id,
+                            pipeline_id=pipeline_id,
+                            allowed_band=definition.get("allowed_band"),
+                            observed_value=observed,
+                            detail=(
+                                "the band is not an interval, so the status "
+                                "could not be checked against the observation"
+                            ),
+                        )
+                    )
+                elif inside != (status == "passed"):
+                    blocking.append(
+                        _issue(
+                            "GATE_STATUS_CONTRADICTS_OBSERVATION",
+                            gate_id=gate_id,
+                            pipeline_id=pipeline_id,
+                            status=status,
+                            allowed_band=definition.get("allowed_band"),
+                            observed_value=observed,
+                        )
+                    )
         moot_change = None
         if resolved_target and resolved_target["kind"] == "claim_key":
             for claim in claims_by_key.get(resolved_target["id"], []):
@@ -3178,6 +3314,34 @@ def _gate_checks(
                 ):
                     moot_change = change["change_id"]
                     break
+        # Retiring a claim moots a gate about it, and the retirement is
+        # corroborated: the claim leaves the output and the publication checks
+        # see it. A dataset or pipeline stage has no such corroboration -- its
+        # identifier is an unchecked string and nothing verifies the object
+        # stopped being used -- so ending its life must not silently override a
+        # recorded trigger. It needs the same named acceptance `satisfied` needs.
+        if (
+            moot_change
+            and evaluation.get("status") == "triggered"
+            and (resolved_target or {}).get("kind") not in {"claim_key", "claim_revision"}
+        ):
+            if not evaluation.get("accepted_by") or _as_datetime(
+                evaluation.get("accepted_at")
+            ) is None:
+                blocking.append(
+                    _issue(
+                        "GATE_MOOT_AFTER_TRIGGER",
+                        gate_id=gate_id,
+                        pipeline_id=pipeline_id,
+                        triggering_change_id=moot_change,
+                        detail=(
+                            "ending the life of a dataset or pipeline stage does "
+                            "not resolve a gate that fired; record accepted_by "
+                            "and accepted_at, or resolve it as satisfied"
+                        ),
+                    )
+                )
+                moot_change = None
         if moot_change:
             status = "moot"
             derived.append(
@@ -3337,9 +3501,14 @@ def _gate_checks(
                 "applicability_reason",
                 "declared_by",
                 "accepted_by",
+                # Without it, a gate that fired could be retro-declared
+                # never-applicable after results with no record of when.
+                "accepted_at",
                 "evidence_card",
             )
             missing = [field for field in required if not evaluation.get(field)]
+            if not missing and _as_datetime(evaluation.get("accepted_at")) is None:
+                missing.append("accepted_at")
             same_hand = (
                 not missing
                 and str(evaluation.get("declared_by"))
@@ -3368,9 +3537,22 @@ def _gate_checks(
                 )
 
 
-def _applicability_checks(registry: dict, blocking: list[dict]) -> None:
+def _applicability_checks(
+    registry: dict, blocking: list[dict], checkpoint: str = "C"
+) -> None:
     requirements = _id_map(registry.get("applicability", []), "requirement_id")
     for requirement_id, item in requirements.items():
+        if checkpoint == "C" and item.get("status") in {"pending", "blocked"}:
+            # `inapplicable` is heavily checked and `pending` was not checked at
+            # all, so declaring a requirement unfinished was strictly cheaper
+            # than documenting why it did not apply.
+            blocking.append(
+                _issue(
+                    "APPLICABILITY_UNRESOLVED",
+                    requirement_id=requirement_id,
+                    status=item.get("status"),
+                )
+            )
         if item.get("status") != "inapplicable":
             continue
         required = ("applicability_reason", "declared_by", "accepted_by", "substituted_by")
@@ -3738,10 +3920,83 @@ def _contains_marker(text: str, marker: str, inflected: bool = False) -> bool:
     return False
 
 
+# Abbreviations that end in a period and do not end a sentence. Splitting on
+# them cut a claim in half and left the anchor with the first fragment, so the
+# half carrying the commitment read as unregistered.
+_ABBREVIATION_GUARD = "\x02"
+SENTENCE_ABBREVIATIONS = (
+    "e.g.", "i.e.", "cf.", "et al.", "etc.", "vs.", "viz.", "approx.",
+    "Fig.", "Figs.", "Eq.", "Eqs.", "Tab.", "No.", "pp.", "Ch.",
+    "Dr.", "Prof.", "Mr.", "Ms.", "Mrs.", "St.", "Inc.", "Ltd.",
+    "U.S.", "U.K.", "E.U.", "Sec.", "Secs.", "App.", "Thm.", "Def.",
+    "p.", "Jr.", "Sr.", "Ave.", "Dept.", "Univ.", "ed.", "eds.",
+)
+# Arguments a reader sees as an aside, not as the end of the sentence they
+# interrupt. A footnote or a page-numbered citation carries a period, and
+# stopping the anchored sentence there truncated the claim and then reported
+# the author for burying a disclosure sitting in the very next sentence.
+ASIDE_ARGUMENT = re.compile(
+    r"\\[A-Za-z@]+\s*(?:\[[^\]]*\])+\s*(?:\{[^{}]*\})?"
+    r"|\\(?:cite[a-z]*|ref|eqref|label)\s*\{[^{}]*\}"
+)
+# Footnote arguments nest arbitrarily -- a citation and a subscripted symbol
+# inside one is ordinary -- so they are matched by counting braces rather than
+# by a regex with a fixed nesting depth.
+ASIDE_MACRO_START = re.compile(r"\\(?:footnote|footnotemark|marginpar|thanks)\s*\{")
+
+
+def _split_aside_macros(text: str) -> tuple[str, list[str]]:
+    """Return the text without its aside macros, and their contents."""
+
+    remaining = text
+    contents: list[str] = []
+    while True:
+        match = ASIDE_MACRO_START.search(remaining)
+        if match is None:
+            return remaining, contents
+        index = match.end()
+        depth = 1
+        while index < len(remaining) and depth:
+            character = remaining[index]
+            if character == "{" and remaining[index - 1] != "\\":
+                depth += 1
+            elif character == "}" and remaining[index - 1] != "\\":
+                depth -= 1
+            index += 1
+        if depth:
+            # Unbalanced: leave the text alone rather than eating the rest.
+            return remaining, contents
+        contents.append(remaining[match.end() : index - 1])
+        remaining = remaining[: match.start()] + " " + remaining[index:]
+
+
+def _has_sentence_terminator(text: str) -> bool:
+    """Does this text end a sentence, as a reader would judge it?"""
+
+    probe, _ = _split_aside_macros(text)
+    probe = ASIDE_ARGUMENT.sub(" ", probe)
+    for abbreviation in SENTENCE_ABBREVIATIONS:
+        probe = re.sub(
+            r"(?<![A-Za-z])" + re.escape(abbreviation),
+            abbreviation.replace(".", _ABBREVIATION_GUARD),
+            probe,
+            flags=re.IGNORECASE,
+        )
+    return re.search(r"[.!?]", probe) is not None
+
+
 def _sentence_segments(text: str) -> list[str]:
+    guarded = text
+    for abbreviation in SENTENCE_ABBREVIATIONS:
+        guarded = re.sub(
+            r"(?<![A-Za-z])" + re.escape(abbreviation),
+            abbreviation.replace(".", _ABBREVIATION_GUARD),
+            guarded,
+            flags=re.IGNORECASE,
+        )
     return [
-        segment.strip()
-        for segment in re.split(r"(?<=[.!?])\s+", text.strip())
+        segment.strip().replace(_ABBREVIATION_GUARD, ".")
+        for segment in re.split(r"(?<=[.!?])\s+", guarded.strip())
         if segment.strip()
     ]
 
@@ -3892,11 +4147,21 @@ TEX_SECTION_ROLE_KEYWORDS = (
 # A quantitative value is a numeral carrying a decimal point, a percent sign, a
 # currency symbol, or a magnitude suffix. Section numbers, table references and
 # hypothesis labels are deliberately out of scope.
+# Significance thresholds are conventions, not results. Asking an author to
+# register 0.05 as a reported figure trains them to ignore the check.
+CONVENTIONAL_CONSTANTS = {
+    "0.01", "0.05", "0.1", "0.10", "0.001",
+    "1%", "5%", "10%", "90%", "95%", "99%",
+    "1\\%", "5\\%", "10\\%", "90\\%", "95\\%", "99\\%",
+    "1 percent", "5 percent", "10 percent",
+    "90 percent", "95 percent", "99 percent",
+}
 QUANTITATIVE_VALUE = re.compile(
     r"(?<![\\\w])"
     r"(?:[$\u00a3\u20ac]\s?\d[\d,]*(?:\.\d+)?"
-    r"|\d[\d,]*\.\d+\s?%?"
-    r"|\d[\d,]*\s?%"
+    r"|\d[\d,]*\.\d+\s?\\?%?"
+    r"|\d[\d,]*\s?\\?%"
+    r"|\d[\d,]*\s?percent(?![a-z])"
     r"|\d[\d,]*(?:\.\d+)?\s?(?:bn|m|k|million|billion|thousand)(?![a-z]))",
     flags=re.IGNORECASE,
 )
@@ -3923,7 +4188,10 @@ def _strip_tex_comment(line: str) -> str:
 def _tex_visible_text(text: str) -> str:
     """Approximate the typeset text: drop control sequences, keep arguments."""
 
-    without_math = re.sub(r"\$[^$]*\$", " ", text)
+    # `\$` is a printed dollar sign. Treating it as a delimiter deleted
+    # everything between a price and the next `$` in the document, taking the
+    # anchor with it.
+    without_math = re.sub(r"(?<!\\)\$(?:[^$\\]|\\.)*?(?<!\\)\$", " ", text)
     return re.sub(r"\\[A-Za-z@]+\*?\s*(\[[^\]]*\])?", " ", without_math)
 
 
@@ -4085,7 +4353,7 @@ def _anchor_text(
     # marker's line would let a line break hide the half of the sentence that
     # carries the commitment, which is the default way LaTeX is written.
     end_line = line_number
-    while not re.search(r"[.!?]", visible):
+    while not _has_sentence_terminator(visible):
         if end_line >= len(lines):
             raise ValueError(
                 "anchored sentence is unterminated: no sentence end before the "
@@ -4179,6 +4447,28 @@ def _scope_declaration_applies(
     )
     if coverage_start > coverage_end:
         raise ValueError("scope coverage anchors are reversed")
+    # The declaration has to sit inside the range it governs, and a paragraph
+    # or section qualifier has to stay inside one section. A coverage range
+    # spanning the whole manuscript, declared by an unrelated sentence
+    # elsewhere in the file, qualified nothing while weakening every site in it.
+    _, declaration_start, declaration_end = _anchor_text(
+        declaration_source, declaration.get("anchor"), source_cache
+    )
+    if declaration_source != coverage_source or not (
+        coverage_start - 1 <= declaration_end and declaration_start <= coverage_end
+    ):
+        raise ValueError(
+            "a scope declaration must lie inside the range it declares or "
+            "immediately precede it"
+        )
+    if site.get("qualifier_scope") in {"paragraph", "section"}:
+        _, coverage_lines = source_cache[coverage_source]
+        if coverage_source.suffix.lower() == ".tex" and _tex_section_role(
+            coverage_lines, coverage_start
+        ) != _tex_section_role(coverage_lines, coverage_end):
+            raise ValueError(
+                "a paragraph or section qualifier may not span more than one section"
+            )
     return (
         site_source == coverage_source
         and coverage_start <= site_start
@@ -4238,6 +4528,10 @@ def _complete_upgrade_trace(
 def _relation_bears_on_identification(relation: dict) -> bool:
     if relation.get("identifying_assumption") is True:
         return True
+    # `bears_on` is declared, not inferred. While it was read out of the free
+    # -text rationale, the adjacency obligation could be switched off by
+    # rewording a sentence nobody else reads.
+    return relation.get("bears_on") == "identifying_assumption"
     for field in ("bears_on", "target", "counterevidence_target"):
         value = relation.get(field)
         if isinstance(value, str) and value.casefold().replace("-", "_").replace(
@@ -4426,6 +4720,24 @@ def _has_separate_contrastive_sentence(text: str) -> bool:
     ) is not None
 
 
+HYPOTHESIS_CUES = (
+    "predict",
+    "predicts",
+    "prediction",
+    "predictions",
+    "expect",
+    "expects",
+    "hypothesis",
+    "hypotheses",
+    "hypothesize",
+    "hypothesise",
+    "conjecture",
+    "posit",
+    "should",
+    "would",
+    "we anticipate",
+    "if the",
+)
 COUNTEREVIDENCE_CUES = (
     "although",
     "despite",
@@ -4462,6 +4774,13 @@ def _counterevidence_prominence_is_corroborated(
     combined = assertion_text
     if disclosure_text:
         combined = f"{assertion_text.rstrip()} {disclosure_text.lstrip()}"
+    if prominence != "footnote":
+        # A footnote or a page-numbered citation sits between two sentences
+        # without separating them for a reader. Leaving it in place put a
+        # closing brace where the full stop belonged, so a disclosure in the
+        # very next sentence read as absent.
+        stripped, _ = _split_aside_macros(combined)
+        combined = re.sub(r"\s+", " ", ASIDE_ARGUMENT.sub(" ", stripped))
     if prominence == "parenthetical":
         return any(
             _has_counterevidence_cue(match.group(1))
@@ -4748,6 +5067,25 @@ def _writing_strength_checks(
                     _issue("COUNTEREVIDENCE_REFERENCE_MISSING", **identity)
                 )
 
+            if assertion_type == "hypothesis":
+                # `hypothesis` is untiered and exempt from the residual and the
+                # disclosure rule, so relabelling a finished causal claim as one
+                # removed every writing check at once. A hypothesis is a
+                # proposition awaiting a test, and it reads like one.
+                if not any(
+                    _contains_marker(text, cue) for cue in HYPOTHESIS_CUES
+                ):
+                    blocking.append(
+                        _issue(
+                            "HYPOTHESIS_WITHOUT_PROPOSITION",
+                            detail=(
+                                "a hypothesis site must state a proposition "
+                                "awaiting a test; this sentence reads as a "
+                                "finding, so its assertion_type is world"
+                            ),
+                            **identity,
+                        )
+                    )
             if assertion_type == "negative":
                 complete_power = _complete_power_basis(site.get("power_basis"))
                 if not complete_power:
@@ -4861,8 +5199,16 @@ def _writing_strength_checks(
             if item["site"].get("section_role") == "results"
         ]
         result_references = {_site_reference(item["site"]) for item in result_sites}
+        # Compare on the stronger of what the author declared and what the
+        # sentence reads as. Declaring T4 on a T0 sentence used to lower the
+        # baseline a narrowing or an upgrade is measured against, so the lie
+        # paid twice.
         result_strengths = [
-            ASSERTION_TIERS[item["site"]["declared_tier"]] for item in result_sites
+            max(
+                ASSERTION_TIERS[item["site"]["declared_tier"]],
+                item["lexical_strength"],
+            )
+            for item in result_sites
         ]
 
         if result_strengths:
@@ -4871,7 +5217,9 @@ def _writing_strength_checks(
                 site = item["site"]
                 if site.get("section_role") == "results":
                     continue
-                declared_strength = ASSERTION_TIERS[site["declared_tier"]]
+                declared_strength = max(
+                    ASSERTION_TIERS[site["declared_tier"]], item["lexical_strength"]
+                )
                 upgrade = site.get("upgrade_justification")
                 if declared_strength > upgrade_baseline:
                     if not _complete_upgrade_trace(
@@ -4910,7 +5258,9 @@ def _writing_strength_checks(
                 site = item["site"]
                 if site.get("section_role") not in {"title", "abstract", "conclusion"}:
                     continue
-                declared_strength = ASSERTION_TIERS[site["declared_tier"]]
+                declared_strength = max(
+                    ASSERTION_TIERS[site["declared_tier"]], item["lexical_strength"]
+                )
                 if declared_strength > narrowed_results_strength or not item[
                     "scope_applies"
                 ]:
@@ -5039,22 +5389,110 @@ def _figure_grounding_checks(
             )
 
 
-def _manuscript_sentences(source: Path, body: str) -> list[tuple[int, str]]:
-    """Split a manuscript into (line, sentence) pairs for discovery.
+# Anchors are carried through sentence splitting as a sentinel so discovery
+# can tell WHICH sentence an anchor marks. Coverage used to be a line range,
+# and two sentences beginning on one line therefore shared one anchor: putting
+# a harmless sentence in front of a strong one moved the anchor onto the
+# harmless one while the strong one still counted as registered.
+ANCHOR_SENTINEL = "\x01"
+ANCHOR_SENTINEL_PATTERN = re.compile(f"{ANCHOR_SENTINEL}([^{ANCHOR_SENTINEL}]*){ANCHOR_SENTINEL}")
+
+
+def _anchor_carries_sentinel(
+    source: Path, marker: str, source_cache: dict[Path, tuple[str, list[str]]]
+) -> bool:
+    if source not in source_cache:
+        body = source.read_text(encoding="utf-8")
+        source_cache[source] = (body, body.splitlines())
+    body, _ = source_cache[source]
+    escaped = re.escape(marker)
+    return bool(
+        re.search(rf"\\(?:claimsite|scopesite)\s*\{{\s*{escaped}\s*\}}", body)
+        or re.search(rf"<!--\s*{escaped}\s*-->", body)
+    )
+
+
+def _emit_sentence(
+    sentences: list[tuple[int, str, tuple[str, ...]]], line: int, raw: str
+) -> None:
+    anchors = tuple(
+        found.strip()
+        for found in ANCHOR_SENTINEL_PATTERN.findall(raw)
+        if found.strip()
+    )
+    sentence = ANCHOR_SENTINEL_PATTERN.sub(" ", raw)
+    sentence = re.sub(r"\s+", " ", sentence).strip()
+    if re.search(r"[A-Za-z]", sentence):
+        sentences.append((line, sentence, anchors))
+
+
+def _manuscript_sentences(
+    source: Path, body: str
+) -> list[tuple[int, str, tuple[str, ...]]]:
+    """Split a manuscript into (line, sentence, anchors) triples for discovery.
 
     LaTeX comments, math, and structural control sequences are removed first so
-    a candidate is judged on what a reader sees.
+    a candidate is judged on what a reader sees. Anchor markers survive as
+    sentinels, so each sentence knows which anchors precede it.
     """
 
-    sentences: list[tuple[int, str]] = []
+    sentences: list[tuple[int, str, tuple[str, ...]]] = []
     is_tex = source.suffix.lower() == ".tex"
     buffer = ""
     buffer_line = 0
     # Sentences are assembled across lines before they are split. Splitting per
     # line reports hard-wrapped prose as fragments, which is how LaTeX is
     # ordinarily written.
+    skipping = False
+    footnotes: list[tuple[int, str]] = []
     for offset, raw in enumerate(body.splitlines(), start=1):
+        if is_tex:
+            begin = re.search(r"\\begin\{(thebibliography|verbatim|lstlisting)\}", raw)
+            end = re.search(r"\\end\{(thebibliography|verbatim|lstlisting)\}", raw)
+            if begin:
+                skipping = True
+            if skipping:
+                if end:
+                    skipping = False
+                buffer, buffer_line = "", 0
+                continue
+            # A reference list is full of other people's causal verbs.
+            if raw.lstrip().startswith("\\bibitem"):
+                buffer, buffer_line = "", 0
+                continue
+        blank_source = not raw.strip()
+        if is_tex and re.search(
+            r"\\(?:part|chapter|section|subsection|subsubsection|paragraph)\*?\s*\{",
+            raw,
+        ):
+            # A heading is not a sentence and does not continue one. Letting it
+            # into the buffer glued it to the first sentence of its section and
+            # moved that sentence's reported line back onto the heading.
+            if buffer.strip():
+                _emit_sentence(sentences, buffer_line or offset, buffer)
+            buffer, buffer_line = "", 0
+            continue
         line = _strip_tex_comment(raw) if is_tex else raw
+        if is_tex:
+            # Footnote prose is its own stream. Leaving it inline welded it to
+            # the sentence it interrupts, stray closing brace and all; dropping
+            # it silently would make a footnote a hiding place. It is scanned
+            # separately, at the line it appears on.
+            line, asides = _split_aside_macros(line)
+            for aside in asides:
+                footnotes.append((offset, _tex_visible_text(aside)))
+        line = ANCHOR_MACRO.sub(
+            lambda match: ANCHOR_SENTINEL
+            + (re.search(r"\{([^{}]*)\}", match.group(0)) or [None, ""])[1]
+            + ANCHOR_SENTINEL,
+            line,
+        )
+        line = ANCHOR_COMMENT.sub(
+            lambda match: ANCHOR_SENTINEL
+            + match.group(0)[4:-3].strip()
+            + ANCHOR_SENTINEL,
+            line,
+        )
         if is_tex:
             stripped = line.strip()
             if stripped.startswith("\\") and "{" in stripped and " " not in stripped:
@@ -5062,6 +5500,17 @@ def _manuscript_sentences(source: Path, body: str) -> list[tuple[int, str]]:
             else:
                 line = _tex_visible_text(line)
         if not line.strip():
+            # Only a genuinely blank source line ends a paragraph. A line
+            # blanked by markup -- `\begin{equation}` and its body -- sits in
+            # the middle of a sentence, and flushing there cut the sentence in
+            # half and reported the tail as unregistered.
+            if not blank_source:
+                continue
+            # A paragraph break ends a sentence even without a full stop.
+            # Discarding the buffer meant a list item or a display-ended
+            # paragraph was never examined at all.
+            if buffer.strip():
+                _emit_sentence(sentences, buffer_line or offset, buffer)
             buffer, buffer_line = "", 0
             continue
         if not buffer:
@@ -5071,13 +5520,15 @@ def _manuscript_sentences(source: Path, body: str) -> list[tuple[int, str]]:
         if len(segments) > 1 or re.search(r"[.!?]\s*$", buffer):
             complete = segments if re.search(r"[.!?]\s*$", buffer) else segments[:-1]
             for sentence in complete:
-                if re.search(r"[A-Za-z]", sentence):
-                    sentences.append((buffer_line, sentence))
+                _emit_sentence(sentences, buffer_line, sentence)
             remainder = "" if re.search(r"[.!?]\s*$", buffer) else segments[-1]
             buffer = remainder
             buffer_line = offset if remainder else 0
-    if buffer.strip() and re.search(r"[A-Za-z]", buffer):
-        sentences.append((buffer_line or 1, buffer.strip()))
+    if buffer.strip():
+        _emit_sentence(sentences, buffer_line or 1, buffer)
+    for line_number, note in footnotes:
+        for segment in _sentence_segments(note):
+            _emit_sentence(sentences, line_number, segment)
     return sentences
 
 
@@ -5119,7 +5570,49 @@ def _manuscript_sources(
                     )
                 continue
             sources[source] = str(declared)
+            # A per-section `\input` file is standard practice, and prose in
+            # one used to be invisible: the declared source was scanned and
+            # everything it pulled in was not.
+            for included in _tex_included_sources(source):
+                try:
+                    relative = included.relative_to(source.parent)
+                    label = str(Path(declared).parent / relative)
+                except ValueError:
+                    label = str(included)
+                sources.setdefault(included, label)
     return sources
+
+
+def _is_generated(path: Path) -> bool:
+    """A generated macro file is registry output, not manuscript prose."""
+
+    try:
+        with path.open(encoding="utf-8") as handle:
+            head = "".join(next(handle, "") for _ in range(3))
+    except (OSError, UnicodeError):
+        return False
+    return "generated by" in head.casefold()
+
+
+def _tex_included_sources(source: Path) -> list[Path]:
+    if source.suffix.lower() != ".tex":
+        return []
+    try:
+        body = source.read_text(encoding="utf-8")
+    except (OSError, UnicodeError):
+        return []
+    found: list[Path] = []
+    for match in re.finditer(r"\\(?:input|include)\s*\{([^{}]+)\}", body):
+        name = match.group(1).strip()
+        candidate = (source.parent / name).resolve()
+        for path in (candidate, candidate.with_suffix(".tex")):
+            if path.is_file() and path not in found and not _is_generated(path):
+                found.append(path)
+                found.extend(
+                    item for item in _tex_included_sources(path) if item not in found
+                )
+                break
+    return found
 
 
 def _manuscript_coverage_checks(
@@ -5167,6 +5660,8 @@ def _manuscript_coverage_checks(
         return
 
     registered: dict[Path, list[tuple[int, int]]] = defaultdict(list)
+    registered_anchors: dict[Path, set[str]] = defaultdict(set)
+    line_range_spans: dict[Path, list[tuple[int, int]]] = defaultdict(list)
     site_count = 0
     source_cache: dict[Path, tuple[str, list[str]]] = {}
     # Prose that reports someone else's finding still contains causal verbs.
@@ -5239,6 +5734,19 @@ def _manuscript_coverage_checks(
             except (OSError, UnicodeError, ValueError):
                 continue
             registered[source].append((start, end))
+            # A marker anchor names one sentence. A line-range anchor names a
+            # range, and keeps the line test.
+            if _line_range(site.get("anchor")) is None:
+                registered_anchors[source].add(str(site.get("anchor")))
+                # Only the anchor constructs discovery can see inside a
+                # sentence carry a sentinel. A `\label{}` or bare-marker anchor
+                # is still a valid registration, so it keeps the line span it
+                # always had rather than reporting its own sentence as
+                # unregistered.
+                if not _anchor_carries_sentinel(source, str(site.get("anchor")), source_cache):
+                    line_range_spans[source].append((start, end))
+            else:
+                line_range_spans[source].append((start, end))
             site_count += 1
 
     # Registering a sentence and declaring it out of scope are contradictory
@@ -5266,9 +5774,11 @@ def _manuscript_coverage_checks(
             body = source.read_text(encoding="utf-8")
         except (OSError, UnicodeError):
             continue
-        spans = registered.get(source, [])
+        anchors_here = registered_anchors.get(source, set())
+        ranges_here = line_range_spans.get(source, [])
+        range_candidates: dict[tuple[int, int], int] = {}
         skips = excluded.get(source, [])
-        for line, sentence in _manuscript_sentences(source, body):
+        for line, sentence, anchors in _manuscript_sentences(source, body):
             if any(start <= line <= end for start, end in skips):
                 # Report what an exclusion actually suppressed. "1 excluded
                 # range" and "29 assertions not examined" are the same fact,
@@ -5276,8 +5786,22 @@ def _manuscript_coverage_checks(
                 if "causal" in _matched_markers(sentence, markers):
                     excluded_candidates += 1
                 continue
-            covered = any(start <= line <= end for start, end in spans)
+            covering_range = next(
+                (span for span in ranges_here if span[0] <= line <= span[1]), None
+            )
+            covered = (
+                any(anchor in anchors_here for anchor in anchors)
+                or covering_range is not None
+            )
             matched = _matched_markers(sentence, markers)
+            if covering_range is not None and "causal" in matched:
+                # A site is one judgement about one assertion. A range holding
+                # several assertions registers them all under the judgement
+                # made about the first, which is an unreported and unbounded
+                # discovery exclusion.
+                range_candidates[covering_range] = (
+                    range_candidates.get(covering_range, 0) + 1
+                )
             if "causal" in matched:
                 candidates += 1
                 if not covered:
@@ -5294,12 +5818,27 @@ def _manuscript_coverage_checks(
                     dict.fromkeys(
                         match.group(0).strip()
                         for match in QUANTITATIVE_VALUE.finditer(sentence)
+                        if match.group(0).strip() not in CONVENTIONAL_CONSTANTS
                     )
                 )
                 if found:
                     literals.append(
                         {"path": declared, "line": line, "literals": found}
                     )
+        for span, count in sorted(range_candidates.items()):
+            if count > 1:
+                blocking.append(
+                    _issue(
+                        "ASSERTION_RANGE_COVERS_MULTIPLE_ASSERTIONS",
+                        path=declared,
+                        lines=list(span),
+                        candidate_assertions=count,
+                        detail=(
+                            "a line-range site registers every sentence in its "
+                            "range under one judgement; anchor each assertion"
+                        ),
+                    )
+                )
 
     reports.append(
         _issue(
@@ -5408,7 +5947,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     )
     _gate_checks(registry, state, checkpoint, blocking, reports, derived)
     _figure_grounding_checks(registry, state, blocking)
-    _applicability_checks(registry, blocking)
+    _applicability_checks(registry, blocking, checkpoint)
     _recompute_assessments(registry, state, derived_challenges, derived)
     if checkpoint == "C":
         _writing_strength_checks(registry, state, blocking, reports)

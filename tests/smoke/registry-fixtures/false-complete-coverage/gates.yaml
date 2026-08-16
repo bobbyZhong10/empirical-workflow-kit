@@ -2,28 +2,34 @@ gate_set_confirmation:
   checkpoint: B
   complete: true
   signed_by: authority
-  signed_at: "2025-12-01T00:00:00Z"
+  signed_at: '2025-12-01T00:00:00Z'
+  gate_ids:
+  - G-COVERAGE
 gate_definitions:
-  - gate_id: G-COVERAGE
-    applies_to:
-      - {kind: dataset, id: panel}
-    metric: coverage
-    allowed_band: complete
-    failure_policy: STOP
-    declared_at: "2025-12-01T00:00:00Z"
-    declared_by: authority
-    frozen: true
-    compensation:
-      action: Evaluate the full declared scope.
-      required_artifact: evidence/gates/G-COVERAGE.md
+- gate_id: G-COVERAGE
+  applies_to:
+  - kind: dataset
+    id: panel
+  metric: coverage
+  allowed_band: complete
+  failure_policy: STOP
+  declared_at: '2025-12-01T00:00:00Z'
+  declared_by: authority
+  frozen: true
+  compensation:
+    action: Evaluate the full declared scope.
+    required_artifact: evidence/gates/G-COVERAGE.md
 gate_evaluations:
-  - gate_id: G-COVERAGE
-    pipeline_id: p1
-    evaluated_against: {kind: dataset, id: panel@p1}
-    status: passed
-    coverage:
-      declared_scope: all observations
-      evaluated_scope: selected observations
-      complete: true
-    evidence_card: EC-gate
+- gate_id: G-COVERAGE
+  pipeline_id: p1
+  evaluated_against:
+    kind: dataset
+    id: panel@p1
+  status: passed
+  coverage:
+    declared_scope: all observations
+    evaluated_scope: selected observations
+    complete: true
+  evidence_card: EC-gate
+  observed_value: complete
 changes: []
