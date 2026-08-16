@@ -158,6 +158,12 @@ ASSERTION_TYPES = {
     "model_internal",
     "hypothesis",
 }
+# Roles a manuscript actually has. The first seven carry checking obligations:
+# `results` is the baseline an upgrade is measured against, and `title`,
+# `abstract` and `conclusion` are where a narrowing must propagate. The rest
+# exist because discovery blocks on assertions found in them, and a section a
+# paper has but the vocabulary cannot name is a sentence the author is required
+# to register and forbidden to register.
 ASSERTION_SECTION_ROLES = {
     "title",
     "abstract",
@@ -166,6 +172,13 @@ ASSERTION_SECTION_ROLES = {
     "mechanism",
     "discussion",
     "conclusion",
+    "related_work",
+    "setting",
+    "data",
+    "framework",
+    "method",
+    "robustness",
+    "limitations",
 }
 ASSERTION_TIERS = {"T0": 4, "T1": 3, "T2": 2, "T3": 1, "T4": 0}
 QUALIFIER_SCOPES = {"sentence", "paragraph", "section", "cross_reference"}
@@ -3642,6 +3655,9 @@ def _resolve_registry_source(registry: dict, authored_path: Any) -> Path:
     return source
 
 
+# Matched as substrings of the lowercased heading, first match wins, so the
+# more specific keyword comes first: "Mechanisms and Robustness" is a mechanism
+# section, and "Setting and Data" is a setting section.
 TEX_SECTION_ROLE_KEYWORDS = (
     ("introduction", "introduction"),
     ("results", "results"),
@@ -3650,6 +3666,28 @@ TEX_SECTION_ROLE_KEYWORDS = (
     ("discussion", "discussion"),
     ("conclusion", "conclusion"),
     ("concluding", "conclusion"),
+    ("literature", "related_work"),
+    ("related work", "related_work"),
+    ("prior work", "related_work"),
+    ("setting", "setting"),
+    ("institutional", "setting"),
+    ("background", "setting"),
+    ("framework", "framework"),
+    ("theory", "framework"),
+    ("model", "framework"),
+    ("empirical strategy", "method"),
+    ("identification", "method"),
+    ("estimation", "method"),
+    ("specification", "method"),
+    ("research design", "method"),
+    ("method", "method"),
+    ("data", "data"),
+    ("sample", "data"),
+    ("measurement", "data"),
+    ("variables", "data"),
+    ("robustness", "robustness"),
+    ("sensitivity", "robustness"),
+    ("limitation", "limitations"),
 )
 
 # A quantitative value is a numeral carrying a decimal point, a percent sign, a
@@ -3778,6 +3816,49 @@ def _anchor_span(
     return line_number, line_number
 
 
+ANCHOR_CONSTRUCTS = (
+    # A no-op LaTeX macro: \claimsite{marker}, \scopesite{marker}, \label{marker}.
+    r"\\[A-Za-z@]+\s*\{\s*{marker}\s*\}",
+    # An HTML or markdown comment: <!-- marker -->.
+    r"<!--\s*{marker}\s*-->",
+    # A line comment that carries nothing but the marker.
+    r"^[%#]\s*{marker}",
+    # The bare marker, as a last resort.
+    r"{marker}",
+)
+
+
+# Anchors expand to nothing in the PDF, so they must expand to nothing in the
+# text the checks read. A macro shell left between two sentences hides the
+# boundary from every rule that reads one.
+ANCHOR_MACRO = re.compile(r"\\(?:claimsite|scopesite)\s*\{[^{}]*\}")
+ANCHOR_COMMENT = re.compile(r"<!--[^<>]*-->")
+
+
+def _strip_anchor_markup(text: str) -> str:
+    stripped = ANCHOR_COMMENT.sub(" ", ANCHOR_MACRO.sub(" ", text))
+    return re.sub(r"\s+", " ", stripped)
+
+
+def _text_after_anchor(line: str, marker: str) -> str:
+    """Return the part of a line that an anchor marks.
+
+    An anchor marks the sentence that follows it, and LaTeX is hard wrapped, so
+    an anchor placed immediately before its sentence is ordinarily mid-line.
+    Returning the whole line made such an anchor resolve to the tail of the
+    *preceding* sentence, and left the macro shell in the text, which silences
+    any check that reads sentence boundaries.
+    """
+
+    escaped = re.escape(marker)
+    for template in ANCHOR_CONSTRUCTS:
+        pattern = re.compile(template.replace("{marker}", escaped))
+        match = pattern.search(line)
+        if match is not None:
+            return line[match.end() :]
+    return line
+
+
 def _anchor_text(
     source: Path, anchor: Any, source_cache: dict[Path, tuple[str, list[str]]]
 ) -> tuple[str, int, int]:
@@ -3789,8 +3870,7 @@ def _anchor_text(
     marker = str(anchor)
     line_number = start
     line = lines[line_number - 1]
-    without_marker = line.replace(marker, "", 1)
-    anchored_text = re.sub(r"<!--\s*-->|\\label\{\}|^[%#]\s*", " ", without_marker)
+    anchored_text = _text_after_anchor(line, marker)
     if source.suffix.lower() == ".tex":
         anchored_text = _strip_tex_comment(anchored_text)
     visible = anchored_text.strip()
@@ -3823,7 +3903,7 @@ def _anchor_text(
             continuation = _strip_tex_comment(continuation)
         end_line += 1
         visible = f"{visible} {continuation.strip()}".strip()
-    return visible, line_number, end_line
+    return _strip_anchor_markup(visible).strip(), line_number, end_line
 
 
 def _resolved_assertion_site(

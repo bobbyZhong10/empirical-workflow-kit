@@ -53,7 +53,7 @@ SKELETONS: dict[str, str] = {
         "  - pipeline_id: p1\n"
         "    status: current\n"
         "    first_formal_batch_at: \"\"   # required: timestamp of the first formal batch\n"
-        "analysis_window: {start: \"\", end: \"\"}\n"
+        "analysis_window: [\"\", \"\"]   # required: ISO start and end dates\n"
         "used_fields: []\n"
         "changes: []\n"
     ),
@@ -103,6 +103,30 @@ def init(root: Path) -> list[str]:
     return written
 
 
+EXISTING_ANCHOR = re.compile(r"\\(?:claimsite|scopesite)\s*\{([^{}]+)\}")
+
+
+def _existing_anchor(source: Path | None, line: int) -> str | None:
+    """Reuse the anchor already on the line, if the author put one there.
+
+    Suggesting a fresh name for a line that already carries ``\\claimsite{...}``
+    tells the author to add a second anchor to the same sentence, which then
+    resolves ambiguously. An anchor is a name for a place, and the place may
+    already have one.
+    """
+
+    if source is None:
+        return None
+    try:
+        lines = source.read_text(encoding="utf-8").splitlines()
+    except (OSError, UnicodeError):
+        return None
+    if not 1 <= line <= len(lines):
+        return None
+    match = EXISTING_ANCHOR.search(lines[line - 1])
+    return match.group(1).strip() if match else None
+
+
 def _anchor_suggestion(path: str, line: int, excerpt: str) -> str:
     words = re.findall(r"[A-Za-z]+", excerpt.lower())[:3]
     stem = "-".join(words) or "assertion"
@@ -129,11 +153,11 @@ def sites(root: Path, limit: int | None = None) -> str:
     ]
     for finding in findings[: limit or len(findings)]:
         excerpt = finding.get("excerpt", "")
-        anchor = _anchor_suggestion(finding["path"], finding["line"], excerpt)
         strength, tier, _, _ = _classify_assertion_text(
             excerpt, {"qualifier_scope": "sentence"}, markers
         )
         role = None
+        source = None
         try:
             source = _resolve_registry_source(load_registry(root), finding["path"])
             if source.suffix.lower() == ".tex":
@@ -141,7 +165,11 @@ def sites(root: Path, limit: int | None = None) -> str:
                     source.read_text(encoding="utf-8").splitlines(), finding["line"]
                 )
         except (OSError, ValueError):
+            source = None
             role = None
+        anchor = _existing_anchor(source, finding["line"]) or _anchor_suggestion(
+            finding["path"], finding["line"], excerpt
+        )
         lines += [
             "",
             f"# {finding['path']}:{finding['line']}  {excerpt}",

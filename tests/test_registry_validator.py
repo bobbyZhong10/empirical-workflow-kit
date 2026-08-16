@@ -4064,6 +4064,32 @@ def test_scaffold_sites_stubs_what_discovery_found_and_leaves_judgement_blank(
     assert stub.count("- path:") == 1
 
 
+def test_scaffold_sites_reuses_an_anchor_the_line_already_carries(tmp_path):
+    """A place that already has a name does not need a second one.
+
+    Suggesting a fresh anchor for a line that already carries
+    ``\\claimsite{...}`` tells the author to add a second marker to the same
+    sentence, and two markers on one sentence resolve ambiguously.
+    """
+
+    from tools.scaffold_registry import sites
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = []
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\n"
+        "\\claimsite{res-divergence}Treatment increases retention.\n",
+        encoding="utf-8",
+    )
+
+    stub = sites(root)
+    assert "anchor: res-divergence\n" in stub
+
+
 def test_scaffold_figures_reads_values_from_the_artifact(tmp_path):
     from tools.scaffold_registry import figures
 
@@ -4247,6 +4273,81 @@ def test_informs_abstract_macro_resolves_as_abstract_not_title(tmp_path):
     assert _tex_section_role(lines, 3) == "title"
     assert _tex_section_role(lines, 5) == "abstract"
     assert _tex_section_role(lines, 8) == "results"
+
+
+@pytest.mark.parametrize(
+    ("heading", "role"),
+    [
+        ("Related Literature", "related_work"),
+        ("Setting and Data", "setting"),
+        ("Framework", "framework"),
+        ("Empirical Strategy", "method"),
+        ("Robustness", "robustness"),
+        ("Limitations", "limitations"),
+        ("Results", "results"),
+        ("Discussion", "discussion"),
+    ],
+)
+def test_body_sections_resolve_to_a_registrable_role(heading, role):
+    """A section a paper has must be nameable in the registry.
+
+    Discovery blocks on assertions found anywhere in the manuscript, and the
+    schema rejects a site whose role is not in the vocabulary. A section with
+    no role was therefore a sentence the author was required to register and
+    forbidden to register.
+    """
+
+    from tools.validate_registry import (
+        ASSERTION_SECTION_ROLES,
+        _tex_section_role,
+    )
+
+    lines = [f"\\section{{{heading}}}", "Treatment increases retention."]
+    resolved = _tex_section_role(lines, 2)
+    assert resolved == role
+    assert resolved in ASSERTION_SECTION_ROLES
+
+
+def test_mid_line_anchor_reads_the_sentence_it_precedes(tmp_path):
+    """An anchor marks what follows it, not the line it happens to sit on.
+
+    LaTeX is hard wrapped, so an anchor placed immediately before its sentence
+    lands mid-line most of the time. Reading the whole line resolved such an
+    anchor to the tail of the *preceding* sentence, which is a different claim.
+    """
+
+    report = write_assertion_registry(
+        tmp_path / "midline",
+        [assertion_site("second", section_role="results", declared_tier="T0")],
+        "The sample is described in the appendix. <!-- second --> Treatment\n"
+        "increases retention.\n",
+        base_registry(),
+    )
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert site_state["_lexical_tier"] == "T0"
+    assert "ASSERTION_ANCHOR_INVALID" not in codes(report, "blocking")
+
+
+def test_anchor_macro_shell_does_not_survive_into_the_anchored_text(tmp_path):
+    """A residual macro between two sentences hides the sentence boundary.
+
+    Removing only the marker name left ``\\claimsite{}`` sitting where the
+    space after a full stop should be, so every check that reads a sentence
+    boundary - the contrastive-disclosure rule above all - silently failed to
+    match on prose that satisfied it.
+    """
+
+    from tools.validate_registry import _anchor_text
+
+    source = tmp_path / "manuscript.tex"
+    source.write_text(
+        "Margin falls into the zone. \\claimsite{bound}However, the within-zone\n"
+        "coefficient does not share that sign.\n",
+        encoding="utf-8",
+    )
+    text, _, _ = _anchor_text(source, "bound", {})
+    assert text.startswith("However,")
+    assert "claimsite" not in text
 
 
 def test_anchor_that_prefixes_another_anchor_is_not_ambiguous(tmp_path):
