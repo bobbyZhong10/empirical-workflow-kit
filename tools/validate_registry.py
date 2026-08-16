@@ -14,6 +14,7 @@ import copy
 import json
 import math
 import re
+import subprocess
 from functools import lru_cache
 import sys
 from collections import defaultdict
@@ -428,6 +429,7 @@ def load_registry(root: Path) -> dict:
             "writing_strength": {},
             "lexical_markers": None,
             "_sources": {},
+            "_collection_sources": {},
             "_load_errors": [],
             "_root": str(root),
         }
@@ -471,6 +473,7 @@ def load_registry(root: Path) -> dict:
                     )
                 else:
                     registry[key].extend(value)
+                    registry["_collection_sources"].setdefault(key, filename)
             elif key in {
                 "analysis_window",
                 "used_fields",
@@ -2702,6 +2705,67 @@ def _resolve_artifact_locator(registry: dict, source: dict) -> float:
     return value
 
 
+COMMIT_NAME = re.compile(r"^[0-9a-f]{7,40}$")
+
+
+def _git(root: str, *arguments: str) -> tuple[int, str]:
+    """Run one read-only git command against the registry's repository."""
+
+    try:
+        completed = subprocess.run(
+            ("git", "-C", root, *arguments),
+            capture_output=True,
+            text=True,
+            timeout=20,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as error:
+        return 1, str(error)
+    return completed.returncode, completed.stdout.strip()
+
+
+@lru_cache(maxsize=64)
+def _repository_root(root: str) -> str | None:
+    status, output = _git(root, "rev-parse", "--show-toplevel")
+    return output if status == 0 and output else None
+
+
+@lru_cache(maxsize=512)
+def _commit_facts(root: str, commit: str) -> dict[str, str] | None:
+    """Author, committer and commit date of one commit, or None if unknown."""
+
+    status, output = _git(
+        root, "show", "-s", "--format=%H%n%an%n%ae%n%cn%n%ce%n%cI", commit
+    )
+    if status != 0:
+        return None
+    fields = output.splitlines()
+    if len(fields) < 6:
+        return None
+    return {
+        "sha": fields[0],
+        "author_name": fields[1],
+        "author_email": fields[2],
+        "committer_name": fields[3],
+        "committer_email": fields[4],
+        "committed_at": fields[5],
+    }
+
+
+@lru_cache(maxsize=512)
+def _commit_touches(root: str, commit: str, path: str) -> bool:
+    status, output = _git(root, "show", "--name-only", "--format=", commit)
+    if status != 0:
+        return False
+    return any(line.strip() == path for line in output.splitlines())
+
+
+@lru_cache(maxsize=512)
+def _commit_is_in_history(root: str, commit: str) -> bool:
+    status, _ = _git(root, "merge-base", "--is-ancestor", commit, "HEAD")
+    return status == 0
+
+
 def _card_artifact(card: dict) -> str | None:
     """The artifact a card's numbers come from, resolved for its pipeline."""
 
@@ -3197,6 +3261,157 @@ def _change_matches_gate(change: dict, target: dict | None) -> bool:
         change.get("object_kind") == target["kind"]
         and str(change.get("object_id")) == target["id"]
     )
+
+
+def _attestation_checks(
+    registry: dict,
+    state: dict,
+    checkpoint: str,
+    blocking: list[dict],
+    reports: list[dict],
+) -> None:
+    """Bind each load-bearing change record to the commit that introduced it.
+
+    A change record authorises a gate release or moots a gate, and until now it
+    was author-written YAML in the same commit as the thing it authorised: a
+    release could be justified by a record invented to justify it. A text file
+    cannot attest to its own history. The attestation already exists -- the
+    commit that introduced the record, its author, and its date -- and this
+    binds the two, so backdating a record means rewriting published history
+    rather than editing a line.
+    """
+
+    changes = _id_map(registry.get("changes", []), "change_id")
+    if not changes:
+        return
+
+    # Load-bearing: cited by a gate release, or by a claim whose retirement
+    # moots a gate. A record nobody leans on is verified if it carries a
+    # commit, and not demanded if it does not.
+    load_bearing: set[str] = set()
+    for evaluation in registry.get("gate_evaluations", []):
+        release = evaluation.get("release")
+        if isinstance(release, dict) and release.get("triggering_change_id"):
+            load_bearing.add(str(release["triggering_change_id"]))
+    for claim in registry.get("claims", []):
+        if claim.get("change_id") and claim.get("availability") in {
+            "retired",
+            "withdrawn",
+        }:
+            load_bearing.add(str(claim["change_id"]))
+
+    root = str(registry.get("_root", "."))
+    repository = _repository_root(root)
+    declaring_file = registry.get("_collection_sources", {}).get("changes")
+
+    for change_id, change in sorted(changes.items()):
+        commit = change.get("commit")
+        required = checkpoint == "C" and change_id in load_bearing
+        if commit is None:
+            if required:
+                blocking.append(
+                    _issue(
+                        "CHANGE_ATTESTATION_MISSING",
+                        change_id=change_id,
+                        detail=(
+                            "a change record that authorises a gate must name "
+                            "the commit that introduced it; otherwise it is "
+                            "written in the same breath as the thing it "
+                            "authorises"
+                        ),
+                    )
+                )
+            continue
+        if not (isinstance(commit, str) and COMMIT_NAME.match(commit.strip())):
+            blocking.append(
+                _issue(
+                    "CHANGE_COMMIT_INVALID",
+                    change_id=change_id,
+                    commit=commit,
+                    detail="commit must be a git object name",
+                )
+            )
+            continue
+        commit = commit.strip()
+        if repository is None:
+            blocking.append(
+                _issue(
+                    "CHANGE_ATTESTATION_UNAVAILABLE",
+                    change_id=change_id,
+                    detail=(
+                        "the registry is not inside a git repository, so the "
+                        "commit a change record names cannot be verified"
+                    ),
+                )
+            )
+            continue
+        facts = _commit_facts(root, commit)
+        if facts is None or not _commit_is_in_history(root, commit):
+            blocking.append(
+                _issue(
+                    "CHANGE_COMMIT_UNKNOWN",
+                    change_id=change_id,
+                    commit=commit,
+                    detail="no such commit in this history",
+                )
+            )
+            continue
+        if declaring_file and not _commit_touches(root, commit, declaring_file):
+            blocking.append(
+                _issue(
+                    "CHANGE_COMMIT_UNRELATED",
+                    change_id=change_id,
+                    commit=commit,
+                    file=declaring_file,
+                    detail="the named commit did not touch the file that declares this record",
+                )
+            )
+        authority = str(change.get("authorized_by", "")).strip().casefold()
+        identities = {
+            facts["author_name"].casefold(),
+            facts["author_email"].casefold(),
+            facts["committer_name"].casefold(),
+            facts["committer_email"].casefold(),
+        }
+        if authority and authority not in identities:
+            blocking.append(
+                _issue(
+                    "CHANGE_AUTHORITY_MISMATCH",
+                    change_id=change_id,
+                    commit=commit,
+                    authorized_by=change.get("authorized_by"),
+                    commit_author=facts["author_name"],
+                    detail="the recorded authority is not the author of the commit that recorded it",
+                )
+            )
+        occurred = _as_datetime(change.get("occurred_at"))
+        committed = _as_datetime(facts["committed_at"])
+        if occurred is not None and committed is not None:
+            lag = committed - occurred
+            if lag < timedelta(0):
+                blocking.append(
+                    _issue(
+                        "CHANGE_TIMESTAMP_INCOHERENT",
+                        change_id=change_id,
+                        commit=commit,
+                        occurred_at=change.get("occurred_at"),
+                        committed_at=facts["committed_at"],
+                        detail="the record was committed before the change it records",
+                    )
+                )
+            elif lag > timedelta(days=7):
+                # Not an offence, but the gap is the window in which the record
+                # could have been written to fit the result, so it is visible.
+                reports.append(
+                    _issue(
+                        "CHANGE_RECORDED_LATE",
+                        change_id=change_id,
+                        commit=commit,
+                        occurred_at=change.get("occurred_at"),
+                        committed_at=facts["committed_at"],
+                        days_late=lag.days,
+                    )
+                )
 
 
 def _gate_checks(
@@ -6176,6 +6391,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
         derived,
         prevalidated_revalidations,
     )
+    _attestation_checks(registry, state, checkpoint, blocking, reports)
     _gate_checks(registry, state, checkpoint, blocking, reports, derived)
     _figure_grounding_checks(registry, state, blocking)
     _applicability_checks(registry, blocking, checkpoint)

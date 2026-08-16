@@ -4747,6 +4747,152 @@ def test_an_interval_band_requires_a_numeric_observation(tmp_path):
     assert "GATE_OBSERVATION_INVALID" in codes(report, "blocking")
 
 
+def _attested_registry(change_id="CH-1", **change_fields):
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["availability"] = "retired"
+    registry["claims"]["claims"][0]["change_id"] = change_id
+    change = {
+        "change_id": change_id,
+        "object_kind": "claim_revision",
+        "object_id": "H1.r1",
+        "pipeline_id": "p1",
+        "new_state": "retired",
+        "authorized_by": "principal",
+        "occurred_at": "2026-02-01T00:00:00Z",
+        "evidence_card": "EC-1",
+    }
+    change.update(change_fields)
+    registry["gates"]["changes"] = [change]
+    return registry
+
+
+def _commit_registry(root, registry):
+    """Write a registry into a fresh repository and commit it."""
+
+    import subprocess
+
+    write_registry(root, registry)
+    for arguments in (
+        ("init", "-q", "."),
+        ("config", "user.name", "principal"),
+        ("config", "user.email", "principal@example.com"),
+        ("add", "-A"),
+        ("commit", "-qm", "record"),
+    ):
+        subprocess.run(
+            ("git", "-C", str(root), *arguments), check=True, capture_output=True
+        )
+    sha = subprocess.run(
+        ("git", "-C", str(root), "rev-parse", "HEAD"),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    when = subprocess.run(
+        ("git", "-C", str(root), "show", "-s", "--format=%cI", "HEAD"),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    return sha, when
+
+
+def _rewrite_change(root, **fields):
+    document = yaml.safe_load((root / "gates.yaml").read_text())
+    document["changes"][0].update(fields)
+    (root / "gates.yaml").write_text(yaml.safe_dump(document, sort_keys=False))
+    return validate_registry(load_registry(root), "C")
+
+
+def test_a_change_record_that_authorises_a_gate_must_name_its_commit(tmp_path):
+    """A change record was author-written YAML in the same commit as the thing
+    it authorised, so a release could be justified by a record invented to
+    justify it. A text file cannot attest to its own history."""
+
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, _attested_registry())), "C"
+    )
+    assert "CHANGE_ATTESTATION_MISSING" in codes(report, "blocking")
+
+
+@pytest.mark.parametrize(
+    ("name", "fields", "expected"),
+    [
+        ("unknown", {"commit": "0" * 40}, "CHANGE_COMMIT_UNKNOWN"),
+        ("malformed", {"commit": "not-a-sha"}, "CHANGE_COMMIT_INVALID"),
+        (
+            "impostor",
+            {"authorized_by": "someone-else"},
+            "CHANGE_AUTHORITY_MISMATCH",
+        ),
+        (
+            "premature",
+            {"occurred_at": "2099-01-01T00:00:00Z"},
+            "CHANGE_TIMESTAMP_INCOHERENT",
+        ),
+    ],
+)
+def test_a_named_commit_is_verified_against_the_repository(
+    tmp_path, name, fields, expected
+):
+    root = tmp_path / name
+    sha, when = _commit_registry(root, _attested_registry())
+    honest = {"commit": sha, "occurred_at": when}
+    honest.update(fields)
+    report = _rewrite_change(root, **honest)
+    assert expected in codes(report, "blocking")
+
+
+def test_an_honest_change_record_verifies_silently(tmp_path):
+    root = tmp_path / "honest"
+    sha, when = _commit_registry(root, _attested_registry())
+    report = _rewrite_change(root, commit=sha, occurred_at=when)
+    assert not [
+        item
+        for item in report["blocking"]
+        if item["code"].startswith("CHANGE_")
+    ]
+    assert not [
+        item for item in report["reports"] if item["code"].startswith("CHANGE_")
+    ]
+
+
+def test_backdating_a_change_record_is_visible(tmp_path):
+    """Backdating is not made impossible -- the commit date is an external
+    bound, and the gap between it and the claimed occurrence is the window in
+    which the record could have been written to fit the result."""
+
+    root = tmp_path / "backdated"
+    sha, _ = _commit_registry(root, _attested_registry())
+    report = _rewrite_change(
+        root, commit=sha, occurred_at="2020-01-01T00:00:00Z"
+    )
+    late = [
+        item for item in report["reports"] if item["code"] == "CHANGE_RECORDED_LATE"
+    ]
+    assert late and late[0]["days_late"] > 365
+
+
+def test_a_change_record_may_not_borrow_an_unrelated_commit(tmp_path):
+    import subprocess
+
+    root = tmp_path / "borrowed"
+    sha, when = _commit_registry(root, _attested_registry())
+    (root / "unrelated.txt").write_text("note\n")
+    for arguments in (("add", "unrelated.txt"), ("commit", "-qm", "unrelated")):
+        subprocess.run(
+            ("git", "-C", str(root), *arguments), check=True, capture_output=True
+        )
+    other = subprocess.run(
+        ("git", "-C", str(root), "rev-parse", "HEAD"),
+        check=True,
+        capture_output=True,
+        text=True,
+    ).stdout.strip()
+    report = _rewrite_change(root, commit=other, occurred_at=when)
+    assert "CHANGE_COMMIT_UNRELATED" in codes(report, "blocking")
+
+
 def test_a_confirmatory_evidence_card_must_name_its_artifact(tmp_path):
     """An evidence card was a name, not a thing.
 
