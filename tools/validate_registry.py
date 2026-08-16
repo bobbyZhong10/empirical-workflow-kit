@@ -155,9 +155,14 @@ ALLOWED = {
         "inapplicable",
     },
     "derived_status": {"verified", "unverified", "defective"},
+    # The publication gate runs only on a submission, so an unenumerated kind
+    # switched the whole gate off in one word. An output is either the thing
+    # being submitted or something on the way to it.
+    "output_kind": {"submission", "draft", "internal", "appendix", "presentation"},
     "applicability_status": {"completed", "pending", "blocked", "inapplicable"},
 }
 
+DISCOVERY_MODES = {"enforce", "report"}
 ASSERTION_TYPES = {
     "world",
     "negative",
@@ -545,6 +550,7 @@ def _required_field_checks(registry: dict, blocking: list[dict]) -> None:
         ("gate_evaluations", "status", "gate_status"),
         ("derived_fields", "status", "derived_status"),
         ("applicability", "status", "applicability_status"),
+        ("outputs", "kind", "output_kind"),
     )
     for collection, field, allowed_key in enum_checks:
         for item in registry.get(collection, []):
@@ -970,7 +976,11 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
         # a meaning that covers the analysis window.
         declared = set(registry["used_fields"])
         depended: set[str] = set()
-        for card in registry.get("evidence_cards", []):
+        # A derived field reads raw fields too, so routing a dependency through
+        # one used to move it outside the declaration rule entirely.
+        for card in list(registry.get("evidence_cards", [])) + list(
+            registry.get("derived_fields", [])
+        ):
             for dependency in card.get("depends_on", []) or []:
                 if (
                     isinstance(dependency, dict)
@@ -983,7 +993,7 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
             _schema_error(
                 blocking,
                 "used_fields",
-                "must declare every raw field an evidence card depends on; "
+                "must declare every raw field an evidence card or derived field depends on; "
                 "missing " + ", ".join(missing),
             )
     writing_strength = registry.get("writing_strength")
@@ -1983,8 +1993,15 @@ def _semantic_checks(
                 )
                 continue
             start = _as_date(valid_range[0])
-            end = _as_date(valid_range[1]) or window_end
-            if start is None or start > end:
+            # `null` means open-ended. Anything else must parse: an
+            # unparseable end silently meant "covers the whole window", so
+            # writing "ongoing" passed where the precise date it stood for
+            # would have reported a coverage gap.
+            if valid_range[1] is None:
+                end = window_end
+            else:
+                end = _as_date(valid_range[1])
+            if start is None or end is None or start > end:
                 blocking.append(
                     _issue(
                         "SEMANTIC_RANGE_INVALID",
@@ -2229,8 +2246,14 @@ def _mark_stale(
         reasons.append(reason)
         derived.append(_issue(code, reason=reason, **identity))
     if "availability" in item:
-        item["availability"] = "stale"
-    else:
+        # `retired` and `withdrawn` are authored end-of-life states. Stale is a
+        # derived state meaning "may no longer be true", which is not worse
+        # than an object its author has already taken out of service --
+        # overwriting it revoked a recorded decision and made a valid `moot`
+        # gate report that no applied object had an end-of-life state.
+        if item["availability"] not in {"retired", "withdrawn"}:
+            item["availability"] = "stale"
+    elif item.get("status") not in {"retired", "withdrawn"}:
         item["status"] = "stale"
 
 
@@ -2622,6 +2645,21 @@ def _apply_revalidation_record(
     if "semantic_correction" in reasons and record["method"] == "machine":
         blocking.append(_issue("MACHINE_REVALIDATION_FORBIDDEN", target=target))
         return
+    # Revalidation records are checked before the cascade runs, so the
+    # evidence they cite was tested against its declared status rather than
+    # its cascaded one. A claim could therefore be lifted out of
+    # `semantic_correction` using the very card that same correction staled.
+    evidence_state = state["evidence_cards"].get(str(record.get("evidence_card")))
+    if evidence_state is None or evidence_state.get("_stale_reasons"):
+        blocking.append(
+            _issue(
+                "REVALIDATION_EVIDENCE_STALE",
+                target=target,
+                evidence_card=record.get("evidence_card"),
+                stale_reasons=(evidence_state or {}).get("_stale_reasons"),
+            )
+        )
+        return
     if target["kind"] == "reported_figure" and record["method"] == "machine":
         item["value"] = resolved_value
     if "semantic_correction" in reasons and record["method"] == "manual":
@@ -2690,18 +2728,28 @@ def _recompute_one_figure(
     upstream = state["reported_figures"][str(figure["derived_from"])]
     transform = figure.get("transform") or {}
     operand: Any = None
+    inputs = [upstream]
     if transform.get("operand_figure"):
         operand_figure = state["reported_figures"].get(
             str(transform["operand_figure"])
         )
         operand = operand_figure.get("value") if operand_figure else None
-        # An operand read from a superseded figure is a stale number wearing a
-        # derivation, so the staleness travels to whatever is derived from it.
-        if operand_figure and operand_figure.get("_stale_reasons"):
-            reasons = figure.setdefault("_stale_reasons", [])
-            for reason in operand_figure["_stale_reasons"]:
-                if reason not in reasons:
-                    reasons.append(reason)
+        if operand_figure is not None:
+            inputs.append(operand_figure)
+    # A derived figure is arithmetic on its inputs, so it is exactly as stale
+    # as the stalest of them. Inheriting from the upstream alone let
+    # `2 x (superseded number)` present itself as current, and inheriting
+    # before the un-stale step below let the un-stale step erase it.
+    for source_figure in inputs:
+        for reason in source_figure.get("_stale_reasons", []) or []:
+            _mark_stale(
+                figure,
+                reason,
+                "STALE_DERIVED_REPORTED_FIGURE",
+                derived,
+                figure_id=identifier,
+                source_figure_id=source_figure.get("figure_id"),
+            )
     try:
         recomputed = _apply_transform(upstream.get("value"), transform, operand)
     except ValueError as error:
@@ -2716,8 +2764,20 @@ def _recompute_one_figure(
     old_value = figure.get("value")
     old_pipeline = figure.get("pipeline_id")
     figure["value"] = recomputed
+    # Recomputation carries an authored revalidation down to what was derived
+    # from it -- but only when every input carries one, and to the same
+    # pipeline. One revalidated input and one that nobody looked at is not a
+    # revalidated result.
+    transitions = [item.get("_validated_transition") for item in inputs]
     transition = upstream.get("_validated_transition")
-    if transition and str(old_pipeline) == str(transition["from_pipeline"]):
+    all_transitioned = all(
+        item is not None
+        and str(item["from_pipeline"]) == str(old_pipeline)
+        and transitions[0] is not None
+        and str(item["to_pipeline"]) == str(transitions[0]["to_pipeline"])
+        for item in transitions
+    )
+    if transition and all_transitioned:
         figure["pipeline_id"] = transition["to_pipeline"]
         reasons = figure.setdefault("_stale_reasons", [])
         if "pipeline_superseded" in reasons:
@@ -2996,7 +3056,12 @@ def _gate_checks(
 
     definitions = _id_map(registry.get("gate_definitions", []), "gate_id")
     pipelines = _id_map(registry.get("pipelines", []), "pipeline_id")
-    cards = _id_map(registry.get("evidence_cards", []), "evidence_card_id")
+    # Gates are evaluated after the cascade, so the card's cascaded state is
+    # what matters. Reading the declared record instead let a gate pass on
+    # evidence the same run had already marked stale.
+    cards = state.get("evidence_cards") or _id_map(
+        registry.get("evidence_cards", []), "evidence_card_id"
+    )
     changes = _id_map(registry.get("changes", []), "change_id")
     claims_by_key: dict[str, list[dict]] = defaultdict(list)
     for claim in state["claims"].values():
@@ -3059,6 +3124,7 @@ def _gate_checks(
             evidence is None
             or str(evidence.get("pipeline_id")) != pipeline_id
             or evidence.get("status") != "current"
+            or evidence.get("_stale_reasons")
         ):
             blocking.append(
                 _issue(
@@ -3334,7 +3400,13 @@ def _recompute_assessments(
     derived_challenges: dict[str, set[str]],
     derived: list[dict],
 ) -> None:
-    cards = _id_map(registry.get("evidence_cards", []), "evidence_card_id")
+    # Read the cascaded cards, not the declared ones. `_claim_evidence_strength`
+    # already reads state, so the two disagreed about the same fact: a claim
+    # whose only supporting card had gone stale scored as unsupported for the
+    # writing checks and as `supported` for the assessment.
+    cards = state.get("evidence_cards") or _id_map(
+        registry.get("evidence_cards", []), "evidence_card_id"
+    )
     relations_by_claim: dict[str, list[dict]] = defaultdict(list)
     for relation in registry.get("evidence_relations", []):
         relations_by_claim[str(relation.get("claim_revision_id"))].append(relation)
@@ -3347,6 +3419,9 @@ def _recompute_assessments(
             and relation.get("relation") == "supports"
             and cards.get(str(relation.get("evidence_card_id")), {}).get("provenance")
             == "confirmatory"
+            and not cards.get(
+                str(relation.get("evidence_card_id")), {}
+            ).get("_stale_reasons")
         ]
         challenges = [
             relation
@@ -5006,17 +5081,44 @@ def _manuscript_sentences(source: Path, body: str) -> list[tuple[int, str]]:
     return sentences
 
 
-def _manuscript_sources(registry: dict, state: dict) -> dict[Path, str]:
-    """Resolve every file an output declares as manuscript text."""
+def _manuscript_sources(
+    registry: dict, state: dict, blocking: list[dict] | None = None
+) -> dict[Path, str]:
+    """Resolve every file an output declares as manuscript text.
+
+    An unresolvable path used to be skipped, so a single mistyped character in
+    `manuscript_sources` left the registry with no manuscript at all and
+    discovery reported itself inactive -- a clean run that had checked nothing.
+    """
 
     sources: dict[Path, str] = {}
     for output in registry.get("outputs", []):
         for declared in output.get("manuscript_sources", []) or []:
             try:
                 source = _resolve_registry_source(registry, declared)
-                sources[source] = str(declared)
-            except (OSError, ValueError):
+            except (OSError, ValueError) as error:
+                if blocking is not None:
+                    blocking.append(
+                        _issue(
+                            "MANUSCRIPT_SOURCE_UNRESOLVED",
+                            output_id=output.get("output_id"),
+                            path=str(declared),
+                            detail=str(error),
+                        )
+                    )
                 continue
+            if not source.is_file():
+                if blocking is not None:
+                    blocking.append(
+                        _issue(
+                            "MANUSCRIPT_SOURCE_UNRESOLVED",
+                            output_id=output.get("output_id"),
+                            path=str(declared),
+                            detail="declared manuscript source does not exist",
+                        )
+                    )
+                continue
+            sources[source] = str(declared)
     return sources
 
 
@@ -5036,8 +5138,20 @@ def _manuscript_coverage_checks(
     settings = registry.get("writing_strength", {})
     if not isinstance(settings, dict):
         settings = {}
+    # An unrecognised mode used to fall through to the permissive branch, so
+    # `strict` and `ENFORCE` -- both of which read as stronger than the default
+    # -- silently downgraded every discovery block to a warning.
     mode = settings.get("discovery", "enforce")
-    sources = _manuscript_sources(registry, state)
+    if mode not in DISCOVERY_MODES:
+        blocking.append(
+            _issue(
+                "DISCOVERY_MODE_INVALID",
+                mode=mode,
+                detail="discovery must be one of " + ", ".join(sorted(DISCOVERY_MODES)),
+            )
+        )
+        mode = "enforce"
+    sources = _manuscript_sources(registry, state, blocking)
     if not sources:
         reports.append(
             _issue(
@@ -5060,6 +5174,7 @@ def _manuscript_coverage_checks(
     # coverage report, so switching discovery off by exclusion is visible.
     excluded: dict[Path, list[tuple[int, int]]] = defaultdict(list)
     exclusion_count = 0
+    excluded_candidates = 0
     for output in registry.get("outputs", []):
         for exclusion in output.get("discovery_exclusions", []) or []:
             if not isinstance(exclusion, dict) or not _nonempty_string(
@@ -5126,6 +5241,22 @@ def _manuscript_coverage_checks(
             registered[source].append((start, end))
             site_count += 1
 
+    # Registering a sentence and declaring it out of scope are contradictory
+    # claims about the same sentence, and the contradiction is how an
+    # over-broad exclusion hides: it swallows registered prose without saying so.
+    for source, spans in registered.items():
+        for start, end in excluded.get(source, []):
+            covered = [span for span in spans if start <= span[0] <= end]
+            if covered:
+                blocking.append(
+                    _issue(
+                        "DISCOVERY_EXCLUSION_COVERS_REGISTERED_SITE",
+                        path=str(source),
+                        excluded_range=[start, end],
+                        registered_lines=sorted(span[0] for span in covered),
+                    )
+                )
+
     markers = _compiled_lexical_markers(registry)
     candidates = 0
     unregistered: list[dict] = []
@@ -5139,6 +5270,11 @@ def _manuscript_coverage_checks(
         skips = excluded.get(source, [])
         for line, sentence in _manuscript_sentences(source, body):
             if any(start <= line <= end for start, end in skips):
+                # Report what an exclusion actually suppressed. "1 excluded
+                # range" and "29 assertions not examined" are the same fact,
+                # and only the second one is legible.
+                if "causal" in _matched_markers(sentence, markers):
+                    excluded_candidates += 1
                 continue
             covered = any(start <= line <= end for start, end in spans)
             matched = _matched_markers(sentence, markers)
@@ -5176,6 +5312,7 @@ def _manuscript_coverage_checks(
             unregistered_assertions=len(unregistered),
             unregistered_quantitative_values=len(literals),
             excluded_ranges=exclusion_count,
+            excluded_candidate_assertions=excluded_candidates,
         )
     )
 

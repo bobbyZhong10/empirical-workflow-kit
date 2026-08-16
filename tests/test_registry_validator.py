@@ -4398,6 +4398,235 @@ def test_a_transform_takes_a_literal_or_a_figure_but_not_both(tmp_path):
     assert "SCHEMA_INVALID" in codes(report, "blocking")
 
 
+def _superseded_pipeline_registry():
+    """p1 superseded by a current p2, with one figure still bound to p1."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["pipelines"]["pipelines"][0]["status"] = "superseded"
+    registry["pipelines"]["pipelines"].append(
+        {
+            "pipeline_id": "p2",
+            "status": "current",
+            "first_formal_batch_at": "2026-01-01T00:00:00Z",
+        }
+    )
+    return registry
+
+
+def test_staleness_reaches_a_figure_derived_from_a_stale_one(tmp_path):
+    """A derived figure is arithmetic on its inputs and is as stale as they are.
+
+    Inheriting nothing let `2 x (superseded number)` present itself as current
+    and reach the PDF.
+    """
+
+    registry = _superseded_pipeline_registry()
+    figures = registry["reported_figures"]["reported_figures"]
+    figures.append(
+        {
+            "figure_id": "doubled",
+            "pipeline_id": "p2",
+            "value": 4.0,
+            "paper_locations": ["paper/results.md#derived"],
+            "derived_from": "RF-1",
+            "transform": {"operation": "multiply", "operand": 2},
+        }
+    )
+    registry["outputs"]["outputs"][0]["reported_figure_ids"] = ["doubled"]
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    doubled = report["state"]["reported_figures"]["doubled"]
+    assert "pipeline_superseded" in doubled["_stale_reasons"]
+    assert "PUBLICATION_INELIGIBLE" in codes(report, "blocking")
+
+
+def test_one_revalidated_input_does_not_revalidate_a_two_input_derivation(
+    tmp_path,
+):
+    """Recomputation carries an authored revalidation down only when every
+    input carries one. One revalidated input and one nobody looked at is not a
+    revalidated result."""
+
+    registry = _superseded_pipeline_registry()
+    figures = registry["reported_figures"]["reported_figures"]
+    operand = copy.deepcopy(figures[0])
+    operand.update(
+        {
+            "figure_id": "RF-2",
+            "value": 3.0,
+            "source_locator": "other",
+            "paper_locations": ["paper/results.md#other"],
+        }
+    )
+    figures.append(operand)
+    figures.append(
+        {
+            "figure_id": "gap",
+            "pipeline_id": "p1",
+            "value": -1.0,
+            "paper_locations": ["paper/results.md#derived"],
+            "derived_from": "RF-1",
+            "transform": {"operation": "subtract", "operand_figure": "RF-2"},
+        }
+    )
+    # Only the upstream is revalidated onto p2. The operand is untouched.
+    registry["reported_figures"]["revalidations"] = [
+        {
+            "target": {"kind": "reported_figure", "id": "RF-1"},
+            "from_pipeline": "p1",
+            "to_pipeline": "p2",
+            "method": "manual",
+            "result": "revalidated",
+            "performed_by": "analyst",
+            "performed_at": "2026-03-02T00:00:00Z",
+            "evidence_card": "EC-1",
+        }
+    ]
+    registry["evidence_cards"]["evidence_cards"][0]["pipeline_id"] = "p2"
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    gap = report["state"]["reported_figures"]["gap"]
+    assert "pipeline_superseded" in gap["_stale_reasons"]
+
+
+def test_supersession_does_not_revoke_an_authored_retirement(tmp_path):
+    """Stale is a derived state meaning "may no longer be true". It is not
+    worse than an object its author has already taken out of service, and
+    overwriting `retired` with it destroyed a recorded decision."""
+
+    registry = _superseded_pipeline_registry()
+    registry["claims"]["claims"][0]["availability"] = "retired"
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    claim = report["state"]["claims"]["H1.r1"]
+    assert claim["availability"] == "retired"
+    assert "pipeline_superseded" in claim["_stale_reasons"]
+
+
+def test_an_unenumerated_output_kind_cannot_skip_the_publication_gate(tmp_path):
+    """The whole publication gate ran only for `kind: submission`."""
+
+    registry = base_registry()
+    registry["claims"]["claims"][0]["availability"] = "withdrawn"
+    report = validate_registry(
+        load_registry(write_registry(tmp_path / "declared", registry)), "C"
+    )
+    assert "PUBLICATION_INELIGIBLE" in codes(report, "blocking")
+
+    registry["outputs"]["outputs"][0]["kind"] = "journal_submission"
+    report = validate_registry(
+        load_registry(write_registry(tmp_path / "renamed", registry)), "C"
+    )
+    assert "INVALID_ENUM_VALUE" in codes(report, "blocking")
+
+
+@pytest.mark.parametrize("mode", ["ENFORCE", "strict", "enforced"])
+def test_an_unrecognised_discovery_mode_is_not_a_downgrade(tmp_path, mode):
+    """`strict` and `ENFORCE` read as stronger and silently meant weaker."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    registry["semantics"]["writing_strength"] = {"discovery": mode}
+    root = write_registry(tmp_path / mode, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\nTreatment increases retention.\n", encoding="utf-8"
+    )
+    report = validate_registry(load_registry(root), "C")
+    assert "DISCOVERY_MODE_INVALID" in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+
+
+def test_a_manuscript_source_that_does_not_resolve_blocks(tmp_path):
+    """A one-character typo used to switch discovery off and report success."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscipt.tex"
+    ]
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "C"
+    )
+    assert "MANUSCRIPT_SOURCE_UNRESOLVED" in codes(report, "blocking")
+
+
+def test_used_fields_also_covers_derived_field_dependencies(tmp_path):
+    """Routing a raw field through a derived field escaped the declaration rule."""
+
+    registry = base_registry()
+    registry["derived_fields"]["derived_fields"] = [
+        {
+            "derived_field_id": "DF-1",
+            "status": "verified",
+            "fact_key": "SEM-outcome",
+            "depends_on": [{"kind": "raw_field", "id": "undeclared"}],
+        }
+    ]
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    detail = [
+        item.get("detail")
+        for item in report["blocking"]
+        if item.get("location") == "used_fields"
+    ]
+    assert detail and "undeclared" in detail[0]
+
+
+def test_an_unparseable_validity_end_is_not_an_open_range(tmp_path):
+    """"ongoing" silently meant "covers the whole window"; the date it stood
+    for would have reported a gap."""
+
+    registry = base_registry()
+    fact = registry["semantics"]["semantic_facts"][0]
+    fact["valid_range"] = ["2024-01-01", "ongoing"]
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), "B"
+    )
+    assert "SEMANTIC_RANGE_INVALID" in codes(report, "blocking")
+
+
+def test_an_exclusion_may_not_swallow_a_registered_site(tmp_path):
+    """One exclusion over the whole file switched discovery off and reported
+    only that one range existed."""
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("live", section_role="results", declared_tier="T0"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    output = registry["outputs"]["outputs"][0]
+    output["manuscript_sources"] = ["paper/manuscript.tex"]
+    output["discovery_exclusions"] = [
+        {
+            "path": "paper/manuscript.tex",
+            "start_anchor": "1-3",
+            "end_anchor": "1-3",
+            "reason": "quoted scholarship",
+        }
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        "\\section{Results}\n"
+        "\\claimsite{live}Treatment increases retention.\n"
+        "A second sentence that increases retention.\n",
+        encoding="utf-8",
+    )
+    report = validate_registry(load_registry(root), "C")
+    assert "DISCOVERY_EXCLUSION_COVERS_REGISTERED_SITE" in codes(report, "blocking")
+    coverage = [
+        item for item in report["reports"] if item["code"] == "MANUSCRIPT_COVERAGE"
+    ][0]
+    # What the exclusion suppressed, not merely that one exists.
+    assert coverage["excluded_candidate_assertions"] >= 1
+
+
 def test_a_retired_claim_does_not_cover_the_manuscript(tmp_path):
     """Registration must be a commitment, not a coverage token.
 
