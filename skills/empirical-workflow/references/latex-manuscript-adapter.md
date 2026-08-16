@@ -73,6 +73,39 @@ are deliberately out of scope, so `Table~2` and `H1` are fine.
 BLOCK QUANTITATIVE_VALUE_NOT_REGISTERED  literals: ["7.68"]
 ```
 
+### How a number is typeset
+
+A figure may declare how it appears. The registry holds the value; `display`
+holds the presentation, and the generator applies it:
+
+```yaml
+- figure_id: fee
+  value: 1.5
+  display: {decimals: 2, prefix: "\\$", unit: usd}       # -> \$1.50
+- figure_id: uber_n
+  value: 24013619
+  display: {decimals: 0, thousands_separator: true}     # -> 24,013,619
+```
+
+`decimals` runs 0 to 6. Padding is allowed and rounding is not: a display that
+rounds a non-zero value to zero, or that flips its sign, is rejected --
+
+```
+BLOCK FIGURE_DISPLAY_MISREPRESENTS  value: 0.004  displayed: 0.00
+```
+
+-- because a reader takes 0.00 for a null. The place to lie about a result is
+its presentation, so presentation is checked like everything else.
+
+The sign belongs to the number, so the prose must not repeat it. Writing
+*"margin falls by \figval{x}"* where `x` is negative makes the reader subtract
+twice; report the signed coefficient (*"margin moves by ..."*) or drop the
+directional verb.
+
+```
+BLOCK FIGURE_SIGN_READS_BACKWARD  phrase: "falls by \figval{l_margin_into}"  value: -3.306
+```
+
 ## Section roles
 
 `section_role` is not taken on trust. For a `.tex` source the validator

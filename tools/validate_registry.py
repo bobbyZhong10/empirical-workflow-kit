@@ -1233,6 +1233,34 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                     f"reported_figures[{index}].{field}",
                     "must be a nonempty locator or pipeline-to-locator mapping",
                 )
+        display = figure.get("display")
+        if display is not None and not (
+            isinstance(display, dict)
+            and set(display)
+            <= {"decimals", "prefix", "suffix", "thousands_separator", "unit"}
+            and (
+                display.get("decimals") is None
+                or (
+                    isinstance(display.get("decimals"), int)
+                    and not isinstance(display.get("decimals"), bool)
+                    and 0 <= display["decimals"] <= 6
+                )
+            )
+            and all(
+                display.get(field) is None or isinstance(display.get(field), str)
+                for field in ("prefix", "suffix", "unit")
+            )
+            and (
+                display.get("thousands_separator") is None
+                or isinstance(display.get("thousands_separator"), bool)
+            )
+        ):
+            _schema_error(
+                blocking,
+                f"reported_figures[{index}].display",
+                "display takes decimals (0-6), prefix, suffix, unit, and "
+                "thousands_separator",
+            )
         if figure.get("derived_from"):
             transform = figure.get("transform")
             location = f"reported_figures[{index}].transform"
@@ -2773,6 +2801,51 @@ def _commit_touches(root: str, commit: str, path: str) -> bool:
 def _commit_is_in_history(root: str, commit: str) -> bool:
     status, _ = _git(root, "merge-base", "--is-ancestor", commit, "HEAD")
     return status == 0
+
+
+def _format_figure_value(value: Any, display: Any) -> str:
+    """Render a figure's value for typesetting, per its display spec."""
+
+    if not isinstance(display, dict):
+        return str(value)
+    text = str(value)
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        decimals = display.get("decimals")
+        if isinstance(decimals, int) and not isinstance(decimals, bool):
+            text = f"{float(value):.{decimals}f}"
+        if display.get("thousands_separator") is True:
+            head, _, tail = text.partition(".")
+            sign = "-" if head.startswith("-") else ""
+            head = head.lstrip("-")
+            head = f"{int(head):,}" if head.isdigit() else head
+            text = sign + head + (f".{tail}" if tail else "")
+    prefix = display.get("prefix") if _nonempty_string(display.get("prefix")) else ""
+    suffix = display.get("suffix") if _nonempty_string(display.get("suffix")) else ""
+    return f"{prefix}{text}{suffix}"
+
+
+def _display_integrity(value: Any, display: Any) -> str | None:
+    """Why this display would misrepresent this value, or None.
+
+    A display specification is a place to lie quietly: rounding 0.004 to two
+    decimals prints 0.00, and a reader takes a non-zero estimate for a null.
+    Padding is fine -- 1.5 shown as 1.50 is a currency convention -- but
+    rounding may not change what the number says.
+    """
+
+    if not isinstance(display, dict) or not isinstance(value, (int, float)):
+        return None
+    if isinstance(value, bool):
+        return None
+    decimals = display.get("decimals")
+    if not isinstance(decimals, int) or isinstance(decimals, bool):
+        return None
+    shown = round(float(value), decimals)
+    if value != 0 and shown == 0:
+        return "rounds a non-zero value to zero"
+    if (value > 0) != (shown > 0) and shown != 0:
+        return "rounding changes the sign"
+    return None
 
 
 def _card_artifact(card: dict) -> str | None:
@@ -5837,6 +5910,19 @@ def _figure_grounding_checks(
 
     for figure_id in sorted(state["reported_figures"]):
         figure = state["reported_figures"][figure_id]
+        problem = _display_integrity(figure.get("value"), figure.get("display"))
+        if problem is not None:
+            blocking.append(
+                _issue(
+                    "FIGURE_DISPLAY_MISREPRESENTS",
+                    figure_id=figure_id,
+                    value=figure.get("value"),
+                    displayed=_format_figure_value(
+                        figure.get("value"), figure.get("display")
+                    ),
+                    detail=problem,
+                )
+            )
         if figure.get("derived_from") is not None:
             continue
         if figure.get("_stale_reasons"):
@@ -6108,6 +6194,51 @@ BIBITEM = re.compile(r"\\bibitem(?:\[[^\]]*\])?\{([^{}]+)\}")
 # fabricated citation becomes a recorded false statement rather than an
 # oversight nobody was ever asked about.
 CITATION_SPREAD_ROLES = ("introduction", "discussion")
+
+
+# "falls by \figval{x}" where x is negative is a double negative: the verb
+# carries the direction and so does the sign, and the reader subtracts twice.
+DIRECTIONAL_FIGURE = re.compile(
+    r"(?<![\w])(?P<verb>falls?|fell|declines?|declined|drops?|dropped|decreases?|"
+    r"decreased|rises?|rose|increases?|increased|grows?|grew|gains?|gained)"
+    r"(?:\s+\w+){0,3}?\s+by\s+\\figval\{(?P<figure>[^{}]+)\}",
+    re.IGNORECASE,
+)
+def _figure_direction_checks(
+    registry: dict, state: dict, blocking: list[dict]
+) -> None:
+    sources = _manuscript_sources(registry, state)
+    for source in sorted(sources, key=str):
+        try:
+            body = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        flat = re.sub(r"\s+", " ", body)
+        for match in DIRECTIONAL_FIGURE.finditer(flat):
+            figure = state["reported_figures"].get(match.group("figure").strip())
+            if figure is None:
+                continue
+            value = figure.get("value")
+            if not isinstance(value, (int, float)) or isinstance(value, bool):
+                continue
+            # A directional verb takes a magnitude. "falls by -3.306" makes the
+            # reader subtract twice; "rises by -0.868" simply contradicts itself.
+            if value >= 0:
+                continue
+            blocking.append(
+                _issue(
+                    "FIGURE_SIGN_READS_BACKWARD",
+                    figure_id=match.group("figure").strip(),
+                    value=value,
+                    phrase=match.group(0).strip(),
+                    path=sources[source],
+                    detail=(
+                        "the verb and the sign both carry the direction, so the "
+                        "reader subtracts twice; report the signed coefficient or "
+                        "drop the directional verb"
+                    ),
+                )
+            )
 
 
 def _citation_checks(
@@ -6547,6 +6678,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
         _writing_strength_checks(registry, state, blocking, reports)
         _manuscript_coverage_checks(registry, state, blocking, reports)
         _citation_checks(registry, state, blocking, reports)
+        _figure_direction_checks(registry, state, blocking)
     _pipeline_binding_checks(registry, blocking, state)
     invalid_outputs = _output_checks(state, blocking)
     _publication_checks(registry, state, invalid_outputs, checkpoint, blocking)

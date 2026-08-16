@@ -4759,6 +4759,78 @@ The result speaks to that literature \\citep{b2021}.
 """
 
 
+@pytest.mark.parametrize(
+    ("value", "display", "expected"),
+    [
+        (1.5, {"decimals": 2, "prefix": "\\$"}, "\\$1.50"),
+        (24013619, {"decimals": 0, "thousands_separator": True}, "24,013,619"),
+        (-3.306, {"decimals": 3}, "-3.306"),
+        (-12345.6, {"decimals": 1, "thousands_separator": True}, "-12,345.6"),
+        (73.3, {"decimals": 1, "suffix": "\\%"}, "73.3\\%"),
+        (2.0, None, "2.0"),
+    ],
+)
+def test_a_figure_is_typeset_as_its_display_says(value, display, expected):
+    from tools.validate_registry import _format_figure_value
+
+    assert _format_figure_value(value, display) == expected
+
+
+@pytest.mark.parametrize(
+    ("value", "decimals", "reason"),
+    [
+        (0.004, 2, "rounds a non-zero value to zero"),
+        (-0.004, 2, "rounds a non-zero value to zero"),
+        (0.4, 0, "rounds a non-zero value to zero"),
+    ],
+)
+def test_a_display_may_not_round_a_result_away(value, decimals, reason):
+    """A display specification is a place to lie quietly: 0.004 shown to two
+    decimals prints 0.00, and a reader takes a non-zero estimate for a null."""
+
+    from tools.validate_registry import _display_integrity
+
+    assert _display_integrity(value, {"decimals": decimals}) == reason
+    # Padding is not rounding: 1.5 shown as 1.50 is a currency convention.
+    assert _display_integrity(1.5, {"decimals": 2}) is None
+
+
+def test_a_directional_verb_may_not_take_a_negative_figure(tmp_path):
+    """"falls by -3.306" makes the reader subtract twice."""
+
+    from tools.validate_registry import load_registry, validate_registry
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = []
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    figure = registry["reported_figures"]["reported_figures"][0]
+    figure["value"] = -2.0
+    figure["source_locator"] = "negative"
+
+    def report_for(sentence):
+        root = write_registry(tmp_path / str(abs(hash(sentence))), registry)
+        (root / "results" / "p1.json").write_text(
+            '{"estimate": 2.0, "negative": -2.0, "other": 3.0, '
+            '"n": 1000, "p_value": 0.01}\n',
+            encoding="utf-8",
+        )
+        (root / "paper").mkdir(exist_ok=True)
+        (root / "paper" / "manuscript.tex").write_text(sentence, encoding="utf-8")
+        return validate_registry(load_registry(root), "C")
+
+    backward = report_for(
+        "\\section{Results}\nMargin falls by \\figval{RF-1} dollars.\n"
+    )
+    assert "FIGURE_SIGN_READS_BACKWARD" in codes(backward, "blocking")
+
+    signed = report_for(
+        "\\section{Results}\nMargin moves by \\figval{RF-1} dollars.\n"
+    )
+    assert "FIGURE_SIGN_READS_BACKWARD" not in codes(signed, "blocking")
+
+
 def _citation_registry(references=None, page_budget=None, manuscript=None):
     registry = copy.deepcopy(base_registry())
     registry["claims"]["claims"][0]["assertion_sites"] = []
