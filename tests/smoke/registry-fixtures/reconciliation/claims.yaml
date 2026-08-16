@@ -1,0 +1,13 @@
+claims:
+  - claim_key: H1
+    claim_revision_id: H1.r1
+    pipeline_id: p1
+    availability: current
+    assessment: supported
+  - claim_key: H1
+    claim_revision_id: H1.r2
+    pipeline_id: p2
+    availability: current
+    assessment: supported
+    supersedes: H1.r1
+    revision_reason: Updated pipeline.

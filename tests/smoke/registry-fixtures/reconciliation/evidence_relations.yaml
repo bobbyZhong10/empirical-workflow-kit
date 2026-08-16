@@ -1,0 +1,9 @@
+evidence_relations:
+  - relation_id: ER-2
+    evidence_card_id: EC-2
+    claim_revision_id: H1.r2
+    relation: supports
+    status: current
+    author: analyst
+    date: "2026-03-02"
+    rationale: Updated evidence supports H1.

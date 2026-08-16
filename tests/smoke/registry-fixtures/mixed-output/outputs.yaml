@@ -1,0 +1,6 @@
+outputs:
+  - output_id: paper
+    kind: submission
+    status: current
+    claim_revision_ids: []
+    reported_figure_ids: [RF-1, RF-2]

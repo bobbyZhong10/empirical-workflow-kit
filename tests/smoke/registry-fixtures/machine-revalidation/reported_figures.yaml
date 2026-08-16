@@ -1,0 +1,11 @@
+reported_figures: []
+revalidations:
+  - target: {kind: claim_revision, id: H1.r1}
+    from_pipeline: p1
+    to_pipeline: p2
+    method: machine
+    tolerance: abs(delta) <= 0.01 and sign unchanged
+    result: revalidated
+    performed_by: validator
+    performed_at: "2026-03-02T00:00:00Z"
+    evidence_card: EC-1

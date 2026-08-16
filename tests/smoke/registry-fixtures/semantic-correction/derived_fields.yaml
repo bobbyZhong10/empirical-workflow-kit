@@ -1,0 +1,6 @@
+derived_fields:
+  - derived_field_id: outcome_scaled
+    fact_key: SEM-outcome
+    status: verified
+    depends_on:
+      - {kind: semantic_fact, id: SEM-outcome}

@@ -1,0 +1,7 @@
+outputs:
+  - output_id: paper
+    kind: submission
+    status: current
+    pipeline_id: p1
+    claim_revision_ids: [H1.r1]
+    reported_figure_ids: []
