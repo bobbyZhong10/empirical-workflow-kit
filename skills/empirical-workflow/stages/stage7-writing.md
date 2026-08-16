@@ -22,6 +22,23 @@
   mechanism, and contribution claim names its table/figure, Evidence card,
   estimate record, identifying assumption, and limitation. Distinguish
   descriptive, causal, structural, and exploratory claims.
+- Draft from the v2.2 assertion registry. At every substantive manuscript use,
+  register `assertion_type`, `declared_tier`, `qualifier_scope`,
+  `counterevidence_prominence`, `underlying_precision`, `scope_declaration`,
+  `power_basis`, and `upgrade_justification`. Apply T0--T4 only to `world`
+  assertions; keep negative, methodological, discriminating, model-internal,
+  and hypothesis sites untiered.
+- Run the writing-strength validator on registered assertion sites only. Use
+  project-extensible causal, scope-qualifying, associational, descriptive, and
+  framing semantic classes; do not turn the check into a manuscript-wide
+  banned-word scan. A positive `overclaim_residual` blocks and a negative
+  residual is INFO. Low lexical strength on a discriminating assertion is
+  neutral.
+- Enforce narrowing propagation to title, abstract, and conclusion; disclose
+  identifying-assumption counterevidence in a separate contrastive sentence
+  in the main text. Treat immediate recovery and a missing abstract/title
+  `upgrade_justification` trace as WARN, not blockers. A dedicated limitations
+  section does not replace disclosure beside the affected claim.
 - Verify every citation's bibliographic facts, stable source, and purpose label
   before it supports text. Match the outlet framing to the verified
   theory-source, empirical-analogue, and method-authority roles.
@@ -39,6 +56,10 @@
   | Claim and location | Claim type | Table/figure and column | Evidence card | Assumption or scope | Limitation | Audit status |
   |---|---|---|---|---|---|---|
 
+  Generate this audit from the claim and assertion registry rather than
+  maintaining a second source of truth, and retain validator BLOCK, WARN, and
+  INFO results with their assertion-site anchors.
+
 - Citation-verification record, selected outlet-positioning record, review
   requests and findings, revision log, submission checks, relevant Evidence
   cards, decision-log entries, and updated status.
@@ -48,6 +69,9 @@
 - Do not write a claim whose claim-to-evidence row is incomplete, conceal
   failed diagnostics or robustness dispositions, or report a causal claim
   broader than its identifying assumption and interference/selection scope.
+- Do not circulate an output with a positive `overclaim_residual`, an
+  unpropagated `bounded_by_*` narrowing, or identifying-assumption
+  counterevidence buried below the required prominence.
 - Do not use unverified citations, reformat tables in ways that change
   estimates, or allow a target outlet to determine the empirical conclusion.
 - A HOLD from independent-runtime identification review blocks circulation or

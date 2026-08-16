@@ -21,6 +21,11 @@ construction, diagnostics, or estimation.
 - Create the parameter-identification table before estimation. Every parameter
   is either identified by data variation and a moment/likelihood component or
   explicitly labeled **calibrated** with its source and fixed value.
+- Keep `identified` and `calibrated` lexically distinct in structural records
+  and manuscript sites. State identification as a property delivered by data
+  variation and a moment/likelihood component (including passive forms or
+  "only X can be identified"); state calibration as an analyst-authored
+  setting with its fixed value and source.
 - Predeclare solver, estimator, starting-value construction, convergence rule,
   simulation design, and standard-error method. Estimate from multiple starts,
   preserve logs, and report convergence or non-convergence.
@@ -31,6 +36,15 @@ construction, diagnostics, or estimation.
   equilibrium concept, support/extrapolation boundary, and uncertainty.
   Reproduce at least one descriptive or reduced-form fact that disciplines the
   model.
+- Register `identified → simulated` as a downgrade when an estimated object
+  becomes a simulation output. Type every such assertion site as
+  `model_internal`, mark it `as_modeled: true`, and record
+  `underlying_precision.has_sampling_distribution: false` unless a sampling
+  distribution was actually constructed.
+- Register every qualifier governing multiple counterfactuals as a
+  `scope_declaration` with an explicit manuscript coverage range. A body
+  declaration does not cover a title, abstract, or conclusion site outside
+  that range.
 
 ## Required artifacts
 
@@ -44,6 +58,9 @@ construction, diagnostics, or estimation.
 - Targeted/untargeted fit table, structural evidence matrix, sensitivity and
   profile records, reduced-form companion output, counterfactual record, and
   an Evidence card for each reported estimate or counterfactual.
+- Assertion-registry entries for structural results and counterfactuals,
+  including identified/calibrated status, any `identified → simulated`
+  downgrade, model-internal typing, precision, and scope declarations.
 - Economics-style three-line tables, Checkpoint C structural record,
   decision-log entries, and updated status.
 
@@ -51,6 +68,8 @@ construction, diagnostics, or estimation.
 
 - Never call a calibrated parameter estimated, omit a parameter from the
   identification table, or present a flat objective direction as precision.
+- Never present a simulated model-internal quantity as identified empirical
+  evidence or use `significant` for it without a sampling distribution.
 - Do not report a single-start optimum as convergence, target-only fit as
   validation, or a counterfactual outside support without its boundary and
   uncertainty.

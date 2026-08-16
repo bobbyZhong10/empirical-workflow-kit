@@ -59,6 +59,54 @@ def test_v21_spec_has_per_evaluation_post_hoc_and_figure_revalidation():
     assert "Checkpoint C reports post-hoc evaluations" in body
 
 
+def test_writing_strength_design_routes_structural_and_stage7_rules():
+    design = read("docs/superpowers/specs/2026-08-15-writing-strength-v2.2-design.md")
+    assert "Assertion type is prior to tier" in design
+    assert "overclaim_residual" in design
+    assert "Low lexical strength is normal" in design
+    for field in (
+        "assertion_type",
+        "declared_tier",
+        "qualifier_scope",
+        "counterevidence_prominence",
+        "underlying_precision",
+        "scope_declaration",
+        "power_basis",
+        "upgrade_justification",
+    ):
+        assert field in design
+    for check in (
+        "propagation",
+        "counterevidence prominence",
+        "immediate recovery",
+        "upgrade trace",
+    ):
+        assert check in design.lower()
+    assert "registered assertion sites" in design
+    assert "project-extensible" in design
+    assert "WARN" in design
+
+    structural = read("skills/empirical-workflow/stages/stage6b-structural.md")
+    for phrase in (
+        "identified",
+        "calibrated",
+        "identified → simulated",
+        "model_internal",
+        "scope_declaration",
+    ):
+        assert phrase in structural
+
+    writing = read("skills/empirical-workflow/stages/stage7-writing.md")
+    for phrase in (
+        "assertion registry",
+        "registered assertion sites",
+        "overclaim_residual",
+        "upgrade_justification",
+        "WARN",
+    ):
+        assert phrase in writing
+
+
 def test_example_config_values():
     config = yaml.safe_load(read("research.example.yaml"))
     assert config == {
