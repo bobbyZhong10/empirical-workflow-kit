@@ -89,6 +89,27 @@ matters most for `title`, which is a checked role: a title can promise more
 than the body delivers, and in the reference corpus one paper's title asserts
 an optimality claim its own text explicitly disclaims.
 
+## Adopting on an existing draft
+
+Do not hand-author the registry. Three quarters of it is derivable.
+
+```bash
+python3 tools/scaffold_registry.py init .                 # skeletons, not blank files
+python3 tools/validate_registry.py . --checkpoint C       # discovery lists what is unregistered
+python3 tools/scaffold_registry.py sites . --limit 10     # stubs for those sentences
+python3 tools/scaffold_registry.py figures . \
+    --artifact results/p1.json --pipeline p1              # figures read from the artefact
+```
+
+`init` leaves exactly two decisions blocking: the pipeline's first formal batch
+timestamp and the Checkpoint B gate-set signature. `sites` fills in what the
+source and the classifier already know — path, anchor, section role, and the
+tier the text actually reads as — and leaves the judgement fields empty so the
+validator asks for them. Registering the whole draft at once is not the
+intended path: set `writing_strength.discovery: report` while adopting, work
+through the coverage report in batches, and switch to `enforce` when the count
+reaches zero.
+
 ## Build
 
 ```bash

@@ -3986,3 +3986,62 @@ def test_discovery_exclusion_requires_a_reason_and_is_counted(tmp_path):
     (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
     report = validate_registry(load_registry(root), checkpoint="C")
     assert "DISCOVERY_EXCLUSION_INVALID" in codes(report, "blocking")
+
+
+def test_scaffold_init_replaces_ten_missing_file_errors_with_two_decisions(
+    tmp_path,
+):
+    """First contact should ask for judgement, not for file names."""
+
+    from tools.scaffold_registry import init
+
+    root = tmp_path / "fresh"
+    assert sorted(init(root)) == sorted(REGISTRY_FILES)
+    report = validate_registry(load_registry(root), "B")
+    assert "REGISTRY_FILE_MISSING" not in codes(report, "blocking")
+    locations = sorted(
+        item["location"] for item in report["blocking"] if "location" in item
+    )
+    assert locations == [
+        "gate_set_confirmation",
+        "pipelines[0].first_formal_batch_at",
+    ]
+
+
+def test_scaffold_sites_stubs_what_discovery_found_and_leaves_judgement_blank(
+    tmp_path,
+):
+    from tools.scaffold_registry import sites
+
+    registry = copy.deepcopy(base_registry())
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        {
+            **assertion_site("registered", section_role="results", declared_tier="T1"),
+            "path": "paper/manuscript.tex",
+        }
+    ]
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
+
+    stub = sites(root)
+    assert "path: paper/manuscript.tex" in stub
+    # Derivable fields are filled in from the source and the classifier.
+    assert "section_role: results" in stub
+    assert "declared_tier: T0" in stub
+    # Judgement is not guessed.
+    assert "assertion_type:  " in stub
+    assert "estimate_id:  " in stub
+    # The registered sentence is not restubbed.
+    assert stub.count("- path:") == 1
+
+
+def test_scaffold_figures_reads_values_from_the_artifact(tmp_path):
+    from tools.scaffold_registry import figures
+
+    root = write_registry(tmp_path)
+    stub = figures(root, "results/p1.json", "p1")
+    assert "source_locator: estimate" in stub
+    assert "value: 2.0" in stub
