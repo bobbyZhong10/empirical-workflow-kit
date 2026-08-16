@@ -3292,9 +3292,11 @@ def test_lexical_scan_is_limited_to_registered_sites(tmp_path):
     [
         ("causal", "supercharges", "Treatment supercharges retention."),
         ("scope_qualifying", "inside metro firms", "Treatment increases retention inside metro firms."),
-        ("associational", "co-moves with", "Retention co-moves with treatment."),
+        ("evidential_weak", "evidences", "The table evidences higher retention."),
+        ("evidential_moderate", "hints that", "The estimate hints that retention rose."),
+        ("evidential_strong", "co-moves with", "Retention co-moves with treatment."),
         ("descriptive", "enumerates", "The table enumerates retention rates."),
-        ("framing", "granting that", "Granting that precision is limited, the estimate remains stable."),
+        ("concessive", "granting that", "Granting that precision is limited, the estimate remains stable."),
     ],
 )
 def test_project_can_extend_each_registered_site_lexical_class(
@@ -3316,10 +3318,34 @@ def test_project_can_extend_each_registered_site_lexical_class(
 
 
 @pytest.mark.parametrize(
+    ("alias", "resolved"),
+    [("associational", "evidential_strong"), ("framing", "concessive")],
+)
+def test_historical_lexical_class_names_remain_configurable(
+    tmp_path, alias, resolved
+):
+    """Old configuration keeps working under the corrected class split."""
+
+    registry = base_registry()
+    registry["claims"]["writing_strength"] = {
+        "lexical_markers": {alias: ["co-moves with"]}
+    }
+    site = assertion_site("aliased-marker", declared_tier="T0")
+    report = write_assertion_registry(
+        tmp_path,
+        [site],
+        "<!-- aliased-marker --> Retention co-moves with treatment.\n",
+        registry,
+    )
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert "co-moves with" in site_state["_matched_lexical_classes"][resolved]
+
+
+@pytest.mark.parametrize(
     "causal_configuration",
     [
         {"replace": []},
-        {"remove": ["causes"]},
+        {"remove": ["cause"]},
     ],
     ids=["empty-replacement", "default-removal"],
 )
@@ -3341,7 +3367,7 @@ def test_project_configuration_cannot_erase_baseline_causal_enforcement(
     )
     assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
     site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
-    assert "causes" in site_state["_matched_lexical_classes"]["causal"]
+    assert "cause" in site_state["_matched_lexical_classes"]["causal"]
 
 
 @pytest.mark.parametrize(
@@ -3717,3 +3743,37 @@ def test_stale_reported_figure_is_withheld_from_the_latex_macro_file(tmp_path):
     body, withheld = render(live)
     assert not withheld
     assert "\\defineFigureValue{RF-1}{2.0}" in body
+
+
+@pytest.mark.parametrize(
+    ("text", "expected_tier"),
+    [
+        ("Treatment increases retention.", "T0"),
+        ("The results indicate that treatment increases retention.", "T0"),
+        ("Our results suggest that treatment increases retention.", "T1"),
+        ("Treatment is associated with higher retention.", "T3"),
+        ("We interpret this as reflecting higher retention.", "T3"),
+        ("AI adoption raises revenue.", "T0"),
+        ("The reported effects are driven by metro firms.", "T0"),
+        ("This limitation is discussed in the appendix.", "T4"),
+    ],
+)
+def test_lexical_tiers_follow_the_reference_corpus_grading(
+    tmp_path, text, expected_tier
+):
+    """Evidential frames grade; inflected causal verbs still carry force.
+
+    Two corpus findings are pinned here. A weak frame (``indicate``) leaves an
+    unqualified causal commitment standing, while a strong frame takes the
+    sentence out of causal commitment entirely. And a concessive word is not a
+    hedge: a sentence about a limitation promises nothing by saying so.
+    """
+
+    report = write_assertion_registry(
+        tmp_path / expected_tier / text[:12].replace(" ", "-"),
+        [assertion_site("graded", declared_tier="T0")],
+        f"<!-- graded --> {text}\n",
+        base_registry(),
+    )
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert site_state["_lexical_tier"] == expected_tier

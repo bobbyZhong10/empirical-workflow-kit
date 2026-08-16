@@ -14,6 +14,7 @@ import copy
 import json
 import math
 import re
+from functools import lru_cache
 import sys
 from collections import defaultdict
 from datetime import date, datetime, timedelta
@@ -178,35 +179,74 @@ COUNTEREVIDENCE_PROMINENCE = {
 LEXICAL_CLASSES = {
     "causal",
     "scope_qualifying",
-    "associational",
+    "evidential_weak",
+    "evidential_moderate",
+    "evidential_strong",
+    "concessive",
     "descriptive",
-    "framing",
+}
+
+# Historical class names accepted in project configuration. ``associational``
+# and ``framing`` conflated two distinct jobs: an evidential frame that lowers
+# what a sentence promises, and a concessive marker that only signals where a
+# recovery could follow. They are kept as aliases so existing configuration
+# keeps working.
+LEXICAL_CLASS_ALIASES = {
+    "associational": "evidential_strong",
+    "framing": "concessive",
 }
 DEFAULT_LEXICAL_MARKERS: dict[str, tuple[str, ...]] = {
+    # Verbs that carry causal force. Matching is inflection tolerant, so one
+    # lemma covers its ordinary forms; irregular participles are listed.
     "causal": (
         "cause",
-        "causes",
-        "caused",
         "causal effect",
         "effect on",
         "impact on",
         "affect",
-        "affects",
         "increase",
-        "increases",
         "decrease",
-        "decreases",
-        "lead to",
-        "leads to",
-        "drive",
-        "drives",
-        "improve",
-        "improves",
         "reduce",
-        "reduces",
+        "raise",
+        "lower",
+        "boost",
+        "generate",
+        "induce",
+        "drive",
+        "driven",
+        "lead to",
+        "led to",
+        "result in",
+        "produce",
+        "improve",
+        "worsen",
+        "enhance",
+        "mitigate",
+        "attenuate",
+        "weaken",
+        "strengthen",
+        "expand",
+        "shift",
+        "yield",
+        "motivate",
+        "differentiate",
+        "substitute",
+        "crowd out",
+        "offset",
+        "amplify",
+        "dampen",
+        "explain",
+        "account for",
+        "attributable to",
+        "translate into",
         "optimize",
-        "optimizes",
+        "has a positive effect on",
+        "has a negative effect on",
     ),
+    # Qualifiers that narrow the population, period, or level a sentence
+    # speaks about. ``on average`` is deliberately absent: it states what the
+    # estimate aggregates over, not who the claim is about, and admitting it
+    # would qualify almost every effect sentence.
     "scope_qualifying": (
         "among",
         "within",
@@ -215,39 +255,101 @@ DEFAULT_LEXICAL_MARKERS: dict[str, tuple[str, ...]] = {
         "for the study population",
         "conditional on",
         "only for",
+        "restricted to",
+        "limited to",
         "during the study period",
         "under the registered scope",
+        "all else equal",
+        "all else being equal",
+        "ceteris paribus",
         "bounded by",
     ),
-    "associational": (
+    # Evidential frames, graded by how much they lower what the sentence
+    # promises. Weak frames barely lower it at all: in the reference corpus
+    # "the results indicate that X increases Y" reads as an unqualified causal
+    # commitment.
+    "evidential_weak": (
+        "indicate",
+        "show",
+        "shown",
+        "demonstrate",
+        "document",
+        "establish",
+        "reveal",
+        "confirm",
+    ),
+    "evidential_moderate": (
+        "suggest",
+        "imply",
+        "point to",
+        "find evidence that",
+        "provide evidence that",
+        "lend support to",
+        "provide support for",
+        "is evidence that",
+    ),
+    # Strong frames put the sentence outside causal commitment altogether,
+    # including the self-deprecating noun phrases that downgrade hardest.
+    "evidential_strong": (
         "associated with",
         "association",
-        "correlates with",
+        "correlate with",
         "correlated with",
         "related to",
         "consistent with",
-        "suggests",
-        "appears",
-        "may",
-        "could",
+        "appear to",
+        "appears to",
+        "seem to",
+        "seems to",
         "we interpret",
-        "reflects",
+        "we attribute",
+        "we speculate",
+        "we conjecture",
+        "we surmise",
+        "we posit",
+        "we hypothesize",
+        "reflect",
+        "may",
+        "might",
+        "could",
+        "possibly",
+        "plausibly",
+        "anecdotal evidence",
+        "suggestive evidence",
+        "preliminary evidence",
+        "circumstantial",
+        "back-of-the-envelope",
+        "illustrative",
     ),
+    # Descriptive statements make no inferential promise.
     "descriptive": (
         "we report",
         "we document",
         "observed",
-        "describes",
+        "describe",
         "descriptive",
     ),
-    "framing": (
+    # Concessive markers locate where an author gives ground. They are used to
+    # detect immediate recovery and never change what a sentence promises: a
+    # sentence that merely contains the word "limitation" is not hedged.
+    "concessive": (
         "although",
+        "though",
         "despite",
-        "while",
         "even though",
         "admittedly",
+        "notwithstanding",
+        "granted that",
+        "granting that",
         "limitation",
         "caveat",
+        "not significant",
+        "insignificant",
+        "does not survive",
+        "fails to",
+        "cannot reject",
+        "no effect",
+        "imprecise",
     ),
 }
 
@@ -513,7 +615,9 @@ def _lexical_configuration(registry: dict) -> Any:
 def _valid_marker_configuration(value: Any) -> bool:
     if value in (None, {}):
         return True
-    if not isinstance(value, dict) or not set(value) <= LEXICAL_CLASSES:
+    if not isinstance(value, dict) or not set(value) <= (
+        LEXICAL_CLASSES | set(LEXICAL_CLASS_ALIASES)
+    ):
         return False
     for markers in value.values():
         if _string_list(markers):
@@ -3278,6 +3382,7 @@ def _compiled_lexical_markers(registry: dict) -> dict[str, tuple[str, ...]]:
     if not isinstance(configured, dict):
         return {name: tuple(values) for name, values in baseline.items()}
     for name, extension in configured.items():
+        name = LEXICAL_CLASS_ALIASES.get(name, name)
         if name not in baseline:
             continue
         if isinstance(extension, list):
@@ -3304,10 +3409,33 @@ def _compiled_lexical_markers(registry: dict) -> dict[str, tuple[str, ...]]:
     }
 
 
-def _contains_marker(text: str, marker: str) -> bool:
-    return re.search(
-        rf"(?<!\w){re.escape(marker)}(?!\w)", text, flags=re.IGNORECASE
-    ) is not None
+@lru_cache(maxsize=4096)
+def _marker_regex(marker: str, inflected: bool) -> re.Pattern[str]:
+    """Compile a marker, optionally tolerating ordinary verb inflection.
+
+    A marker list is a vocabulary, not a spelling exercise. Without inflection
+    tolerance a curated list silently misses ``raises``, ``reduced`` and
+    ``driving``, and a sentence that plainly commits to a causal effect scores
+    as descriptive.
+    """
+
+    if not inflected:
+        body = re.escape(marker)
+    else:
+        head, _, tail = marker.rpartition(" ")
+        word = tail if head else marker
+        if word.endswith("e"):
+            stem = re.escape(word[:-1]) + r"(?:e|es|ed|ing)"
+        elif word.endswith("y") and len(word) > 2 and word[-2] not in "aeiou":
+            stem = re.escape(word[:-1]) + r"(?:y|ies|ied|ying)"
+        else:
+            stem = re.escape(word) + r"(?:s|es|ed|ing)?"
+        body = f"{re.escape(head)} {stem}" if head else stem
+    return re.compile(rf"(?<!\w){body}(?!\w)", flags=re.IGNORECASE)
+
+
+def _contains_marker(text: str, marker: str, inflected: bool = False) -> bool:
+    return _marker_regex(marker, inflected).search(text) is not None
 
 
 def _sentence_segments(text: str) -> list[str]:
@@ -3318,14 +3446,28 @@ def _sentence_segments(text: str) -> list[str]:
     ]
 
 
+INFLECTED_LEXICAL_CLASSES = {
+    "causal",
+    "evidential_weak",
+    "evidential_moderate",
+    "descriptive",
+}
+
+
 def _matched_markers(
     text: str, markers: dict[str, tuple[str, ...]]
 ) -> dict[str, list[str]]:
-    return {
-        name: [marker for marker in values if _contains_marker(text, marker)]
-        for name, values in markers.items()
-        if any(_contains_marker(text, marker) for marker in values)
-    }
+    matched: dict[str, list[str]] = {}
+    for name, values in markers.items():
+        inflected = name in INFLECTED_LEXICAL_CLASSES
+        hits = [
+            marker
+            for marker in values
+            if _contains_marker(text, marker, inflected)
+        ]
+        if hits:
+            matched[name] = hits
+    return matched
 
 
 def _classify_assertion_text(
@@ -3349,7 +3491,16 @@ def _classify_assertion_text(
                 strength = 3
             else:
                 strength = 4
-        elif "associational" in matched or "framing" in matched:
+            # An evidential frame lowers what the sentence promises even when a
+            # causal verb survives inside it. The corpus grades the frames:
+            # "indicate" and "show" barely lower it, "suggest" lowers it to a
+            # qualified commitment, and "is associated with" or "we interpret"
+            # take it out of causal commitment altogether.
+            if "evidential_strong" in matched:
+                strength = min(strength, 1)
+            elif "evidential_moderate" in matched:
+                strength = min(strength, 3)
+        elif "evidential_strong" in matched or "evidential_moderate" in matched:
             strength = 1
         else:
             strength = 0
@@ -3792,16 +3943,17 @@ def _claim_evidence_strength(
 
 
 def _has_immediate_recovery(
-    text: str, framing_markers: tuple[str, ...]
+    text: str, concessive_markers: tuple[str, ...]
 ) -> bool:
     lowered = text.casefold()
     concessive_positions = [
         lowered.find(marker)
-        for marker in framing_markers
+        for marker in concessive_markers
         if _contains_marker(lowered, marker)
     ]
     recovery = re.search(
-        r"(?<!\w)(however|nevertheless|overall|encouragingly)(?!\w)",
+        r"(?<!\w)(however|nevertheless|nonetheless|overall|encouragingly|"
+        r"reassuringly|importantly)(?!\w)",
         lowered,
     )
     if not concessive_positions or recovery is None:
@@ -4210,7 +4362,7 @@ def _writing_strength_checks(
                 elif residual < 0:
                     reports.append(_issue("UNDERCLAIM_RESIDUAL", level="INFO", **details))
 
-                if _has_immediate_recovery(text, markers["framing"]):
+                if _has_immediate_recovery(text, markers["concessive"]):
                     results_strengths = [
                         ASSERTION_TIERS[item.get("declared_tier")]
                         for item in sites

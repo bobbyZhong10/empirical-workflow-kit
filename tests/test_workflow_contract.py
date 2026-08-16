@@ -274,11 +274,15 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
     for semantic_class in (
         "causal",
         "scope-qualifying",
-        "associational",
+        "evidential-weak",
+        "evidential-moderate",
+        "evidential-strong",
         "descriptive",
-        "framing",
+        "concessive",
     ):
         assert semantic_class in normalized_lexical
+    assert "Matching is inflection tolerant" in normalized_lexical
+    assert "Evidential frames are **graded**" in normalized_lexical
     assert "project-extensible" in normalized_lexical
     assert (
         "does not create a global banned-word list or prescribe sentence form"

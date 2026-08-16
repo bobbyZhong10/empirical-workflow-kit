@@ -175,11 +175,26 @@ negated examples, literature review, and unrelated prose are consequently out
 of the classifier's domain unless authors deliberately register them.
 
 Lexical markers are grouped into semantic classes: causal, scope-qualifying,
-associational, descriptive, and framing. These classes are
+evidential-weak, evidential-moderate, evidential-strong, descriptive, and
+concessive. `associational` and `framing` remain accepted configuration
+aliases for evidential-strong and concessive. These classes are
 **project-extensible** through configuration. The extension mechanism adds or
 refines semantic markers; it does not create a global banned-word list or
 prescribe sentence form. The two type-specific prohibitions on `rule out` and
 unsupported `significant` remain contract rules, not a general style list.
+
+Matching is inflection tolerant, so one lemma covers its ordinary verb forms.
+A marker list is a vocabulary, not a spelling exercise: without this, a
+curated list silently misses `raises`, `reduced`, and `driving`, and a
+sentence that plainly commits to a causal effect scores as descriptive.
+
+Evidential frames are **graded**, and a frame lowers what a sentence promises
+even when a causal verb survives inside it. A weak frame barely lowers it, so
+`the results indicate that X increases Y` remains an unqualified causal
+commitment; a moderate frame lowers it to a qualified one; a strong frame
+takes it out of causal commitment altogether. Concessive markers locate where
+an author gives ground and never change what a sentence promises: a sentence
+that merely contains the word `limitation` is not hedged.
 
 ## Residual rule
 
