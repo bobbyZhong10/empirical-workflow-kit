@@ -181,6 +181,33 @@ def write_registry(root: Path, registry: dict | None = None) -> Path:
     comparison.mkdir(exist_ok=True)
     (comparison / "p1.yaml").write_text("estimate: 2.0\n", encoding="utf-8")
     (comparison / "p2.yaml").write_text("estimate: 2.005\n", encoding="utf-8")
+    # Reported figures are grounded in an analysis artifact, so the fixture
+    # ships the artifact its figures claim to come from.
+    results = root / "results"
+    results.mkdir(exist_ok=True)
+    for name, payload in (
+        ("p1.json", '{"estimate": 2.0, "percent": 200.0, "other": 3.0}\n'),
+        ("p2.json", '{"estimate": 2.005, "percent": 200.5, "other": 3.0}\n'),
+    ):
+        (results / name).write_text(payload, encoding="utf-8")
+    paper = root / "paper"
+    paper.mkdir(exist_ok=True)
+    disclosure = paper / "results.md"
+    if not disclosure.exists():
+        disclosure.write_text(
+            "<!-- estimate --> The estimate is registered.\n"
+            "<!-- other --> A second registered figure.\n"
+            "<!-- percent --> A derived figure.\n"
+            "<!-- upstream --> An upstream figure.\n"
+            "<!-- derived --> A derived figure.\n"
+            "<!-- challenge --> However, the pre-trend weakens the estimate.\n"
+            "<!-- challenge-1 --> However, one check does not survive.\n"
+            "<!-- ER-1 --> However, a bounding result narrows the claim.\n"
+            "<!-- ER-2 --> However, a second bounding result applies.\n"
+            "<!-- ER-C1 --> However, one challenge is disclosed here.\n"
+            "<!-- ER-C2 --> However, a second challenge is disclosed here.\n",
+            encoding="utf-8",
+        )
     return root
 
 
@@ -782,7 +809,7 @@ def test_machine_revalidation_restores_pipeline_stale_but_keeps_assessment(tmp_p
         },
     ]
     root = write_registry(tmp_path, registry)
-    (root / "results").mkdir()
+    (root / "results").mkdir(exist_ok=True)
     (root / "results" / "p2.yaml").write_text("estimate: 2.005\n", encoding="utf-8")
     report = validate_registry(load_registry(root), "C")
     claim = report["state"]["claims"]["H1.r1"]
@@ -1015,7 +1042,7 @@ def test_revalidated_upstream_recomputes_a_derived_reported_figure(tmp_path):
         }
     ]
     root = write_registry(tmp_path, registry)
-    (root / "results").mkdir()
+    (root / "results").mkdir(exist_ok=True)
     (root / "results" / "p2.yaml").write_text("estimate: 2.5\n", encoding="utf-8")
     report = validate_registry(load_registry(root), "C")
     derived = report["state"]["reported_figures"]["RF-percent"]
@@ -2688,7 +2715,7 @@ def test_writing_strength_findings_run_at_checkpoint_c_without_changing_b(tmp_pa
     registry["claims"]["claims"][0]["assertion_sites"] = [site]
     root = write_registry(tmp_path, registry)
     paper = root / "paper"
-    paper.mkdir()
+    paper.mkdir(exist_ok=True)
     (paper / "assertions.md").write_text(
         "<!-- checkpoint-site --> Treatment causes retention.\n", encoding="utf-8"
     )
@@ -3777,3 +3804,59 @@ def test_lexical_tiers_follow_the_reference_corpus_grading(
     )
     site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
     assert site_state["_lexical_tier"] == expected_tier
+
+
+def test_reported_figure_must_match_the_artifact_it_claims_to_come_from(
+    tmp_path,
+):
+    """The registry is not allowed to disagree with the analysis output.
+
+    Without this the whole figure-macro mechanism guarantees only that the PDF
+    matches the registry, and says nothing about whether either matches what
+    was actually estimated.
+    """
+
+    registry = base_registry()
+    registry["reported_figures"]["reported_figures"][0]["value"] = 999.9
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    mismatches = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "REPORTED_FIGURE_VALUE_MISMATCH"
+    ]
+    assert mismatches
+    assert mismatches[0]["registered_value"] == 999.9
+    assert mismatches[0]["artifact_value"] == 2.0
+
+
+def test_reported_figure_artifact_must_resolve_for_its_own_pipeline(tmp_path):
+    registry = base_registry()
+    registry["reported_figures"]["reported_figures"][0]["source_artifact"] = {
+        "p2": "results/p2.json"
+    }
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "REPORTED_FIGURE_SOURCE_UNRESOLVED" in codes(report, "blocking")
+
+
+def test_challenge_disclosure_must_point_at_text_that_exists(tmp_path):
+    """Self-attestation is not disclosure."""
+
+    registry = base_registry()
+    _add_challenge(registry, "ER-C9", "EC-C9")
+    registry["claims"]["claims"][0]["challenge_disclosures"] = [
+        {
+            "challenge_id": "ER-C9",
+            "paper_location": "paper/does-not-exist.md#no-such-anchor",
+            "adjacent": True,
+        }
+    ]
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    assert "PUBLICATION_INELIGIBLE" in codes(report, "blocking")
+
+    registry["claims"]["claims"][0]["challenge_disclosures"][0][
+        "paper_location"
+    ] = "paper/results.md#ER-C1"
+    report = validate_registry(
+        load_registry(write_registry(tmp_path / "resolved", registry)), "C"
+    )
+    assert "PUBLICATION_INELIGIBLE" not in codes(report, "blocking")

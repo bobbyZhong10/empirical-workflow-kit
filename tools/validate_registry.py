@@ -3260,12 +3260,34 @@ def _output_checks(state: dict, blocking: list[dict]) -> set[str]:
     return invalid
 
 
+def _disclosure_location_resolves(
+    registry: dict, location: Any, source_cache: dict[Path, tuple[str, list[str]]]
+) -> bool:
+    """A disclosure must point at text that exists, not merely be asserted."""
+
+    if not _nonempty_string(location):
+        return False
+    path, _, anchor = str(location).partition("#")
+    if not path or not anchor:
+        return False
+    try:
+        source = _resolve_registry_source(registry, path)
+        _anchor_span(source, anchor, source_cache)
+    except (OSError, UnicodeError, ValueError):
+        return False
+    return True
+
+
 def _challenge_is_disclosed(claim_id: str, registry: dict, claim: dict) -> bool:
     live_challenges = set(claim.get("_live_challenge_ids", []))
+    source_cache: dict[Path, tuple[str, list[str]]] = {}
     disclosed = {
         str(item["challenge_id"])
         for item in claim.get("challenge_disclosures", [])
-        if item.get("adjacent") is True and _nonempty_string(item.get("paper_location"))
+        if item.get("adjacent") is True
+        and _disclosure_location_resolves(
+            registry, item.get("paper_location"), source_cache
+        )
     }
     cards = _id_map(registry.get("evidence_cards", []), "evidence_card_id")
     disclosed.update(
@@ -3277,8 +3299,10 @@ def _challenge_is_disclosed(claim_id: str, registry: dict, claim: dict) -> bool:
         and cards.get(str(relation.get("evidence_card_id")), {}).get("provenance")
         == "confirmatory"
         and relation.get("disclosure", {}).get("adjacent") is True
-        and _nonempty_string(
-            relation.get("disclosure", {}).get("paper_location")
+        and _disclosure_location_resolves(
+            registry,
+            relation.get("disclosure", {}).get("paper_location"),
+            source_cache,
         )
     )
     return bool(live_challenges) and live_challenges <= disclosed
@@ -4500,6 +4524,74 @@ def _writing_strength_checks(
                     )
 
 
+def _grounded_figure_value(registry: dict, figure: dict) -> Any:
+    """Resolve a figure's value from its own artifact, in its own pipeline."""
+
+    artifact_spec = figure.get("source_artifact")
+    pipeline_id = str(figure.get("pipeline_id"))
+    if isinstance(artifact_spec, dict):
+        artifact_spec = artifact_spec.get(pipeline_id)
+    if not isinstance(artifact_spec, str) or not artifact_spec:
+        raise ValueError("source_artifact must identify an artifact")
+    artifact_name = artifact_spec.replace("{pipeline_id}", pipeline_id)
+    locator: Any = figure.get("source_locator")
+    if isinstance(locator, dict):
+        locator = locator.get(pipeline_id)
+    return _resolve_artifact_locator(
+        registry, {"artifact": artifact_name, "locator": locator}
+    )
+
+
+def _figure_grounding_checks(
+    registry: dict, state: dict, blocking: list[dict]
+) -> None:
+    """Check that each reported figure still says what its artifact says.
+
+    Without this the registry is only internally consistent: a figure could
+    hold one number, the analysis output another, and the manuscript would
+    typeset the registry's. Derived figures are exempt because they are
+    recomputed from their upstream figure rather than read from an artifact.
+    """
+
+    for figure_id in sorted(state["reported_figures"]):
+        figure = state["reported_figures"][figure_id]
+        if figure.get("derived_from") is not None:
+            continue
+        if figure.get("_stale_reasons"):
+            continue
+        try:
+            resolved = _grounded_figure_value(registry, figure)
+        except (OSError, UnicodeError, ValueError, KeyError, TypeError) as error:
+            blocking.append(
+                _issue(
+                    "REPORTED_FIGURE_SOURCE_UNRESOLVED",
+                    figure_id=figure_id,
+                    detail=str(error),
+                )
+            )
+            continue
+        declared = figure.get("value")
+        if isinstance(declared, bool) or isinstance(resolved, bool):
+            matches = declared is resolved
+        elif isinstance(declared, (int, float)) and isinstance(
+            resolved, (int, float)
+        ):
+            matches = math.isclose(
+                float(declared), float(resolved), rel_tol=1e-9, abs_tol=1e-12
+            )
+        else:
+            matches = declared == resolved
+        if not matches:
+            blocking.append(
+                _issue(
+                    "REPORTED_FIGURE_VALUE_MISMATCH",
+                    figure_id=figure_id,
+                    registered_value=declared,
+                    artifact_value=resolved,
+                )
+            )
+
+
 def _initial_state(registry: dict) -> dict:
     state = {
         "claims": copy.deepcopy(_id_map(registry.get("claims", []), "claim_revision_id")),
@@ -4581,6 +4673,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
         prevalidated_revalidations,
     )
     _gate_checks(registry, state, checkpoint, blocking, reports, derived)
+    _figure_grounding_checks(registry, state, blocking)
     _applicability_checks(registry, blocking)
     _recompute_assessments(registry, state, derived_challenges, derived)
     if checkpoint == "C":
