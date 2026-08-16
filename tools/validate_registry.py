@@ -470,6 +470,25 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                     f"{collection}[{index}].depends_on",
                     "must be a list of kind/id mappings",
                 )
+    for index, card in enumerate(registry["evidence_cards"]):
+        comparison = card.get("machine_comparison")
+        if comparison is None:
+            continue
+        if not (
+            isinstance(comparison, dict)
+            and all(
+                isinstance(comparison.get(side), dict)
+                and _nonempty_string(comparison[side].get("pipeline_id"))
+                and _nonempty_string(comparison[side].get("artifact"))
+                and _nonempty_string(comparison[side].get("locator"))
+                for side in ("source", "destination")
+            )
+        ):
+            _schema_error(
+                blocking,
+                f"evidence_cards[{index}].machine_comparison",
+                "requires source/destination pipeline, artifact, and locator",
+            )
     for index, relation in enumerate(registry["evidence_relations"]):
         if _as_date(relation.get("date")) is None:
             _schema_error(
@@ -528,12 +547,25 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                     f"reported_figures[{index}].{field}",
                     "must be a nonempty locator or pipeline-to-locator mapping",
                 )
-        if figure.get("derived_from") and not isinstance(figure.get("transform"), dict):
-            _schema_error(
-                blocking,
-                f"reported_figures[{index}].transform",
-                "derived figures require a transform mapping",
-            )
+        if figure.get("derived_from"):
+            transform = figure.get("transform")
+            if not (
+                isinstance(transform, dict)
+                and transform.get("operation")
+                in {"multiply", "divide", "add", "subtract"}
+                and isinstance(transform.get("operand"), (int, float))
+                and not isinstance(transform.get("operand"), bool)
+                and math.isfinite(float(transform["operand"]))
+                and not (
+                    transform.get("operation") == "divide"
+                    and transform.get("operand") == 0
+                )
+            ):
+                _schema_error(
+                    blocking,
+                    f"reported_figures[{index}].transform",
+                    "derived figures require a supported finite arithmetic transform",
+                )
     for index, output in enumerate(registry["outputs"]):
         for field in (
             "claim_revision_ids",
@@ -609,6 +641,57 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 f"gate_evaluations[{index}].coverage",
                 "requires boolean complete",
             )
+        if isinstance(coverage, dict):
+            for field in ("declared_scope", "evaluated_scope"):
+                if field in coverage and not _nonempty_string(coverage[field]):
+                    _schema_error(
+                        blocking,
+                        f"gate_evaluations[{index}].coverage.{field}",
+                        "must be a nonempty string",
+                    )
+        if evaluation.get("status") == "inapplicable":
+            for field in ("applicability_reason", "declared_by", "accepted_by"):
+                if field in evaluation and not _nonempty_string(evaluation[field]):
+                    _schema_error(
+                        blocking,
+                        f"gate_evaluations[{index}].{field}",
+                        "must be a nonempty string",
+                    )
+        if evaluation.get("status") == "satisfied":
+            for field in ("compensation_artifact", "accepted_by"):
+                if field in evaluation and not _nonempty_string(evaluation[field]):
+                    _schema_error(
+                        blocking,
+                        f"gate_evaluations[{index}].{field}",
+                        "must be a nonempty string",
+                    )
+            if "accepted_at" in evaluation and _as_datetime(
+                evaluation["accepted_at"]
+            ) is None:
+                _schema_error(
+                    blocking,
+                    f"gate_evaluations[{index}].accepted_at",
+                    "must be an ISO timestamp",
+                )
+        if evaluation.get("status") == "released" and isinstance(
+            evaluation.get("release"), dict
+        ):
+            for field in (
+                "triggering_change_id",
+                "reason",
+                "authorized_by",
+                "timing",
+                "evidence_card",
+                "compensation_disposition",
+            ):
+                if field in evaluation["release"] and not _nonempty_string(
+                    evaluation["release"][field]
+                ):
+                    _schema_error(
+                        blocking,
+                        f"gate_evaluations[{index}].release.{field}",
+                        "must be a nonempty string",
+                    )
     for index, fact in enumerate(registry["semantic_facts"]):
         authority = fact.get("authority")
         verification = fact.get("verification")
@@ -657,6 +740,39 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 f"semantic_facts[{index}].valid_range",
                 "must be a two-element list",
             )
+    for index, decision in enumerate(registry["semantic_equivalence_decisions"]):
+        scopes = [
+            field
+            for field in ("fact_key", "field")
+            if _nonempty_string(decision.get(field))
+        ]
+        if len(scopes) != 1:
+            _schema_error(
+                blocking,
+                f"semantic_equivalence_decisions[{index}]",
+                "requires exactly one fact_key or field scope",
+            )
+        if decision.get("decision") not in {
+            "equivalent",
+            "interchangeable",
+            "distinct",
+            "not_equivalent",
+        }:
+            _schema_error(
+                blocking,
+                f"semantic_equivalence_decisions[{index}].decision",
+                "must be an equivalence decision enum",
+            )
+        if (
+            not _nonempty_string(decision.get("decided_by"))
+            or _as_datetime(decision.get("decided_at")) is None
+            or not _nonempty_string(decision.get("evidence_card"))
+        ):
+            _schema_error(
+                blocking,
+                f"semantic_equivalence_decisions[{index}]",
+                "requires author, ISO timestamp, and evidence card",
+            )
     for index, field in enumerate(registry["derived_fields"]):
         if field.get("status") == "defective" and not _string_list(
             field.get("known_defects")
@@ -673,19 +789,53 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 f"applicability[{index}].substituted_by",
                 "must be a list of requirement identifiers",
             )
-        if item.get("record_type") == "design_grid" and not (
-            _string_list(item.get("dimensions"))
-            and isinstance(item.get("empty_cells"), list)
-        ):
-            _schema_error(
-                blocking,
-                f"applicability[{index}]",
-                "design_grid requires dimensions and empty_cells",
+        if item.get("status") == "inapplicable":
+            for field in ("applicability_reason", "declared_by", "accepted_by"):
+                if field in item and not _nonempty_string(item[field]):
+                    _schema_error(
+                        blocking,
+                        f"applicability[{index}].{field}",
+                        "must be a nonempty string",
+                    )
+        if item.get("record_type") == "design_grid":
+            dimensions = item.get("dimensions")
+            cells = item.get("empty_cells")
+            valid_dimensions = (
+                _string_list(dimensions)
+                and bool(dimensions)
+                and len(dimensions) == len(set(dimensions))
             )
+            valid_cells = isinstance(cells, list) and all(
+                isinstance(cell, dict)
+                and isinstance(cell.get("coordinates"), dict)
+                and set(cell["coordinates"]) == set(dimensions or [])
+                and all(
+                    isinstance(value, (str, int, float, bool))
+                    and not (isinstance(value, float) and not math.isfinite(value))
+                    for value in cell["coordinates"].values()
+                )
+                and _nonempty_string(cell.get("reason"))
+                for cell in cells or []
+            )
+            if not (valid_dimensions and valid_cells):
+                _schema_error(
+                    blocking,
+                    f"applicability[{index}]",
+                    "design_grid requires unique dimensions and coherent empty-cell records",
+                )
         if item.get("record_type") == "sibling_parity":
+            dimensions = item.get("dimensions")
             results = item.get("dimension_results")
+            result_dimensions = [
+                result.get("dimension")
+                for result in results or []
+                if isinstance(result, dict)
+            ]
             if not (
-                isinstance(results, list)
+                _string_list(dimensions)
+                and bool(dimensions)
+                and len(dimensions) == len(set(dimensions))
+                and isinstance(results, list)
                 and results
                 and all(
                     isinstance(result, dict)
@@ -693,6 +843,8 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                     and result.get("result") in {"match", "diverge"}
                     for result in results
                 )
+                and len(result_dimensions) == len(set(result_dimensions))
+                and set(result_dimensions) == set(dimensions)
                 and _nonempty_string(item.get("consequence_assessment"))
             ):
                 _schema_error(
@@ -724,6 +876,25 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
                 blocking,
                 f"changes[{index}].occurred_at",
                 "must be an ISO timestamp",
+            )
+        allowed_states = {
+            "claim_revision": {"current", "superseded", "retired", "withdrawn"},
+            "claim_key": {"changed", "revised", "retired", "withdrawn"},
+            "dataset": {"changed", "retired", "withdrawn", "end_of_life"},
+            "pipeline_stage": {
+                "changed",
+                "retired",
+                "withdrawn",
+                "end_of_life",
+            },
+        }
+        if change.get("new_state") not in allowed_states.get(
+            change.get("object_kind"), set()
+        ):
+            _schema_error(
+                blocking,
+                f"changes[{index}].new_state",
+                "state is invalid for changed-object kind",
             )
     return len(blocking) == start
 
@@ -767,6 +938,7 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
     figures = _id_map(registry["reported_figures"], "figure_id")
     derived_fields = _id_map(registry["derived_fields"], "derived_field_id")
     fact_keys = {str(fact.get("fact_key")) for fact in registry["semantic_facts"]}
+    semantic_fields = {str(fact.get("field")) for fact in registry["semantic_facts"]}
     fact_revisions = _id_map(registry["semantic_facts"], "fact_revision_id")
     requirements = _id_map(registry["applicability"], "requirement_id")
     definitions = _id_map(registry["gate_definitions"], "gate_id")
@@ -797,8 +969,37 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
                         claim_revision_id=claim.get("claim_revision_id"),
                     )
                 )
+        if claim.get("change_id"):
+            require(
+                changes,
+                claim["change_id"],
+                f"claims.{claim.get('claim_revision_id')}.change_id",
+            )
+            change = changes.get(str(claim["change_id"]))
+            if change and not (
+                change.get("object_kind") == "claim_revision"
+                and change.get("object_id") == claim.get("claim_revision_id")
+                and str(change.get("pipeline_id")) == str(claim.get("pipeline_id"))
+                and change.get("new_state") == claim.get("availability")
+            ):
+                blocking.append(
+                    _issue(
+                        "CLAIM_CHANGE_INVALID",
+                        claim_revision_id=claim.get("claim_revision_id"),
+                        change_id=claim.get("change_id"),
+                    )
+                )
     for card in registry["evidence_cards"]:
         require(pipelines, card.get("pipeline_id"), f"evidence_cards.{card.get('evidence_card_id')}.pipeline_id")
+        comparison = card.get("machine_comparison")
+        if isinstance(comparison, dict):
+            for side in ("source", "destination"):
+                endpoint = comparison.get(side, {})
+                require(
+                    pipelines,
+                    endpoint.get("pipeline_id"),
+                    f"evidence_cards.{card.get('evidence_card_id')}.machine_comparison.{side}.pipeline_id",
+                )
     for relation in registry["evidence_relations"]:
         require(cards, relation.get("evidence_card_id"), f"evidence_relations.{relation.get('relation_id')}.evidence_card_id")
         require(claims, relation.get("claim_revision_id"), f"evidence_relations.{relation.get('relation_id')}.claim_revision_id")
@@ -816,6 +1017,40 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
                         fact_revision_id=fact.get("fact_revision_id"),
                     )
                 )
+    equivalence_scopes: set[tuple[str, str]] = set()
+    for decision in registry["semantic_equivalence_decisions"]:
+        scope_kind = "fact_key" if decision.get("fact_key") else "field"
+        scope_id = decision.get(scope_kind)
+        require(
+            fact_keys if scope_kind == "fact_key" else semantic_fields,
+            scope_id,
+            f"semantic_equivalence_decisions.{scope_kind}",
+        )
+        require(
+            cards,
+            decision.get("evidence_card"),
+            "semantic_equivalence_decisions.evidence_card",
+        )
+        evidence = cards.get(str(decision.get("evidence_card")))
+        if evidence and (
+            evidence.get("status") != "current"
+            or evidence.get("provenance") != "confirmatory"
+        ):
+            blocking.append(
+                _issue(
+                    "SEMANTIC_EQUIVALENCE_EVIDENCE_INVALID",
+                    scope={"kind": scope_kind, "id": scope_id},
+                )
+            )
+        scope = (scope_kind, str(scope_id))
+        if scope in equivalence_scopes:
+            blocking.append(
+                _issue(
+                    "DUPLICATE_SEMANTIC_EQUIVALENCE_DECISION",
+                    scope={"kind": scope_kind, "id": scope_id},
+                )
+            )
+        equivalence_scopes.add(scope)
     for collection in ("semantic_facts", "derived_fields", "evidence_cards"):
         for item in registry[collection]:
             dependencies = (
@@ -1048,7 +1283,7 @@ def _semantic_checks(
 def _dependency_topology(
     registry: dict, blocking: list[dict]
 ) -> tuple[list[str], dict[str, set[str]]]:
-    """Build and topologically sort the validated cross-object graph once."""
+    """Build the reason-propagation DAG, excluding identity lineage edges."""
 
     outgoing: dict[str, set[str]] = defaultdict(set)
     indegree: dict[str, int] = defaultdict(int)
@@ -1080,9 +1315,7 @@ def _dependency_topology(
             if dependency["kind"] != "raw_field":
                 edge(node(dependency["kind"], dependency["id"]), destination)
     for claim in registry["claims"]:
-        destination = node("claim_revision", claim["claim_revision_id"])
-        if claim.get("supersedes"):
-            edge(node("claim_revision", claim["supersedes"]), destination)
+        node("claim_revision", claim["claim_revision_id"])
     cards = _id_map(registry["evidence_cards"], "evidence_card_id")
     for relation in registry["evidence_relations"]:
         card = cards.get(str(relation.get("evidence_card_id")))
@@ -1099,11 +1332,6 @@ def _dependency_topology(
         destination = node("reported_figure", figure["figure_id"])
         if figure.get("derived_from"):
             edge(node("reported_figure", figure["derived_from"]), destination)
-    for item in registry["applicability"]:
-        destination = node("applicability", item["requirement_id"])
-        for dependency in item.get("substituted_by", []):
-            edge(node("applicability", dependency), destination)
-
     ready = sorted(name for name, degree in indegree.items() if degree == 0)
     order: list[str] = []
     while ready:
@@ -1124,20 +1352,72 @@ def _dependency_topology(
     return order, outgoing
 
 
-def _propagate_reasons(
-    order: list[str],
-    outgoing: dict[str, set[str]],
-    seeds: dict[str, set[str]],
-) -> dict[str, set[str]]:
-    reasons: dict[str, set[str]] = defaultdict(set)
-    for name, values in seeds.items():
-        reasons[name].update(values)
-    for name in order:
-        if not reasons[name]:
-            continue
-        for destination in outgoing[name]:
-            reasons[destination].update(reasons[name])
-    return reasons
+def _identity_cycle_checks(registry: dict, blocking: list[dict]) -> None:
+    """Validate lineage/reference cycles without treating lineage as evidence."""
+
+    outgoing: dict[str, set[str]] = defaultdict(set)
+    indegree: dict[str, int] = defaultdict(int)
+
+    def node(kind: str, identifier: Any) -> str:
+        name = f"{kind}:{identifier}"
+        outgoing[name]
+        indegree[name]
+        return name
+
+    def edge(source: str, destination: str) -> None:
+        if destination not in outgoing[source]:
+            outgoing[source].add(destination)
+            indegree[destination] += 1
+
+    for claim in registry["claims"]:
+        destination = node("claim_lineage", claim["claim_revision_id"])
+        if claim.get("supersedes"):
+            edge(node("claim_lineage", claim["supersedes"]), destination)
+    for fact in registry["semantic_facts"]:
+        destination = node("semantic_lineage", fact["fact_revision_id"])
+        if fact.get("supersedes"):
+            edge(node("semantic_lineage", fact["supersedes"]), destination)
+    for fact in registry["semantic_facts"]:
+        destination = node("semantic_fact", fact["fact_key"])
+        for dependency in fact.get("verification", {}).get("depends_on", []):
+            if dependency["kind"] != "raw_field":
+                edge(node(dependency["kind"], dependency["id"]), destination)
+    for field in registry["derived_fields"]:
+        destination = node("derived_field", field["derived_field_id"])
+        for dependency in field.get("depends_on", []):
+            if dependency["kind"] != "raw_field":
+                edge(node(dependency["kind"], dependency["id"]), destination)
+    for card in registry["evidence_cards"]:
+        destination = node("evidence_card", card["evidence_card_id"])
+        for dependency in card.get("depends_on", []):
+            if dependency["kind"] != "raw_field":
+                edge(node(dependency["kind"], dependency["id"]), destination)
+    for figure in registry["reported_figures"]:
+        destination = node("reported_figure", figure["figure_id"])
+        if figure.get("derived_from"):
+            edge(node("reported_figure", figure["derived_from"]), destination)
+    for item in registry["applicability"]:
+        destination = node("applicability", item["requirement_id"])
+        for dependency in item.get("substituted_by", []):
+            edge(node("applicability", dependency), destination)
+
+    ready = sorted(name for name, degree in indegree.items() if degree == 0)
+    visited = 0
+    while ready:
+        current = ready.pop(0)
+        visited += 1
+        for destination in sorted(outgoing[current]):
+            indegree[destination] -= 1
+            if indegree[destination] == 0:
+                ready.append(destination)
+                ready.sort()
+    if visited != len(indegree):
+        blocking.append(
+            _issue(
+                "REFERENCE_CYCLE",
+                nodes=sorted(name for name, degree in indegree.items() if degree > 0),
+            )
+        )
 
 
 def _pipeline_binding_checks(
@@ -1186,99 +1466,6 @@ def _mark_stale(
         item["availability"] = "stale"
     else:
         item["status"] = "stale"
-
-
-def _semantic_cascade(
-    state: dict,
-    corrected_fact_keys: set[str],
-    order: list[str],
-    outgoing: dict[str, set[str]],
-    derived: list[dict],
-) -> None:
-    impacts = _propagate_reasons(
-        order,
-        outgoing,
-        {
-            f"semantic_fact:{fact_key}": {"semantic_correction"}
-            for fact_key in corrected_fact_keys
-        },
-    )
-    for field_id in sorted(state["derived_fields"]):
-        if not impacts[f"derived_field:{field_id}"]:
-            continue
-        _mark_stale(
-            state["derived_fields"][field_id],
-            "semantic_correction",
-            "SEMANTIC_STALE_DERIVED_FIELD",
-            derived,
-            derived_field_id=field_id,
-        )
-    for card_id in sorted(state["evidence_cards"]):
-        if not impacts[f"evidence_card:{card_id}"]:
-            continue
-        _mark_stale(
-            state["evidence_cards"][card_id],
-            "semantic_correction",
-            "SEMANTIC_STALE_EVIDENCE_CARD",
-            derived,
-            evidence_card_id=card_id,
-        )
-    for claim_id in sorted(state["claims"]):
-        if not impacts[f"claim_revision:{claim_id}"]:
-            continue
-        _mark_stale(
-            state["claims"][claim_id],
-            "semantic_correction",
-            "SEMANTIC_STALE_CLAIM",
-            derived,
-            claim_revision_id=claim_id,
-        )
-
-
-def _pipeline_cascade(registry: dict, state: dict, derived: list[dict]) -> None:
-    superseded = {
-        str(pipeline.get("pipeline_id"))
-        for pipeline in registry.get("pipelines", [])
-        if pipeline.get("status") == "superseded"
-    }
-    for claim_id, claim in state["claims"].items():
-        if str(claim.get("pipeline_id")) in superseded:
-            _mark_stale(
-                claim,
-                "pipeline_superseded",
-                "STALE_CLAIM",
-                derived,
-                claim_revision_id=claim_id,
-                pipeline_id=claim.get("pipeline_id"),
-            )
-    for figure_id, figure in state["reported_figures"].items():
-        if str(figure.get("pipeline_id")) in superseded:
-            _mark_stale(
-                figure,
-                "pipeline_superseded",
-                "STALE_REPORTED_FIGURE",
-                derived,
-                figure_id=figure_id,
-                pipeline_id=figure.get("pipeline_id"),
-            )
-    for output_id, output in state["outputs"].items():
-        # A reconciliation's historical quotations are not live bindings of
-        # the new output.  They remain stale themselves, but do not make the
-        # reconciliation artifact stale merely by being quoted as history.
-        referenced_pipelines = _output_pipelines(
-            output,
-            state,
-            include_historical=output.get("cross_pipeline") != "reconciliation",
-        )
-        if str(output.get("pipeline_id")) in superseded or referenced_pipelines & superseded:
-            _mark_stale(
-                output,
-                "pipeline_superseded",
-                "STALE_OUTPUT",
-                derived,
-                output_id=output_id,
-                pipeline_ids=sorted(referenced_pipelines & superseded),
-            )
 
 
 def _valid_revalidation(
@@ -1383,17 +1570,31 @@ def _valid_revalidation(
         and target["kind"] == "claim_revision"
         and record.get("result") != "not_revalidated"
     ):
-        comparison = record.get("comparison")
-        if not isinstance(comparison, dict) or not all(
-            isinstance(comparison.get(field), (int, float))
-            and not isinstance(comparison.get(field), bool)
-            and math.isfinite(float(comparison[field]))
-            for field in ("from_value", "to_value")
+        comparison = evidence.get("machine_comparison")
+        if not (
+            isinstance(comparison, dict)
+            and comparison.get("source", {}).get("pipeline_id")
+            == record.get("from_pipeline")
+            and comparison.get("destination", {}).get("pipeline_id")
+            == record.get("to_pipeline")
         ):
             blocking.append(_issue("REVALIDATION_COMPARISON_INVALID", target=target))
             return None
+        try:
+            from_value = _resolve_artifact_locator(registry, comparison["source"])
+            to_value = _resolve_artifact_locator(registry, comparison["destination"])
+        except ValueError as error:
+            blocking.append(
+                _issue(
+                    "REVALIDATION_SOURCE_INVALID",
+                    target=target,
+                    detail=str(error),
+                )
+            )
+            return None
+        resolved_value = {"from_value": from_value, "to_value": to_value}
         accepted = _tolerance_accepts(
-            comparison["from_value"], comparison["to_value"], str(record["tolerance"])
+            from_value, to_value, str(record["tolerance"])
         )
         expected_result = "revalidated" if accepted else "changed"
         if record.get("result") != expected_result:
@@ -1467,6 +1668,22 @@ def _resolve_figure_value(registry: dict, figure: dict, record: dict) -> Any:
         artifact_name = artifact_name.replace(
             str(record["from_pipeline"]), str(record["to_pipeline"]), 1
         )
+    locator: Any = figure.get("source_locator")
+    if isinstance(locator, dict):
+        locator = locator.get(record["to_pipeline"])
+    return _resolve_artifact_locator(
+        registry,
+        {"artifact": artifact_name, "locator": locator},
+    )
+
+
+def _resolve_artifact_locator(registry: dict, source: dict) -> float:
+    """Resolve one finite numeric value from an independent YAML/JSON artifact."""
+
+    artifact_name = source.get("artifact")
+    locator = source.get("locator")
+    if not _nonempty_string(artifact_name) or not _nonempty_string(locator):
+        raise ValueError("artifact and locator must be nonempty strings")
     artifact_path = Path(artifact_name)
     if not artifact_path.is_absolute():
         artifact_path = Path(registry.get("_root", ".")) / artifact_path
@@ -1477,11 +1694,6 @@ def _resolve_figure_value(registry: dict, figure: dict, record: dict) -> Any:
     except (OSError, yaml.YAMLError) as error:
         raise ValueError(f"destination source artifact is unreadable: {error}") from error
 
-    locator: Any = figure.get("source_locator")
-    if isinstance(locator, dict):
-        locator = locator.get(record["to_pipeline"])
-    if not isinstance(locator, str) or not locator:
-        raise ValueError("source_locator must be a dotted path or JSON pointer")
     parts = (
         [part.replace("~1", "/").replace("~0", "~") for part in locator.lstrip("/").split("/")]
         if locator.startswith("/")
@@ -1493,65 +1705,72 @@ def _resolve_figure_value(registry: dict, figure: dict, record: dict) -> Any:
             value = value[int(part)] if isinstance(value, list) else value[part]
     except (KeyError, IndexError, TypeError, ValueError) as error:
         raise ValueError(f"source_locator not found: {locator}") from error
-    if not isinstance(value, (int, float)) or isinstance(value, bool):
+    if (
+        not isinstance(value, (int, float))
+        or isinstance(value, bool)
+        or not math.isfinite(float(value))
+    ):
         raise ValueError("resolved reported figure must be numeric")
     return value
 
 
-def _revalidate(
+def _apply_revalidation_record(
     registry: dict,
     state: dict,
+    record: dict,
     blocking: list[dict],
     derived: list[dict],
 ) -> None:
-    for record in registry.get("revalidations", []):
-        validated = _valid_revalidation(registry, state, record, blocking)
-        if validated is None or record.get("result") != "revalidated":
-            continue
-        target = record["target"]
-        identifier = str(target["id"])
-        collection = "claims" if target["kind"] == "claim_revision" else "reported_figures"
-        item, resolved_value = validated
-        reasons = item.get("_stale_reasons", [])
-        if not reasons:
-            blocking.append(_issue("REVALIDATION_NOT_REQUIRED", target=target))
-            continue
-        if "semantic_correction" in reasons and record["method"] == "machine":
-            blocking.append(
-                _issue("MACHINE_REVALIDATION_FORBIDDEN", target=target)
-            )
-            continue
-        if target["kind"] == "reported_figure" and record["method"] == "machine":
-            item["value"] = resolved_value
-        if "semantic_correction" in reasons and record["method"] == "manual":
-            reasons.remove("semantic_correction")
-        if "pipeline_superseded" in reasons:
-            reasons.remove("pipeline_superseded")
-        item["pipeline_id"] = record["to_pipeline"]
-        item["revalidation"] = copy.deepcopy(record)
-        item["_validated_transition"] = {
-            "from_pipeline": record["from_pipeline"],
-            "to_pipeline": record["to_pipeline"],
-            "evidence_card": record["evidence_card"],
-            "performed_by": record["performed_by"],
-            "performed_at": record["performed_at"],
-        }
-        if not reasons:
-            if collection == "claims":
-                item["availability"] = item.pop("_declared_availability", "current")
-            else:
-                item["status"] = item.pop("_declared_status", "current")
-        derived.append(
-            _issue(
-                "REVALIDATED_CLAIM"
-                if collection == "claims"
-                else "REVALIDATED_REPORTED_FIGURE",
-                target=target,
-                from_pipeline=record["from_pipeline"],
-                to_pipeline=record["to_pipeline"],
-                assessment=item.get("assessment"),
-            )
+    """Apply one authenticated transition when its target is visited."""
+
+    validated = _valid_revalidation(registry, state, record, blocking)
+    if validated is None or record.get("result") != "revalidated":
+        return
+    target = record["target"]
+    collection = "claims" if target["kind"] == "claim_revision" else "reported_figures"
+    item, resolved_value = validated
+    reasons = item.get("_stale_reasons", [])
+    if not reasons:
+        blocking.append(_issue("REVALIDATION_NOT_REQUIRED", target=target))
+        return
+    if "semantic_correction" in reasons and record["method"] == "machine":
+        blocking.append(_issue("MACHINE_REVALIDATION_FORBIDDEN", target=target))
+        return
+    if target["kind"] == "reported_figure" and record["method"] == "machine":
+        item["value"] = resolved_value
+    if "semantic_correction" in reasons and record["method"] == "manual":
+        reasons.remove("semantic_correction")
+    if "pipeline_superseded" in reasons:
+        reasons.remove("pipeline_superseded")
+    item["pipeline_id"] = record["to_pipeline"]
+    attached_record = copy.deepcopy(record)
+    if target["kind"] == "claim_revision" and isinstance(resolved_value, dict):
+        attached_record.pop("comparison", None)
+        attached_record["resolved_comparison"] = copy.deepcopy(resolved_value)
+    item["revalidation"] = attached_record
+    item["_validated_transition"] = {
+        "from_pipeline": record["from_pipeline"],
+        "to_pipeline": record["to_pipeline"],
+        "evidence_card": record["evidence_card"],
+        "performed_by": record["performed_by"],
+        "performed_at": record["performed_at"],
+    }
+    if not reasons:
+        if collection == "claims":
+            item["availability"] = item.pop("_declared_availability", "current")
+        else:
+            item["status"] = item.pop("_declared_status", "current")
+    derived.append(
+        _issue(
+            "REVALIDATED_CLAIM"
+            if collection == "claims"
+            else "REVALIDATED_REPORTED_FIGURE",
+            target=target,
+            from_pipeline=record["from_pipeline"],
+            to_pipeline=record["to_pipeline"],
+            assessment=item.get("assessment"),
         )
+    )
 
 
 def _apply_transform(value: Any, transform: Any) -> float:
@@ -1570,97 +1789,207 @@ def _apply_transform(value: Any, transform: Any) -> float:
     raise ValueError("unsupported transform")
 
 
-def _recompute_figures(
+def _recompute_one_figure(
     state: dict,
-    order: list[str],
+    identifier: str,
     blocking: list[dict],
     derived: list[dict],
 ) -> None:
-    figures = state["reported_figures"]
-    for name in order:
-        if not name.startswith("reported_figure:"):
-            continue
-        identifier = name.split(":", 1)[1]
-        figure = figures[identifier]
-        if not figure.get("derived_from"):
-            continue
-        upstream = figures[str(figure["derived_from"])]
-        try:
-            recomputed = _apply_transform(upstream.get("value"), figure.get("transform"))
-        except ValueError as error:
-            blocking.append(
-                _issue(
-                    "REPORTED_FIGURE_TRANSFORM_INVALID",
-                    figure_id=identifier,
-                    detail=str(error),
-                )
+    figure = state["reported_figures"][identifier]
+    if not figure.get("derived_from"):
+        return
+    upstream = state["reported_figures"][str(figure["derived_from"])]
+    try:
+        recomputed = _apply_transform(upstream.get("value"), figure.get("transform"))
+    except ValueError as error:
+        blocking.append(
+            _issue(
+                "REPORTED_FIGURE_TRANSFORM_INVALID",
+                figure_id=identifier,
+                detail=str(error),
             )
-            continue
-        old_value = figure.get("value")
-        old_pipeline = figure.get("pipeline_id")
-        figure["value"] = recomputed
-        transition = upstream.get("_validated_transition")
-        if transition and str(old_pipeline) == str(transition["from_pipeline"]):
-            figure["pipeline_id"] = transition["to_pipeline"]
-            reasons = figure.setdefault("_stale_reasons", [])
-            if "pipeline_superseded" in reasons:
-                reasons.remove("pipeline_superseded")
-            figure["revalidation"] = {
-                "derived_from": upstream.get("figure_id"),
-                "upstream_revalidation": copy.deepcopy(upstream.get("revalidation")),
-            }
-            figure["_validated_transition"] = copy.deepcopy(transition)
-            if not reasons:
-                figure["status"] = figure.get("_declared_status", "current")
-        if old_value != recomputed or old_pipeline != figure.get("pipeline_id"):
-            derived.append(
-                _issue(
-                    "RECOMPUTED_REPORTED_FIGURE",
-                    figure_id=identifier,
-                    old_value=old_value,
-                    value=recomputed,
-                    pipeline_id=figure.get("pipeline_id"),
-                )
+        )
+        return
+    old_value = figure.get("value")
+    old_pipeline = figure.get("pipeline_id")
+    figure["value"] = recomputed
+    transition = upstream.get("_validated_transition")
+    if transition and str(old_pipeline) == str(transition["from_pipeline"]):
+        figure["pipeline_id"] = transition["to_pipeline"]
+        reasons = figure.setdefault("_stale_reasons", [])
+        if "pipeline_superseded" in reasons:
+            reasons.remove("pipeline_superseded")
+        figure["revalidation"] = {
+            "derived_from": upstream.get("figure_id"),
+            "upstream_revalidation": copy.deepcopy(upstream.get("revalidation")),
+        }
+        figure["_validated_transition"] = copy.deepcopy(transition)
+        if not reasons:
+            figure["status"] = figure.get("_declared_status", "current")
+    if old_value != recomputed or old_pipeline != figure.get("pipeline_id"):
+        derived.append(
+            _issue(
+                "RECOMPUTED_REPORTED_FIGURE",
+                figure_id=identifier,
+                old_value=old_value,
+                value=recomputed,
+                pipeline_id=figure.get("pipeline_id"),
             )
+        )
 
 
-def _challenge_cascade(
+def _evaluate_dependency_cascade(
     registry: dict,
     state: dict,
+    corrected_fact_keys: set[str],
     reports: list[dict],
     order: list[str],
     outgoing: dict[str, set[str]],
+    blocking: list[dict],
     derived: list[dict],
 ) -> dict[str, set[str]]:
-    seeds: dict[str, set[str]] = defaultdict(set)
+    """Evaluate stale, transitions, figures, and challenges in one DAG walk."""
+
+    semantic_events: list[dict] = []
+    pipeline_events: list[dict] = []
+    revalidation_events: list[dict] = []
+    recompute_events: list[dict] = []
+    challenge_events: list[dict] = []
+    semantic_reasons: dict[str, set[str]] = defaultdict(set)
+    challenge_reasons: dict[str, set[str]] = defaultdict(set)
+    for fact_key in corrected_fact_keys:
+        semantic_reasons[f"semantic_fact:{fact_key}"].add("semantic_correction")
     for field in registry["derived_fields"]:
         if field.get("status") == "defective":
             identifier = str(field["derived_field_id"])
-            seeds[f"derived_field:{identifier}"].add(f"defective:{identifier}")
+            challenge_reasons[f"derived_field:{identifier}"].add(
+                f"defective:{identifier}"
+            )
     for item in reports:
         if item.get("code") == "SEMANTIC_DISCLOSURE_REQUIRED":
             fact_key = str(item["fact_key"])
-            seeds[f"semantic_fact:{fact_key}"].add(f"semantic-change:{fact_key}")
-    propagated = _propagate_reasons(order, outgoing, seeds)
+            challenge_reasons[f"semantic_fact:{fact_key}"].add(
+                f"semantic-change:{fact_key}"
+            )
+
+    superseded = {
+        str(pipeline.get("pipeline_id"))
+        for pipeline in registry["pipelines"]
+        if pipeline.get("status") == "superseded"
+    }
+    for output_id, output in state["outputs"].items():
+        referenced_pipelines = _output_pipelines(
+            output,
+            state,
+            include_historical=output.get("cross_pipeline") != "reconciliation",
+        )
+        if (
+            str(output.get("pipeline_id")) in superseded
+            or referenced_pipelines & superseded
+        ):
+            _mark_stale(
+                output,
+                "pipeline_superseded",
+                "STALE_OUTPUT",
+                pipeline_events,
+                output_id=output_id,
+                pipeline_ids=sorted(referenced_pipelines & superseded),
+            )
+
+    revalidations = {
+        f"{record['target']['kind']}:{record['target']['id']}": record
+        for record in registry["revalidations"]
+    }
     challenged: dict[str, set[str]] = defaultdict(set)
-    for claim_id, claim in state["claims"].items():
-        if claim.get("availability") == "stale":
-            continue
-        challenge_ids = propagated[f"claim_revision:{claim_id}"]
-        challenged[claim_id].update(challenge_ids)
-        for challenge_id in sorted(challenge_ids):
-            code = (
-                "DEFECTIVE_FIELD_CHALLENGE"
-                if challenge_id.startswith("defective:")
-                else "SEMANTIC_CHANGE_CHALLENGE"
-            )
-            derived.append(
-                _issue(
-                    code,
-                    claim_revision_id=claim_id,
-                    challenge_id=challenge_id,
+    for name in order:
+        kind, identifier = name.split(":", 1)
+        if semantic_reasons[name]:
+            if kind == "derived_field":
+                _mark_stale(
+                    state["derived_fields"][identifier],
+                    "semantic_correction",
+                    "SEMANTIC_STALE_DERIVED_FIELD",
+                    semantic_events,
+                    derived_field_id=identifier,
                 )
+            elif kind == "evidence_card":
+                _mark_stale(
+                    state["evidence_cards"][identifier],
+                    "semantic_correction",
+                    "SEMANTIC_STALE_EVIDENCE_CARD",
+                    semantic_events,
+                    evidence_card_id=identifier,
+                )
+            elif kind == "claim_revision":
+                _mark_stale(
+                    state["claims"][identifier],
+                    "semantic_correction",
+                    "SEMANTIC_STALE_CLAIM",
+                    semantic_events,
+                    claim_revision_id=identifier,
+                )
+
+        if kind == "claim_revision":
+            claim = state["claims"][identifier]
+            if str(claim.get("pipeline_id")) in superseded:
+                _mark_stale(
+                    claim,
+                    "pipeline_superseded",
+                    "STALE_CLAIM",
+                    pipeline_events,
+                    claim_revision_id=identifier,
+                    pipeline_id=claim.get("pipeline_id"),
+                )
+        elif kind == "reported_figure":
+            figure = state["reported_figures"][identifier]
+            if str(figure.get("pipeline_id")) in superseded:
+                _mark_stale(
+                    figure,
+                    "pipeline_superseded",
+                    "STALE_REPORTED_FIGURE",
+                    pipeline_events,
+                    figure_id=identifier,
+                    pipeline_id=figure.get("pipeline_id"),
+                )
+
+        record = revalidations.get(name)
+        if record:
+            _apply_revalidation_record(
+                registry,
+                state,
+                record,
+                blocking,
+                revalidation_events,
             )
+        if kind == "reported_figure":
+            _recompute_one_figure(
+                state, identifier, blocking, recompute_events
+            )
+        elif kind == "claim_revision":
+            claim = state["claims"][identifier]
+            if claim.get("availability") != "stale":
+                challenged[identifier].update(challenge_reasons[name])
+                for challenge_id in sorted(challenge_reasons[name]):
+                    challenge_events.append(
+                        _issue(
+                            "DEFECTIVE_FIELD_CHALLENGE"
+                            if challenge_id.startswith("defective:")
+                            else "SEMANTIC_CHANGE_CHALLENGE",
+                            claim_revision_id=identifier,
+                            challenge_id=challenge_id,
+                        )
+                    )
+
+        for destination in outgoing[name]:
+            semantic_reasons[destination].update(semantic_reasons[name])
+            challenge_reasons[destination].update(challenge_reasons[name])
+
+    _refresh_outputs_after_revalidation(state, revalidation_events)
+    derived.extend(semantic_events)
+    derived.extend(pipeline_events)
+    derived.extend(revalidation_events)
+    derived.extend(recompute_events)
+    derived.extend(challenge_events)
     return challenged
 
 
@@ -1672,9 +2001,35 @@ def _gate_scope_matches(definition: dict, evaluation: dict) -> bool:
             continue
         target_id = str(target["id"])
         evaluated_id = str(evaluated["id"])
-        if evaluated_id == target_id or evaluated_id == f"{target_id}@{pipeline_id}":
+        if target["kind"] == "claim_key" and evaluated_id in {
+            target_id,
+            f"{target_id}@{pipeline_id}",
+        }:
+            return True
+        if target["kind"] in {"dataset", "pipeline_stage"} and evaluated_id == (
+            f"{target_id}@{pipeline_id}"
+        ):
             return True
     return False
+
+
+def _gate_target_instance_exists(
+    registry: dict, state: dict, definition: dict, evaluation: dict
+) -> bool:
+    """Resolve the frozen target to a concrete instance on this pipeline."""
+
+    evaluated = evaluation["evaluated_against"]
+    pipeline_id = str(evaluation["pipeline_id"])
+    if evaluated["kind"] in {"dataset", "pipeline_stage"}:
+        return _gate_scope_matches(definition, evaluation)
+    target_id = str(evaluated["id"]).removesuffix(f"@{pipeline_id}")
+    authored_claims = registry.get("claims", [])
+    current_claims = state["claims"].values()
+    return any(
+        str(claim.get("claim_key")) == target_id
+        and str(claim.get("pipeline_id")) == pipeline_id
+        for claim in [*authored_claims, *current_claims]
+    )
 
 
 def _change_matches_gate(change: dict, definition: dict, pipeline_id: str) -> bool:
@@ -1745,6 +2100,17 @@ def _gate_checks(
             blocking.append(
                 _issue(
                     "GATE_SCOPE_MISMATCH",
+                    gate_id=gate_id,
+                    pipeline_id=pipeline_id,
+                    evaluated_against=evaluation.get("evaluated_against"),
+                )
+            )
+        elif not _gate_target_instance_exists(
+            registry, state, definition, evaluation
+        ):
+            blocking.append(
+                _issue(
+                    "GATE_TARGET_INSTANCE_MISSING",
                     gate_id=gate_id,
                     pipeline_id=pipeline_id,
                     evaluated_against=evaluation.get("evaluated_against"),
@@ -2265,19 +2631,22 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
             "state": _initial_state(registry),
         }
     corrected_fact_keys = _semantic_checks(registry, blocking, reports)
+    _identity_cycle_checks(registry, blocking)
     order, outgoing = _dependency_topology(registry, blocking)
     state = _initial_state(registry)
 
     # Contractual cascade order: semantics, pipelines, challenges, moot gates,
     # live-support assessment, then publication. Revalidation is an authored
     # action applied after stale derivation and before downstream recomputation.
-    _semantic_cascade(state, corrected_fact_keys, order, outgoing, derived)
-    _pipeline_cascade(registry, state, derived)
-    _revalidate(registry, state, blocking, derived)
-    _recompute_figures(state, order, blocking, derived)
-    _refresh_outputs_after_revalidation(state, derived)
-    derived_challenges = _challenge_cascade(
-        registry, state, reports, order, outgoing, derived
+    derived_challenges = _evaluate_dependency_cascade(
+        registry,
+        state,
+        corrected_fact_keys,
+        reports,
+        order,
+        outgoing,
+        blocking,
+        derived,
     )
     _gate_checks(registry, state, checkpoint, blocking, reports, derived)
     _applicability_checks(registry, blocking)

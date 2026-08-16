@@ -11,3 +11,12 @@ evidence_cards:
     status: current
     depends_on:
       - {kind: raw_field, id: outcome}
+    machine_comparison:
+      source:
+        pipeline_id: p1
+        artifact: comparison/p1.yaml
+        locator: estimate
+      destination:
+        pipeline_id: p2
+        artifact: comparison/p2.yaml
+        locator: estimate

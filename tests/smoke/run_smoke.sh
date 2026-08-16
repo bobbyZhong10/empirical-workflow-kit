@@ -81,6 +81,10 @@ assert claim["availability"] == "current"
 assert claim["assessment"] == "supported"
 assert claim["pipeline_id"] == "p2"
 assert claim["revalidation"]["evidence_card"] == "EC-2"
+assert claim["revalidation"]["resolved_comparison"] == {
+    "from_value": 2.0,
+    "to_value": 2.005,
+}
 assert payload["state"]["evidence_cards"]["EC-2"]["pipeline_id"] == "p2"
 PY
 

@@ -5,3 +5,12 @@ evidence_cards:
     status: current
     depends_on:
       - {kind: derived_field, id: outcome_scaled}
+    machine_comparison:
+      source:
+        pipeline_id: p1
+        artifact: comparison/p1.yaml
+        locator: estimate
+      destination:
+        pipeline_id: p1
+        artifact: comparison/p1.yaml
+        locator: estimate
