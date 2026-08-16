@@ -3121,13 +3121,34 @@ def _gate_checks(
                         _issue("GATE_RELEASED", gate_id=gate_id, pipeline_id=pipeline_id)
                     )
         elif status == "inapplicable":
-            required = ("applicability_reason", "declared_by", "accepted_by")
-            if not all(evaluation.get(field) for field in required):
+            # An override needs the same evidentiary shape as a release, and it
+            # needs two people. Otherwise it is the cheapest way to make a
+            # declared gate disappear.
+            required = (
+                "applicability_reason",
+                "declared_by",
+                "accepted_by",
+                "evidence_card",
+            )
+            missing = [field for field in required if not evaluation.get(field)]
+            same_hand = (
+                not missing
+                and str(evaluation.get("declared_by"))
+                == str(evaluation.get("accepted_by"))
+            )
+            if missing or same_hand:
                 blocking.append(
                     _issue(
                         "GATE_INAPPLICABLE_INCOMPLETE",
                         gate_id=gate_id,
                         pipeline_id=pipeline_id,
+                        missing=missing,
+                        detail=(
+                            "declared_by and accepted_by must be different"
+                            if same_hand
+                            else "an inapplicable gate requires a recorded reason, "
+                            "two authorities, and supporting evidence"
+                        ),
                     )
                 )
             else:
@@ -3678,12 +3699,36 @@ def _anchor_text(
     if source.suffix.lower() == ".tex":
         anchored_text = _strip_tex_comment(anchored_text)
     visible = anchored_text.strip()
-    if re.search(r"[A-Za-z]", visible):
-        return visible, line_number, line_number
-    for next_index in range(line_number, len(lines)):
-        if lines[next_index].strip():
-            return lines[next_index], line_number, next_index + 1
-    raise ValueError("stable marker has no assertion text")
+    if not re.search(r"[A-Za-z]", visible):
+        for next_index in range(line_number, len(lines)):
+            if lines[next_index].strip():
+                line_number = next_index + 1
+                visible = lines[next_index].strip()
+                break
+        else:
+            raise ValueError("stable marker has no assertion text")
+    # A sentence that is hard wrapped is still one sentence. Reading only the
+    # marker's line would let a line break hide the half of the sentence that
+    # carries the commitment, which is the default way LaTeX is written.
+    end_line = line_number
+    while not re.search(r"[.!?](?:\s*[)\]}\"']*)?$", visible.rstrip()):
+        if end_line >= len(lines):
+            raise ValueError(
+                "anchored sentence is unterminated: no sentence end before the "
+                "end of the source"
+            )
+        following = lines[end_line]
+        if not following.strip():
+            raise ValueError(
+                "anchored sentence is unterminated: a blank line ends the "
+                "paragraph before the sentence ends"
+            )
+        continuation = following
+        if source.suffix.lower() == ".tex":
+            continuation = _strip_tex_comment(continuation)
+        end_line += 1
+        visible = f"{visible} {continuation.strip()}".strip()
+    return visible, line_number, end_line
 
 
 def _resolved_assertion_site(
@@ -3933,6 +3978,11 @@ def _claim_evidence_strength(
     elif "released" in relevant_gate_statuses:
         strength = min(strength, 2)
         reasons.append("applicable_gate_released")
+    elif "inapplicable" in relevant_gate_statuses:
+        # Declaring a gate inapplicable is an override, not a pass. Scoring it
+        # as passed made the cheap path outrank the documented release path.
+        strength = min(strength, 2)
+        reasons.append("applicable_gate_declared_inapplicable")
     elif "satisfied" in relevant_gate_statuses:
         strength = min(strength, 3)
         reasons.append("applicable_gate_compensated")
@@ -3943,6 +3993,11 @@ def _claim_evidence_strength(
     if not precision_reference_valid:
         strength = 0
         reasons.append("precision_evidence_invalid")
+    elif precision_evidence is None:
+        # Deleting the pointer must not license a stronger claim than naming an
+        # honest but exploratory estimate does.
+        strength = min(strength, 1)
+        reasons.append("precision_evidence_unnamed")
     elif precision_evidence is not None:
         if precision_evidence.get("provenance") != "confirmatory":
             strength = min(strength, 1)
@@ -4371,6 +4426,7 @@ def _writing_strength_checks(
                 )
                 residual = lexical_strength - evidence_strength
                 site_state["_evidence_strength"] = evidence_strength
+                site_state["_evidence_basis"] = evidence_basis
                 site_state["_overclaim_residual"] = residual
                 details = {
                     **identity,

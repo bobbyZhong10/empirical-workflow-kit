@@ -4045,3 +4045,151 @@ def test_scaffold_figures_reads_values_from_the_artifact(tmp_path):
     stub = figures(root, "results/p1.json", "p1")
     assert "source_locator: estimate" in stub
     assert "value: 2.0" in stub
+
+
+def test_hard_wrapped_sentence_is_read_to_its_end(tmp_path):
+    """A line break must not hide the half of a sentence that commits.
+
+    Hard wrapping is how LaTeX is ordinarily written, so reading only the
+    marker's line misled honest authors rather than only enabling motivated
+    ones: the scanned text was "The program is", which scores as descriptive.
+    """
+
+    registry = base_registry()
+    _add_challenge(registry, "ER-W1", "EC-W1")
+    registry["claims"]["claims"][0]["challenge_disclosures"] = [
+        {
+            "challenge_id": "ER-W1",
+            "paper_location": "paper/results.md#ER-C1",
+            "adjacent": True,
+        }
+    ]
+    report = write_assertion_registry(
+        tmp_path / "wrapped",
+        [assertion_site("wrapped", section_role="results", declared_tier="T0")],
+        "<!-- wrapped --> The program\n"
+        "increases earnings substantially.\n",
+        registry,
+    )
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    # The commitment lives on the second physical line.
+    assert "increase" in site_state["_matched_lexical_classes"].get("causal", [])
+    assert site_state["_lexical_strength"] == 4
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
+
+
+def test_unterminated_anchored_sentence_is_rejected(tmp_path):
+    report = write_assertion_registry(
+        tmp_path / "unterminated",
+        [assertion_site("dangling", section_role="results", declared_tier="T0")],
+        "<!-- dangling --> The program increases earnings\n\nA new paragraph.\n",
+        base_registry(),
+    )
+    assert "ASSERTION_ANCHOR_INVALID" in codes(report, "blocking")
+
+
+def test_omitting_the_estimate_reference_cannot_outscore_naming_one(tmp_path):
+    """Deleting information must not license a stronger claim."""
+
+    named = write_assertion_registry(
+        tmp_path / "named",
+        [assertion_site("named", section_role="results", declared_tier="T0")],
+        "<!-- named --> Treatment increases retention.\n",
+        base_registry(),
+    )
+    named_site = named["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+
+    omitted = write_assertion_registry(
+        tmp_path / "omitted",
+        [
+            assertion_site(
+                "omitted",
+                section_role="results",
+                declared_tier="T0",
+                estimate_id=None,
+            )
+        ],
+        "<!-- omitted --> Treatment increases retention.\n",
+        base_registry(),
+    )
+    omitted_site = omitted["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+
+    assert omitted_site["_evidence_strength"] < named_site["_evidence_strength"]
+    assert "OVERCLAIM_RESIDUAL" in codes(omitted, "blocking")
+
+
+def _gate_registry(registry, status, **evaluation_fields):
+    registry["gates"]["gate_definitions"] = [
+        {
+            "gate_id": "G-9",
+            "applies_to": [{"kind": "claim_key", "id": "H1"}],
+            "metric": "pretrend_deviation",
+            "allowed_band": "[-0.03, 0.03]",
+            "failure_policy": "STOP",
+            "declared_at": "2025-01-01T00:00:00Z",
+            "declared_by": "principal",
+            "frozen": True,
+            "compensation": {
+                "action": "Narrow the claim.",
+                "required_artifact": "evidence/gates/G-9.md",
+            },
+        }
+    ]
+    registry["gates"]["gate_evaluations"] = [
+        {
+            "gate_id": "G-9",
+            "pipeline_id": "p1",
+            "evaluated_against": {"kind": "claim_key", "id": "H1"},
+            "status": status,
+            "coverage": {
+                "declared_scope": "all pre-weeks",
+                "evaluated_scope": "all pre-weeks",
+                "complete": True,
+            },
+            "evidence_card": "EC-1",
+            **evaluation_fields,
+        }
+    ]
+    return registry
+
+
+def test_inapplicable_gate_needs_two_authorities_and_evidence(tmp_path):
+    registry = _gate_registry(
+        base_registry(),
+        "inapplicable",
+        applicability_reason="The panel is not in scope.",
+        declared_by="analyst",
+        accepted_by="analyst",
+    )
+    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    incomplete = [
+        item
+        for item in report["blocking"]
+        if item["code"] == "GATE_INAPPLICABLE_INCOMPLETE"
+    ]
+    assert incomplete
+    assert "must be different" in incomplete[0]["detail"]
+
+
+def test_inapplicable_gate_does_not_score_as_a_passed_gate(tmp_path):
+    """The cheap override must not outrank the documented one."""
+
+    registry = _gate_registry(
+        base_registry(),
+        "inapplicable",
+        applicability_reason="The panel is not in scope.",
+        declared_by="analyst",
+        accepted_by="principal",
+    )
+    registry["claims"]["claims"][0]["assertion_sites"] = [
+        assertion_site("gated", section_role="results", declared_tier="T0")
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "assertions.md").write_text(
+        "<!-- gated --> Treatment increases retention.\n", encoding="utf-8"
+    )
+    report = validate_registry(load_registry(root), "C")
+    site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
+    assert "applicable_gate_declared_inapplicable" in site_state["_evidence_basis"]
+    assert site_state["_evidence_strength"] <= 2
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
