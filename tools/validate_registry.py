@@ -170,6 +170,13 @@ ALLOWED = {
 # nothing was measured.
 UNEVALUATED_GATE_STATUSES = {"released", "moot", "inapplicable"}
 
+# What was done about a gate that fired. `deferred` is the honest word for
+# "we named the right remedy and did not carry it out", and it used to hide
+# inside a prose compensation record that read like completed work. A STOP gate
+# closed on a deferred remedy is not compensated; it is outstanding, and a
+# submission is the wrong place to say so quietly.
+COMPENSATION_DISPOSITIONS = {"taken", "carried", "deferred", "not_required"}
+
 # A claim can be warranted by a derivation rather than by an estimate, and the
 # card vocabulary had nowhere to put one: every route to `supported` ran through
 # a confirmatory card, which is shaped around an artifact of numbers. An
@@ -3939,6 +3946,33 @@ def _gate_checks(
                 _issue("GATE_NOT_EVALUATED", gate_id=gate_id, pipeline_id=pipeline_id)
             )
         elif status == "satisfied":
+            disposition = evaluation.get("compensation_disposition")
+            if disposition is not None and disposition not in COMPENSATION_DISPOSITIONS:
+                blocking.append(
+                    _issue(
+                        "GATE_COMPENSATION_DISPOSITION_INVALID",
+                        gate_id=gate_id,
+                        pipeline_id=pipeline_id,
+                        disposition=disposition,
+                        allowed=sorted(COMPENSATION_DISPOSITIONS),
+                    )
+                )
+            elif disposition == "deferred":
+                policy = definition.get("failure_policy")
+                issue = _issue(
+                    "GATE_COMPENSATION_DEFERRED",
+                    gate_id=gate_id,
+                    pipeline_id=pipeline_id,
+                    failure_policy=policy,
+                    detail=(
+                        "the remedy this gate names has not been carried out; a "
+                        "STOP gate closed on a deferred remedy is outstanding, "
+                        "not compensated"
+                    ),
+                )
+                # This branch runs at Checkpoint C only, which is where a
+                # submission is decided. A WARN gate reports; a STOP gate blocks.
+                (blocking if policy == "STOP" else reports).append(issue)
             compensation_artifact = evaluation.get("compensation_artifact")
             required_artifact = definition.get("compensation", {}).get(
                 "required_artifact"
@@ -6433,6 +6467,25 @@ TABLE_SUFFIXES = (".csv", ".md")
 PDF_SUFFIX = ".pdf"
 
 
+# A table or a figure is whatever the paper labels and points a reader at. The
+# environment it is wrapped in is a house-style choice: `\begin{table}` in one
+# journal, `\captionof{table}` inside a centred end-matter block in another.
+EXHIBIT_LABEL = re.compile(r"\\label\{(tab|table|fig|figure):([^{}]+)\}", re.IGNORECASE)
+
+
+def _labelled_exhibits(sources: dict) -> dict[str, set[str]]:
+    found: dict[str, set[str]] = {"tables": set(), "figures": set()}
+    for source in sources:
+        try:
+            body = source.read_text(encoding="utf-8")
+        except (OSError, UnicodeError):
+            continue
+        for kind, name in EXHIBIT_LABEL.findall(body):
+            bucket = "tables" if kind.lower().startswith("tab") else "figures"
+            found[bucket].add(f"{kind.lower()}:{name.strip()}")
+    return found
+
+
 def _output_layout_checks(
     registry: dict, state: dict, blocking: list[dict], reports: list[dict]
 ) -> None:
@@ -6522,35 +6575,63 @@ def _output_layout_checks(
             )
         )
 
-    # How many tables the manuscript typesets. A table the paper shows and the
-    # result directory does not carry is the failure this counts.
-    typeset = 0
-    for source in _manuscript_sources(registry, state):
-        try:
-            body = source.read_text(encoding="utf-8")
-        except (OSError, UnicodeError):
-            continue
-        typeset += len(re.findall(r"\\begin\{table\}", body))
-    if typeset and tables < typeset:
+    # What the paper displays, taken from its labels rather than from one
+    # environment name. Counting `\begin{table}` missed every paper that
+    # follows the end-matter convention and writes `\captionof{table}` inside a
+    # centred block, which is the house style of several management journals: a
+    # paper with three tables reported as having none, and an export
+    # requirement satisfied by exporting nothing. A label is what `\ref`
+    # resolves and what a reader is pointed at, so it is the thing to count.
+    exhibits = _labelled_exhibits(_manuscript_sources(registry, state))
+    exported = {
+        item.stem.lower()
+        for item in (result.rglob("*") if result.is_dir() else ())
+        if item.is_file()
+    }
+
+    def _unexported(labels: set[str], suffixes: tuple[str, ...]) -> list[str]:
+        missing = []
+        for label in sorted(labels):
+            name = label.split(":", 1)[-1].strip().lower()
+            if not any(
+                name in stem
+                for stem in exported
+                if any(
+                    (result / f"{stem}{suffix}").exists() for suffix in suffixes
+                )
+            ):
+                missing.append(label)
+        return missing
+
+    for label in _unexported(exhibits["tables"], TABLE_SUFFIXES):
         blocking.append(
             _issue(
-                "OUTPUT_TABLE_EXPORT_INCOMPLETE",
+                "OUTPUT_TABLE_EXPORT_MISSING",
+                label=label,
                 path=f"{OUTPUT_ROOT}/result",
-                typeset_tables=typeset,
-                exported_tables=tables,
                 detail=(
                     "every table the paper shows needs a CSV or markdown export "
-                    "a reader can open without LaTeX"
+                    "a reader can open without LaTeX, named after its label"
                 ),
+            )
+        )
+    for label in _unexported(exhibits["figures"], FIGURE_SUFFIXES):
+        blocking.append(
+            _issue(
+                "OUTPUT_FIGURE_EXPORT_MISSING",
+                label=label,
+                path=f"{OUTPUT_ROOT}/result",
+                detail="every figure the paper shows needs a PNG, named after its label",
             )
         )
     reports.append(
         _issue(
             "OUTPUT_DELIVERY",
             root=OUTPUT_ROOT,
-            figures=figures,
-            tables=tables,
-            typeset_tables=typeset,
+            exported_figures=figures,
+            exported_tables=tables,
+            displayed_tables=len(exhibits["tables"]),
+            displayed_figures=len(exhibits["figures"]),
             pdf=compiled,
         )
     )

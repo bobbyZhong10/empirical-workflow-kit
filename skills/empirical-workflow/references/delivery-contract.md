@@ -22,8 +22,9 @@ output/
 
 Checkpoint C blocks on it. The codes are `OUTPUT_ROOT_MISSING`,
 `OUTPUT_DIRECTORY_MISSING`, `OUTPUT_DIRECTORY_EMPTY`,
-`OUTPUT_DATA_NOTE_MISSING`, `OUTPUT_PDF_MISSING` and
-`OUTPUT_TABLE_EXPORT_INCOMPLETE`, with `OUTPUT_DELIVERY` as the summary report.
+`OUTPUT_DATA_NOTE_MISSING`, `OUTPUT_PDF_MISSING`,
+`OUTPUT_TABLE_EXPORT_MISSING` and `OUTPUT_FIGURE_EXPORT_MISSING`, with
+`OUTPUT_DELIVERY` as the summary report.
 
 ## `output/data`
 
@@ -68,9 +69,19 @@ is obvious.
 
 The rule is not about formats; it is about who can check the work. A reader who
 has to install a LaTeX distribution to see your table will not see your table.
-`OUTPUT_TABLE_EXPORT_INCOMPLETE` counts `\begin{table}` in the manuscript
-sources and compares it to the number of exports, so a table added late without
-its export is caught.
+
+**Name each export after the label of its exhibit.** The check reads
+`\label{tab:...}` and `\label{fig:...}` from the manuscript sources and looks
+for an export whose filename contains the label. It counts labels rather than
+environments because the environment is a house-style choice: several management
+journals put tables after the conclusion in a centred block with
+`\captionof{table}`, and an earlier version of this check counted
+`\begin{table}`, so a paper written that way reported zero tables and satisfied
+the export requirement by exporting nothing. A label is what `\ref` resolves
+and what the reader is sent to, so a label is what gets counted.
+
+`OUTPUT_TABLE_EXPORT_MISSING` and `OUTPUT_FIGURE_EXPORT_MISSING` name the
+specific label that has no export, so a table added late is caught by name.
 
 Generate these from the same script that generates what the paper embeds.
 Exporting by hand afterwards is how the two versions come to disagree.

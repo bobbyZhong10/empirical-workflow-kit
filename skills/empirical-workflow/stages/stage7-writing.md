@@ -13,6 +13,12 @@
 
 ## Automatic actions
 
+- A gate that fired records what was actually done about it.
+  `compensation_disposition` takes `taken`, `carried`, `deferred` or
+  `not_required`, and `deferred` on a STOP gate blocks at Checkpoint C. Naming
+  the right remedy in a compensation record reads, in prose, like completed
+  work; it is not. If the remedy is a sensitivity analysis, run a version of it
+  and report the bounds, or say in the disposition field that it is outstanding.
 - Read `references/writing-standards.md` first. Six to eight sections; no em
   dash, no contraction, no possessive on a named thing, no cross-reference
   parked in parentheses. Policy text, prices, dates, company statements and

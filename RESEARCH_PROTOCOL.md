@@ -140,9 +140,11 @@ Three rules govern it:
    carries a raster a reader can open.
 
 The validator reports `OUTPUT_ROOT_MISSING`, `OUTPUT_DIRECTORY_MISSING`,
-`OUTPUT_DIRECTORY_EMPTY`, `OUTPUT_DATA_NOTE_MISSING`, `OUTPUT_PDF_MISSING` and
-`OUTPUT_TABLE_EXPORT_INCOMPLETE` against this contract, and `OUTPUT_DELIVERY`
-as the summary.
+`OUTPUT_DIRECTORY_EMPTY`, `OUTPUT_DATA_NOTE_MISSING`, `OUTPUT_PDF_MISSING`,
+`OUTPUT_TABLE_EXPORT_MISSING` and `OUTPUT_FIGURE_EXPORT_MISSING` against this
+contract, and `OUTPUT_DELIVERY` as the summary. Exhibits are counted by their
+`\label`, not by the environment they are wrapped in, so the end-matter
+convention some journals use is handled.
 
 ## Evidence records
 

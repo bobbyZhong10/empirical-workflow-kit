@@ -4297,22 +4297,106 @@ def test_delivered_data_needs_a_note_saying_how_it_was_assembled(tmp_path):
     assert "OUTPUT_DATA_NOTE_MISSING" in codes(report, "blocking")
 
 
-def test_every_typeset_table_needs_an_export_a_reader_can_open(tmp_path):
+def test_a_deferred_remedy_is_not_a_compensated_gate(tmp_path):
+    """Naming the right remedy is not carrying it out.
+
+    A compensation record that says "the formal procedure is the natural next
+    step and is not attempted here" reads, in prose, like completed work. On a
+    STOP gate it is an outstanding failure, and a submission is the wrong place
+    to say so quietly.
+    """
+
+    registry = copy.deepcopy(base_registry())
+    evaluation = registry["gates"]["gate_evaluations"][0]
+    evaluation.update(
+        {
+            "status": "satisfied",
+            "compensation_disposition": "deferred",
+            "compensation_artifact": "evidence/gates/G-1.md",
+            "accepted_by": "authority",
+            "accepted_at": "2026-03-01T00:00:00Z",
+        }
+    )
+
+    def _write() -> Path:
+        root = write_registry(tmp_path, registry)
+        artifact = root / "evidence" / "gates" / "G-1.md"
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text("Compensation.\n", encoding="utf-8")
+        return root
+
+    root = _write()
+
+    at_c = validate_registry(load_registry(root), "C")
+    assert "GATE_COMPENSATION_DEFERRED" in codes(at_c, "blocking")
+    # Construction does not judge it: the work may still be ahead of you.
+    at_b = validate_registry(load_registry(root), "B")
+    assert "GATE_COMPENSATION_DEFERRED" not in codes(at_b, "blocking")
+
+    evaluation["compensation_disposition"] = "taken"
+    root = _write()
+    taken = validate_registry(load_registry(root), "C")
+    assert "GATE_COMPENSATION_DEFERRED" not in codes(taken, "blocking")
+
+    evaluation["compensation_disposition"] = "we will get to it"
+    root = _write()
+    invalid = validate_registry(load_registry(root), "C")
+    assert "GATE_COMPENSATION_DISPOSITION_INVALID" in codes(invalid, "blocking")
+
+
+def test_an_exhibit_is_counted_by_its_label_not_by_its_environment(tmp_path):
+    """Counting `\\begin{table}` missed a whole house style.
+
+    Several management journals put tables after the conclusion, in a centred
+    block with `\\captionof{table}`. A paper written that way reported zero
+    tables, so the export requirement was satisfied by exporting nothing. The
+    label is what `\\ref` resolves and what the reader is sent to, so the label
+    is what gets counted.
+    """
+
     registry = copy.deepcopy(base_registry())
     registry["outputs"]["outputs"][0]["manuscript_sources"] = ["paper/manuscript.tex"]
     root = write_registry(tmp_path, registry)
     (root / "paper" / "manuscript.tex").write_text(
-        MANUSCRIPT + "\n\\begin{table}\n\\end{table}\n", encoding="utf-8"
+        MANUSCRIPT
+        + "\n\\captionof{table}{Summary statistics}\\label{tab:sumstats}\n"
+        + "\n\\begin{table}\\label{tab:main}\\end{table}\n"
+        + "\n\\captionof{figure}{Event study}\\label{fig:event}\n",
+        encoding="utf-8",
     )
     output = root / "output"
     for name in ("data", "code", "result", "LaTeX"):
         (output / name).mkdir(parents=True, exist_ok=True)
     (output / "data" / "README.md").write_text("merge note\n", encoding="utf-8")
     (output / "code" / "01.R").write_text("# code\n", encoding="utf-8")
-    (output / "result" / "fig.png").write_bytes(b"\x89PNG\r\n")
     (output / "LaTeX" / "m.pdf").write_bytes(b"%PDF-1.5\n")
+    # Only one of the three exhibits is exported.
+    (output / "result" / "table_main.csv").write_text("a\n1\n", encoding="utf-8")
+
     report = validate_registry(load_registry(root), checkpoint="C")
-    assert "OUTPUT_TABLE_EXPORT_INCOMPLETE" in codes(report, "blocking")
+    missing_tables = [
+        item["label"] for item in report["blocking"]
+        if item["code"] == "OUTPUT_TABLE_EXPORT_MISSING"
+    ]
+    missing_figures = [
+        item["label"] for item in report["blocking"]
+        if item["code"] == "OUTPUT_FIGURE_EXPORT_MISSING"
+    ]
+    assert missing_tables == ["tab:sumstats"], missing_tables
+    assert missing_figures == ["fig:event"], missing_figures
+
+    delivery = next(
+        item for item in report["reports"] if item["code"] == "OUTPUT_DELIVERY"
+    )
+    assert delivery["displayed_tables"] == 2
+    assert delivery["displayed_figures"] == 1
+
+    # Exporting the rest clears it.
+    (output / "result" / "table_sumstats.md").write_text("| a |\n", encoding="utf-8")
+    (output / "result" / "fig_event.png").write_bytes(b"\x89PNG\r\n")
+    cleared = validate_registry(load_registry(root), checkpoint="C")
+    assert "OUTPUT_TABLE_EXPORT_MISSING" not in codes(cleared, "blocking")
+    assert "OUTPUT_FIGURE_EXPORT_MISSING" not in codes(cleared, "blocking")
 
 
 def _discovery_registry(tmp_path, mode=None):
