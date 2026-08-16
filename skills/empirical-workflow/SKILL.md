@@ -66,6 +66,8 @@ Read a reference only when the selected stage calls for it:
 - `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
 - `references/latex-manuscript-adapter.md`: Stage 7 LaTeX binding of the
   manuscript to the registry; read only when the format adapter is applied.
+- `references/writing-under-the-registry.md`: how to satisfy a writing check in
+  the paper's own voice; read when a finding asks you to change prose.
 - `templates/status-template.md`: project status record.
 
 ## Shared recordkeeping

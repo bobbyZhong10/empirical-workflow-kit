@@ -128,3 +128,8 @@ It does not reformat, reorder, or rewrite. It does not change an estimate, a
 table, or a claim. Formatting is applied after the science is settled, and the
 adapter's only enforcement is that what the manuscript says matches what the
 registry holds.
+
+It also does not tell you how to word a sentence a check has objected to. See
+`writing-under-the-registry.md` for that, and in particular for the one rule
+this binding makes easy to break: the registry's vocabulary must not reach the
+manuscript.
