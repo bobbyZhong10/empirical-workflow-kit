@@ -1,0 +1,12 @@
+evidence_cards:
+  - evidence_card_id: EC-1
+    pipeline_id: p1
+    provenance: confirmatory
+    status: current
+    source_artifact: results/{pipeline_id}.json
+    estimates:
+      theta:
+        value: estimate
+        n: n
+        p_value: p_value
+    depends_on: []

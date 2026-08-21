@@ -1,0 +1,9 @@
+evidence_relations:
+  - relation_id: ER-1
+    evidence_card_id: EC-1
+    claim_revision_id: H1.r1
+    relation: supports
+    status: current
+    author: analyst
+    date: '2026-02-02'
+    rationale: The confirmatory estimate supports the claim.

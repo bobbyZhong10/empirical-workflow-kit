@@ -273,6 +273,11 @@ run_writing_registry_fixture fail model-internal MODEL_INTERNAL_SIGNIFICANT_UNSU
 assert_registry_lacks_code OVERCLAIM_RESIDUAL
 assert_registry_lacks_code UNDERCLAIM_RESIDUAL
 
+run_writing_registry_fixture fail narrowing-propagation NARROWING_NOT_PROPAGATED
+run_writing_registry_fixture fail buried-counterevidence COUNTEREVIDENCE_BURIED
+run_writing_registry_fixture pass immediate-recovery IMMEDIATE_RECOVERY
+run_writing_registry_fixture pass underclaim UNDERCLAIM_RESIDUAL
+
 if Rscript tests/smoke/verify_panel.R tests/smoke/panel-contract.yaml "$project_config" \
   tests/smoke/failed-identification.yaml >"$failed_identification_output" 2>&1; then
   echo "failed identification diagnostic unexpectedly permitted estimation" >&2

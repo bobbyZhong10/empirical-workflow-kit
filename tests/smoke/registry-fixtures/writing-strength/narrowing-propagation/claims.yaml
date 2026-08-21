@@ -1,0 +1,34 @@
+claims:
+  - claim_key: H1
+    claim_revision_id: H1.r1
+    pipeline_id: p1
+    availability: current
+    assessment: supported
+    revision_reason: bounded_by_population
+    assertion_sites:
+      - path: paper/assertions.md
+        anchor: bounded-result
+        section_role: results
+        assertion_type: world
+        declared_tier: T1
+        qualifier_scope: sentence
+        counterevidence_prominence: null
+        underlying_precision: {estimate_id: null, significant_at: 0.01, has_sampling_distribution: true, n: 1000}
+        scope_declaration: null
+        power_basis: null
+        upgrade_justification: null
+        alternative_explanation: null
+        as_modeled: null
+      - path: paper/assertions.md
+        anchor: unbounded-abstract
+        section_role: abstract
+        assertion_type: world
+        declared_tier: T0
+        qualifier_scope: sentence
+        counterevidence_prominence: null
+        underlying_precision: {estimate_id: null, significant_at: 0.01, has_sampling_distribution: true, n: 1000}
+        scope_declaration: null
+        power_basis: null
+        upgrade_justification: null
+        alternative_explanation: null
+        as_modeled: null

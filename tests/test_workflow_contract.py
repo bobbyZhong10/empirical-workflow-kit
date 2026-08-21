@@ -83,6 +83,15 @@ def test_v21_spec_has_per_evaluation_post_hoc_and_figure_revalidation():
     assert "Checkpoint C reports post-hoc evaluations" in body
 
 
+def test_v21_spec_locks_moot_live_support_inapplicability_and_semantic_coverage():
+    body = read("docs/superpowers/specs/2026-08-15-claim-governance-v2.1-design.md")
+    normalized = " ".join(body.split())
+    assert "`moot` is derived only when an object to which the gate applies enters" in normalized
+    assert '"live" means not withdrawn. Stale relations remain live' in normalized
+    assert "`inapplicable` requires `applicability_reason`, `declared_by`, and `accepted_by`" in normalized
+    assert "every used field must have exactly one valid semantic revision" in normalized
+
+
 def test_writing_strength_types_publish_and_route_conditional_fields():
     design = read("docs/superpowers/specs/2026-08-15-writing-strength-v2.2-design.md")
     types = design.split("## Type before strength", 1)[1].split(

@@ -1,0 +1,10 @@
+evidence_relations:
+  - relation_id: ER-identification-bound
+    evidence_card_id: EC-1
+    claim_revision_id: H1.r1
+    relation: bounds
+    bears_on: identifying_assumption
+    status: current
+    author: analyst
+    date: '2026-02-02'
+    rationale: The diagnostic bears on the identifying assumption.
