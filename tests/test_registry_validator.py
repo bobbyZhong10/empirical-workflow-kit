@@ -3912,6 +3912,15 @@ def test_stale_reported_figure_is_withheld_from_the_latex_macro_file(tmp_path):
     assert "\\defineFigureValue{RF-1}{2.0}" in body
 
 
+def test_static_smoke_fixtures_declare_the_current_validator_version():
+    """Smoke registries must be judged under the validator version they exercise."""
+
+    fixtures = Path(__file__).resolve().parents[1] / "tests/smoke/registry-fixtures"
+    for semantics_path in fixtures.glob("*/semantics.yaml"):
+        semantics = yaml.safe_load(semantics_path.read_text(encoding="utf-8"))
+        assert semantics["kit_version"] == KIT_VERSION, semantics_path
+
+
 @pytest.mark.parametrize(
     ("text", "expected_tier"),
     [

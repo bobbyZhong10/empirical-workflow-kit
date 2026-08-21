@@ -28,7 +28,7 @@ def normalized_markdown_bullets(body):
     return bullets
 
 
-def test_portable_protocol_contract():
+def test_portable_research_contract():
     assert (ROOT / "RESEARCH_PROTOCOL.md").is_file()
     assert (ROOT / "research.example.yaml").is_file()
     body = read("RESEARCH_PROTOCOL.md")
@@ -41,7 +41,9 @@ def test_portable_protocol_contract():
         "## Stage interface",
         "## Checkpoints",
         "## Specification discipline",
-        "## Python-R boundary",
+        "## Runtime parity",
+        "## Language",
+        "## Delivery contract",
         "## Evidence records",
         "## Independent review",
     )
@@ -49,6 +51,7 @@ def test_portable_protocol_contract():
         body.index(heading) for heading in headings
     )
     normalized_body = " ".join(body.split())
+    assert "portable operating contract" in normalized_body
     for phrase in (
         "Executor",
         "Copilot",
@@ -427,7 +430,7 @@ def test_example_config_values():
     }
 
 
-def test_adapters_and_records():
+def test_runtime_adapters_and_records():
     required = (
         "CLAUDE.md", "AGENTS.md",
         "skills/empirical-workflow/templates/decision-log-template.md",
@@ -438,6 +441,7 @@ def test_adapters_and_records():
         assert (ROOT / path).is_file()
     for path in ("CLAUDE.md", "AGENTS.md"):
         body = read(path)
+        assert "Runtime Adapter" in body
         assert "RESEARCH_PROTOCOL.md" in body
         assert len(body.splitlines()) < 140
         handoff = body.split("## Cross-runtime handoff", maxsplit=1)[1].lower()
@@ -445,7 +449,7 @@ def test_adapters_and_records():
             "research_protocol.md",
             "research.yaml",
             "_status.md",
-            "most relevant/current evidence card",
+            "relevant current evidence card",
             "decision-log.md",
         )
         assert [handoff.index(item) for item in continuation_order] == sorted(
