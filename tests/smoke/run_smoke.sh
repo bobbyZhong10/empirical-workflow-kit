@@ -4,18 +4,67 @@ set -euo pipefail
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$repo_root"
 
+registry_python="$repo_root/.venv/bin/python"
+bootstrap_command="bash tests/bootstrap_test_environment.sh"
+
+preflight_error() {
+  echo "ERROR: smoke-test preflight failed: $1" >&2
+  echo "Prepare this repository-local environment with: $bootstrap_command" >&2
+  exit 1
+}
+
+if [[ ! -x "$registry_python" ]]; then
+  preflight_error "missing executable $registry_python"
+fi
+
+if ! "$registry_python" - <<'PY'
+from importlib.util import find_spec
+
+missing = [package for package in ("pyarrow", "yaml") if find_spec(package) is None]
+if missing:
+    raise SystemExit(", ".join(missing))
+PY
+then
+  preflight_error "the repository-local Python environment is missing PyArrow or PyYAML"
+fi
+
+if ! command -v Rscript >/dev/null 2>&1; then
+  preflight_error "Rscript is not installed or is not on PATH"
+fi
+
 # Prefer the repository-local R library when it is present, while preserving
 # any caller-supplied R libraries after it in the search path.
 if [[ -d "$repo_root/.r-lib" ]]; then
   export R_LIBS="$repo_root/.r-lib${R_LIBS:+:$R_LIBS}"
 fi
 
+check_r_package() {
+  local package=$1
+  local package_output
+  package_output=$(mktemp)
+
+  # Run one package per R process.  A broken package can crash R while its
+  # namespace loads; isolating it keeps that crash out of the workflow run.
+  if ! Rscript --vanilla -e '
+    package <- commandArgs(trailingOnly = TRUE)[[1]]
+    if (!requireNamespace(package, quietly = TRUE)) quit(status = 1)
+  ' "$package" >"$package_output" 2>&1; then
+    rm -f "$package_output"
+    preflight_error "R package '$package' is unavailable or cannot be loaded in an isolated R session"
+  fi
+  rm -f "$package_output"
+}
+
+for r_package in arrow yaml fixest modelsummary; do
+  check_r_package "$r_package"
+done
+
 rm -f tests/smoke/output/smoke_table.md \
   tests/smoke/output/handoff_recovery.md \
   tests/smoke/output/identification_pause.md
 
-python3 tests/smoke/generate_panel.py
-python3 tests/smoke/recover_handoff.py tests/smoke/handoff-fixture
+"$registry_python" tests/smoke/generate_panel.py
+"$registry_python" tests/smoke/recover_handoff.py tests/smoke/handoff-fixture
 
 project_config=tests/smoke/handoff-fixture/research.yaml
 failed_identification_output=$(mktemp)
@@ -24,8 +73,6 @@ invalid_identity_output=$(mktemp)
 registry_output=$(mktemp)
 writing_registry_root=$(mktemp -d)
 trap 'rm -f "$failed_identification_output" "$invalid_output" "$invalid_identity_output" "$registry_output"; rm -rf "$writing_registry_root"' EXIT
-
-registry_python="$repo_root/.venv/bin/python"
 
 assert_registry_code() {
   local expected_code=$1
