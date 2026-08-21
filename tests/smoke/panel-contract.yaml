@@ -5,7 +5,7 @@ producing_script: tests/smoke/generate_panel.py
 dataset_path: tests/smoke/panel.parquet
 data_hash:
   algorithm: sha256
-  value: e39ae667cec9c9002d297350413288804ca428319b9a3eabd23a0227aefb8f44
+  value: 76649337bcbb52a84d28bc263c8f45dba0592bcae803f2cc384ceb34c3c9417c
 source_versions:
 - source: simulated_panel
   version: '2026-08-15'

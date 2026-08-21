@@ -639,6 +639,9 @@ def test_smoke_environment_preflight_isolated_and_actionable():
     assert bootstrap.index("verify_r_package") < bootstrap.index("Repository-local smoke-test environment is ready")
     assert 'registry_command="$repo_root/tools/validate_registry"' in runner
     assert "tools/validate_registry --version" in bootstrap
+    assert 'pkg-config --modversion arrow' in bootstrap
+    assert 'arrow_${arrow_cpp_version}.tar.gz' in bootstrap
+    assert 'ARROW_HOME="$arrow_home" R CMD INSTALL' in bootstrap
     assert ".r-lib/" in ignore
 
 

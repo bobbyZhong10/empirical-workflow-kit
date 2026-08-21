@@ -45,7 +45,7 @@ mkdir -p .r-lib
 install_output=$(mktemp)
 if R_LIBS="$repo_root/.r-lib" Rscript --vanilla - "$repo_root/.r-lib" >"$install_output" 2>&1 <<'RS'
 library_path <- commandArgs(trailingOnly = TRUE)[[1]]
-required_packages <- c("arrow", "yaml", "fixest", "modelsummary")
+required_packages <- c("yaml", "fixest", "modelsummary")
 install.packages(
   required_packages,
   lib = library_path,
@@ -59,6 +59,43 @@ else
   print_diagnostic_excerpt "$install_output" "R package installation"
   rm -f "$install_output"
   bootstrap_error "R package installation $(process_status_message "$install_status")"
+fi
+
+# When a system Arrow C++ installation is discoverable, use the matching R
+# package release. A package built against an older Arrow ABI cannot load after
+# a Homebrew C++ Arrow upgrade.
+if command -v pkg-config >/dev/null 2>&1 && pkg-config --exists arrow; then
+  arrow_cpp_version=$(pkg-config --modversion arrow)
+  arrow_home=$(pkg-config --variable=prefix arrow)
+  arrow_archive=$(mktemp)
+  if ! command -v curl >/dev/null 2>&1; then
+    rm -f "$arrow_archive"
+    bootstrap_error "curl is required to download the matching Arrow R source package"
+  fi
+  if ! curl -fsSL "https://cran.r-project.org/src/contrib/Archive/arrow/arrow_${arrow_cpp_version}.tar.gz" -o "$arrow_archive"; then
+    rm -f "$arrow_archive"
+    bootstrap_error "could not download Arrow R ${arrow_cpp_version} to match system Arrow C++"
+  fi
+  if ARROW_HOME="$arrow_home" R CMD INSTALL --library="$repo_root/.r-lib" "$arrow_archive"; then
+    rm -f "$arrow_archive"
+  else
+    arrow_status=$?
+    rm -f "$arrow_archive"
+    bootstrap_error "matching Arrow R ${arrow_cpp_version} installation $(process_status_message "$arrow_status")"
+  fi
+else
+  if R_LIBS="$repo_root/.r-lib" Rscript --vanilla - "$repo_root/.r-lib" >"$install_output" 2>&1 <<'RS'
+library_path <- commandArgs(trailingOnly = TRUE)[[1]]
+install.packages("arrow", lib = library_path, repos = "https://cloud.r-project.org")
+RS
+  then
+    rm -f "$install_output"
+  else
+    arrow_status=$?
+    print_diagnostic_excerpt "$install_output" "Arrow R installation"
+    rm -f "$install_output"
+    bootstrap_error "Arrow R installation $(process_status_message "$arrow_status")"
+  fi
 fi
 
 verify_r_package() {
