@@ -91,8 +91,27 @@ project and converting a v1 `_status.md` record.
 
 ## Development
 
-Install test dependencies (`pytest` and PyYAML) in a repository-local environment with
-`python3 -m venv .venv && .venv/bin/python -m pip install -r requirements-dev.txt`.
+Create the complete repository-local test environment before running checks:
+
+```bash
+bash tests/bootstrap_test_environment.sh
+```
+
+The bootstrap creates `.venv`, installs the Python test dependencies (including
+PyArrow), and installs the smoke-test R packages (`arrow`, `yaml`, `fixest`, and
+`modelsummary`) into `.r-lib`. It requires Python 3, R, and network access to
+CRAN. The smoke runner only uses `.venv/bin/python`; it never falls back to the
+system Python and never installs dependencies implicitly.
+
+Run either formal checkpoint through the same repository-local environment:
+
+```bash
+tools/validate_registry <registry> --checkpoint B
+tools/validate_registry <registry> --checkpoint C
+```
+
+The wrapper reports the bootstrap command if `.venv` is absent.
+
 Run the workflow contract tests with the project-local command:
 
 ```bash
@@ -101,8 +120,8 @@ bash tests/run_contract_tests.sh
 
 ### Python-R smoke test
 
-The cross-runtime smoke test requires Python 3 with PyArrow and R with the
-`arrow`, `yaml`, `fixest`, and `modelsummary` packages. It generates a
+The cross-runtime smoke test uses the repository-local `.venv` and `.r-lib`
+prepared above. It generates a
 deterministic 96-row staggered-treatment panel, validates its Python-to-R
 contract (including its versioned merge audit), estimates a fixed-effects
 event-study model, and writes a simulated-results table. It also recovers a
@@ -114,10 +133,13 @@ formal estimation.
 bash tests/smoke/run_smoke.sh
 ```
 
-The runner starts from the repository root and automatically prepends a
-repository-local `.r-lib/` to `R_LIBS` when it exists. This makes the documented
-command work with a project-local R package installation; otherwise install the
-listed R packages in the active R library. Python 3 must provide PyArrow.
+The runner starts from the repository root and prepends `.r-lib/` to `R_LIBS`
+when that repository-local library exists.
+Before generating data or invoking the workflow verifier, it confirms the local
+Python dependencies and checks each R package in a separate R process. If the
+environment is absent, incomplete, or a package cannot load safely, it stops
+with the bootstrap command instead of treating an R package failure as a
+workflow failure.
 
 The command intentionally invokes the R verifier with a failed identifying
 diagnostic, an invalid row count, and a mismatched project identity. Those

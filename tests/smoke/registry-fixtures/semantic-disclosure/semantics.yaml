@@ -1,0 +1,29 @@
+kit_version: "2.3"
+analysis_window: ["2024-01-01", "2024-12-31"]
+used_fields: [outcome]
+semantic_facts:
+  - fact_key: SEM-outcome
+    fact_revision_id: SEM-outcome.r1
+    field: outcome
+    statement: Legacy outcome definition.
+    valid_range: ["2024-01-01", "2024-06-30"]
+    authority: {status: sourced, source: dictionary-v1.md}
+    verification:
+      method: source_review
+      result: pass
+      performed_by: analyst
+      performed_at: "2026-02-01T00:00:00Z"
+      depends_on: [{kind: raw_field, id: outcome}]
+  - fact_key: SEM-outcome
+    fact_revision_id: SEM-outcome.r2
+    field: outcome
+    statement: Revised outcome definition.
+    valid_range: ["2024-07-01", null]
+    authority: {status: sourced, source: dictionary-v2.md}
+    verification:
+      method: source_review
+      result: pass
+      performed_by: analyst
+      performed_at: "2026-02-01T00:00:00Z"
+      depends_on: [{kind: raw_field, id: outcome}]
+semantic_equivalence_decisions: []

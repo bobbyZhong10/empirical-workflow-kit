@@ -1,0 +1,6 @@
+claims:
+  - claim_key: H1
+    claim_revision_id: H1.r1
+    pipeline_id: p1
+    availability: current
+    assessment: supported

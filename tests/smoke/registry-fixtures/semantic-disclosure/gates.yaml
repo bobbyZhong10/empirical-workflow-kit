@@ -1,0 +1,8 @@
+gate_set_confirmation:
+  checkpoint: B
+  complete: true
+  signed_by: authority
+  signed_at: '2025-12-01T00:00:00Z'
+  gate_ids: []
+gate_definitions: []
+gate_evaluations: []

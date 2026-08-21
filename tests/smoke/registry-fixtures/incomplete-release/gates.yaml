@@ -1,0 +1,35 @@
+gate_set_confirmation:
+  checkpoint: B
+  complete: true
+  signed_by: authority
+  signed_at: '2025-12-01T00:00:00Z'
+  gate_ids:
+  - G-ID
+gate_definitions:
+- gate_id: G-ID
+  applies_to:
+  - kind: pipeline_stage
+    id: identification
+  metric: identification_diagnostic
+  allowed_band: pass
+  failure_policy: STOP
+  declared_at: '2025-12-01T00:00:00Z'
+  declared_by: authority
+  frozen: true
+  compensation:
+    action: Investigate the failed diagnostic.
+    required_artifact: evidence/gates/G-ID.md
+gate_evaluations:
+- gate_id: G-ID
+  pipeline_id: p1
+  evaluated_against:
+    kind: pipeline_stage
+    id: identification@p1
+  status: released
+  coverage:
+    declared_scope: all identification diagnostics
+    evaluated_scope: all identification diagnostics
+    complete: true
+  evidence_card: EC-gate
+  release:
+    reason: Diagnostic replaced.

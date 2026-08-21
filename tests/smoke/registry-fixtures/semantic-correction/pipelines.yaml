@@ -1,0 +1,4 @@
+pipelines:
+  - pipeline_id: p1
+    status: current
+    first_formal_batch_at: "2026-01-01T00:00:00Z"

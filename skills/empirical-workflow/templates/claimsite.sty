@@ -1,0 +1,38 @@
+% claimsite.sty -- registry bindings for an empirical-workflow manuscript.
+%
+% Provides three no-op or lookup macros. None of them changes typeset output
+% except \figval, which prints the registered value of a reported figure.
+%
+%   \claimsite{<anchor>}   binds the following sentence to an assertion site
+%   \scopesite{<anchor>}   marks a scope declaration or its coverage bounds
+%   \figval{<figure_id>}   prints a registered reported figure
+%
+% Usage in the manuscript preamble:
+%   \usepackage{claimsite}
+%   \input{figures}            % generated; never edited by hand
+
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{claimsite}[2026/08/16 registry bindings]
+
+% Anchors expand to nothing. They exist so the validator can resolve an
+% assertion site to a sentence without depending on line numbers, which do not
+% survive editing.
+\newcommand{\claimsite}[1]{}
+\newcommand{\scopesite}[1]{}
+
+\newcommand{\defineFigureValue}[2]{%
+  \expandafter\def\csname figvalue@#1\endcsname{#2}%
+}
+
+% An unregistered identifier is a compile error rather than a silent blank, so
+% a figure that was renamed or retired cannot reach the PDF.
+\newcommand{\figval}[1]{%
+  \ifcsname figvalue@#1\endcsname
+    \csname figvalue@#1\endcsname
+  \else
+    \PackageError{claimsite}{Unregistered reported figure: #1}%
+      {Every numeral in the manuscript must resolve to a registry entry.}%
+  \fi
+}
+
+\endinput

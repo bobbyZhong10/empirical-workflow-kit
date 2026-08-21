@@ -57,13 +57,23 @@ Read a reference only when the selected stage calls for it:
 
 - `references/identification-decision-tree.md`: design and estimator choice.
 - `references/robustness-checklists.md`: design-specific reader obligations.
-- `references/python-standards.md`: Python producer layout and export rules;
-  read when a stage creates or changes analysis data.
-- `references/data-contract.md`: shared Python-to-R identity and validation
-  contract; read when a stage produces, validates, or consumes analysis data.
-- `references/r-standards.md`: R consumer layout and verification helpers;
-  read before validation, construction, diagnostics, or estimation in R.
+- `references/r-standards.md`: R layout and verification helpers. **R is the
+  default language for a project's empirical work**; read this before any
+  construction, diagnostic, estimation, table or figure work.
+- `references/python-standards.md`: Python layout and export rules; read only
+  where an exception to the R default has been recorded in `decision-log.md`.
+- `references/data-contract.md`: identity and validation contract across a
+  language boundary; read when a stage produces, validates, or consumes
+  analysis data across one.
+- `references/delivery-contract.md`: what `output/` must contain before a
+  submission is finished; read at Stage 7 and before Checkpoint C.
+- `references/writing-standards.md`: the house prose style, four rules of which
+  are checked; read before drafting and before the final pass.
 - `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
+- `references/latex-manuscript-adapter.md`: Stage 7 LaTeX binding of the
+  manuscript to the registry; read only when the format adapter is applied.
+- `references/writing-under-the-registry.md`: how to satisfy a writing check in
+  the paper's own voice; read when a finding asks you to change prose.
 - `templates/status-template.md`: project status record.
 
 ## Shared recordkeeping
@@ -105,7 +115,7 @@ configuration requires it.
 5. Treatment timing is verified against the raw source.
 6. The clustering level and number of clusters are fixed and justified.
 
-### Checkpoint C: results are defensible
+### Checkpoint C: results are defensible and delivered
 
 1. The identification assumption is paired with diagnostic evidence.
 2. The baseline estimate is stable across the required diagnostic set.
@@ -114,6 +124,10 @@ configuration requires it.
    check with its identifying threat, implication, severity, and disposition.
 5. The blindspot audit verdict and flags are recorded.
 6. The draft states what evidence would change the conclusion.
+7. The delivery contract is met: `output/` carries `data/` with its merge note,
+   `code/`, `result/` with a PNG per figure and a CSV or markdown per table,
+   and `LaTeX/` with the compiled PDF. See
+   `references/delivery-contract.md`.
 
 ## Backtracking
 

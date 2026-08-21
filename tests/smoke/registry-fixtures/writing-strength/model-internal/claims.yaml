@@ -1,0 +1,24 @@
+claims:
+  - claim_key: H2
+    claim_revision_id: H2.r1
+    pipeline_id: p1
+    availability: current
+    assessment: supported
+    assertion_sites:
+      - path: paper/assertions.md
+        anchor: counterfactual-gain
+        section_role: results
+        assertion_type: model_internal
+        declared_tier: null
+        qualifier_scope: sentence
+        counterevidence_prominence: null
+        underlying_precision:
+          estimate_id: null
+          significant_at: null
+          has_sampling_distribution: false
+          n: null
+        scope_declaration: null
+        power_basis: null
+        upgrade_justification: null
+        alternative_explanation: null
+        as_modeled: true

@@ -1,0 +1,9 @@
+evidence_relations:
+  - relation_id: ER-2
+    evidence_card_id: EC-2
+    claim_revision_id: H2.r1
+    relation: supports
+    status: current
+    author: analyst
+    date: "2026-08-15"
+    rationale: Simulation batch supports the counterfactual statement.

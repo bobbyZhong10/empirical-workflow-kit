@@ -1,0 +1,23 @@
+gate_set_confirmation:
+  checkpoint: B
+  complete: true
+  signed_by: authority
+  signed_at: '2025-12-01T00:00:00Z'
+  gate_ids:
+  - G-MISSING
+gate_definitions:
+- gate_id: G-MISSING
+  applies_to:
+  - kind: dataset
+    id: panel
+  metric: coverage
+  allowed_band: complete
+  failure_policy: STOP
+  declared_at: '2025-12-01T00:00:00Z'
+  declared_by: authority
+  frozen: true
+  compensation:
+    action: Complete the missing evaluation.
+    required_artifact: evidence/gates/G-MISSING.md
+gate_evaluations: []
+changes: []

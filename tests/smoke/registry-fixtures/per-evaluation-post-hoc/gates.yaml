@@ -1,0 +1,48 @@
+gate_set_confirmation:
+  checkpoint: B
+  complete: true
+  signed_by: authority
+  signed_at: '2025-12-01T00:00:00Z'
+  gate_ids:
+  - G-1
+gate_definitions:
+- gate_id: G-1
+  applies_to:
+  - kind: dataset
+    id: panel
+  metric: coverage
+  allowed_band: complete
+  failure_policy: STOP
+  declared_at: '2026-04-01T00:00:00Z'
+  declared_by: authority
+  frozen: true
+  compensation:
+    action: Investigate incomplete coverage.
+    required_artifact: evidence/gates/G-1.md
+gate_evaluations:
+- gate_id: G-1
+  pipeline_id: p1
+  evaluated_against:
+    kind: dataset
+    id: panel@p1
+  status: passed
+  coverage:
+    declared_scope: all observations
+    evaluated_scope: all observations
+    complete: true
+  evidence_card: EC-gate
+  observed_value: 2.0
+  observed_locator: estimate
+- gate_id: G-1
+  pipeline_id: p2
+  evaluated_against:
+    kind: dataset
+    id: panel@p2
+  status: passed
+  coverage:
+    declared_scope: all observations
+    evaluated_scope: all observations
+    complete: true
+  evidence_card: EC-gate-p2
+  observed_value: 2.005
+  observed_locator: estimate

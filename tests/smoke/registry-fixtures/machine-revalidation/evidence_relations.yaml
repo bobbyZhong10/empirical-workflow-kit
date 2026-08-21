@@ -1,0 +1,17 @@
+evidence_relations:
+  - relation_id: ER-1
+    evidence_card_id: EC-1
+    claim_revision_id: H1.r1
+    relation: supports
+    status: withdrawn
+    author: analyst
+    date: "2026-02-01"
+    rationale: Confirmatory evidence supports H1.
+  - relation_id: ER-2
+    evidence_card_id: EC-2
+    claim_revision_id: H1.r1
+    relation: supports
+    status: current
+    author: analyst
+    date: "2026-03-02"
+    rationale: Destination-pipeline comparison supports revalidation.

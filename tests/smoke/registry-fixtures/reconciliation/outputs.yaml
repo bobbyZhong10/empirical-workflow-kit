@@ -1,0 +1,10 @@
+outputs:
+  - output_id: reconciliation
+    kind: submission
+    status: current
+    cross_pipeline: reconciliation
+    spanned_pipelines: [p1, p2]
+    claim_revision_ids: [H1.r2]
+    historical_claim_revision_ids: [H1.r1]
+    reported_figure_ids: []
+    manuscript_sources: [paper/manuscript.tex]

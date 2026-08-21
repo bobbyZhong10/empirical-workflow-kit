@@ -1,0 +1,9 @@
+applicability:
+  - requirement_id: REQ-original
+    status: inapplicable
+    applicability_reason: The original diagnostic does not apply.
+    declared_by: analyst
+    accepted_by: authority
+    substituted_by: [REQ-substitute]
+  - requirement_id: REQ-substitute
+    status: pending

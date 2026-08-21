@@ -1,0 +1,26 @@
+evidence_cards:
+- evidence_card_id: EC-1
+  pipeline_id: p1
+  provenance: confirmatory
+  status: current
+  depends_on:
+  - kind: derived_field
+    id: outcome_scaled
+  comparison_endpoint:
+    artifact: comparison/p1.yaml
+    locator: estimate
+  machine_comparison:
+    source_evidence_card: EC-source
+    destination_evidence_card: EC-1
+  source_artifact: results/{pipeline_id}.json
+- evidence_card_id: EC-source
+  pipeline_id: p1
+  provenance: confirmatory
+  status: current
+  depends_on:
+  - kind: raw_field
+    id: outcome
+  comparison_endpoint:
+    artifact: comparison/p1-source.yaml
+    locator: estimate
+  source_artifact: results/{pipeline_id}.json
