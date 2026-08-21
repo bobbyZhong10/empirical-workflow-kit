@@ -192,9 +192,10 @@ Discovery runs in `enforce` mode by default and may be set to `report` during
 adoption; either way the mode appears in the `MANUSCRIPT_COVERAGE` report.
 Prose that reports another author's finding can be excluded by an explicit
 range carrying a reason, and the number of excluded ranges is counted in that
-same report. An output that declares no `manuscript_sources` yields a coverage
-report of `inactive`: the system states that completeness is unknown rather
-than reporting success.
+same report. At Checkpoint C, a submission that declares no
+`manuscript_sources` blocks with `MANUSCRIPT_SOURCES_REQUIRED` and yields an
+`inactive` coverage report: the system states that completeness is unknown
+rather than reporting success.
 
 Lexical markers are grouped into semantic classes: causal, scope-qualifying,
 evidential-weak, evidential-moderate, evidential-strong, descriptive, and

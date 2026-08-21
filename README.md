@@ -103,6 +103,15 @@ PyArrow), and installs the smoke-test R packages (`arrow`, `yaml`, `fixest`, and
 CRAN. The smoke runner only uses `.venv/bin/python`; it never falls back to the
 system Python and never installs dependencies implicitly.
 
+Run either formal checkpoint through the same repository-local environment:
+
+```bash
+tools/validate_registry <registry> --checkpoint B
+tools/validate_registry <registry> --checkpoint C
+```
+
+The wrapper reports the bootstrap command if `.venv` is absent.
+
 Run the workflow contract tests with the project-local command:
 
 ```bash

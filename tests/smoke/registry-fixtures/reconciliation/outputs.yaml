@@ -7,3 +7,4 @@ outputs:
     claim_revision_ids: [H1.r2]
     historical_claim_revision_ids: [H1.r1]
     reported_figure_ids: []
+    manuscript_sources: [paper/manuscript.tex]

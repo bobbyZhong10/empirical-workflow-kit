@@ -147,6 +147,7 @@ ALLOWED = {
     "assessment": {"supported", "challenged", "unresolved"},
     "relation": {"supports", "challenges", "bounds"},
     "relation_status": {"current", "withdrawn"},
+    "evidence_card_status": {"current", "stale", "withdrawn"},
     "provenance": {"confirmatory", "exploratory", "analytical"},
     "gate_status": {
         "passed",
@@ -583,7 +584,11 @@ def _required_field_checks(registry: dict, blocking: list[dict]) -> None:
             ):
                 # Nothing was measured, so there is no scope to report having
                 # covered. The status carries its own record instead.
-                exempt = ("coverage",)
+                exempt = (
+                    ("coverage", "evidence_card")
+                    if item.get("status") == "inapplicable"
+                    else ("coverage",)
+                )
             for field in fields:
                 if field in exempt:
                     continue
@@ -601,6 +606,7 @@ def _required_field_checks(registry: dict, blocking: list[dict]) -> None:
         ("pipelines", "status", "pipeline_status"),
         ("claims", "availability", "availability"),
         ("claims", "assessment", "assessment"),
+        ("evidence_cards", "status", "evidence_card_status"),
         ("evidence_cards", "provenance", "provenance"),
         ("evidence_relations", "relation", "relation"),
         ("evidence_relations", "status", "relation_status"),
@@ -908,11 +914,21 @@ def _assertion_site_schema_checks(
             isinstance(disclosure, dict)
             and _nonempty_string(disclosure.get("path"))
             and _valid_anchor_shape(disclosure.get("anchor"))
+            and (
+                "challenge_ids" not in disclosure
+                or (
+                    _string_list(disclosure.get("challenge_ids"))
+                    and bool(disclosure["challenge_ids"])
+                    and len(disclosure["challenge_ids"])
+                    == len(set(disclosure["challenge_ids"]))
+                )
+            )
         ):
             _schema_error(
                 blocking,
                 f"{site_location}.counterevidence_disclosure",
-                "must be null or a path/anchor mapping",
+                "must be null or a path/anchor mapping with optional unique "
+                "challenge_ids",
             )
         for field in ("alternative_explanation",):
             if site.get(field) is not None and not _nonempty_string(site.get(field)):
@@ -1375,6 +1391,7 @@ def _structural_checks(registry: dict, blocking: list[dict]) -> bool:
             "historical_claim_revision_ids",
             "reported_figure_ids",
             "spanned_pipelines",
+            "manuscript_sources",
         ):
             if field in output and not _string_list(output[field]):
                 _schema_error(
@@ -2044,7 +2061,12 @@ def _identity_reference_checks(registry: dict, blocking: list[dict]) -> bool:
     for evaluation in registry["gate_evaluations"]:
         require(definitions, evaluation.get("gate_id"), "gate_evaluations.gate_id")
         require(pipelines, evaluation.get("pipeline_id"), "gate_evaluations.pipeline_id")
-        require(cards, evaluation.get("evidence_card"), "gate_evaluations.evidence_card")
+        if evaluation.get("status") != "inapplicable":
+            require(
+                cards,
+                evaluation.get("evidence_card"),
+                "gate_evaluations.evidence_card",
+            )
     for definition in registry["gate_definitions"]:
         for target in definition.get("applies_to", []):
             if target.get("kind") == "claim_key":
@@ -2488,6 +2510,21 @@ def _valid_revalidation(
     }:
         blocking.append(_issue("REVALIDATION_METHOD_INVALID", target=target))
         return None
+    if record.get("method") == "machine" and _parse_tolerance(
+        record.get("tolerance")
+    ) is None:
+        blocking.append(
+            _issue(
+                "REVALIDATION_TOLERANCE_INVALID",
+                target=target,
+                tolerance=record.get("tolerance"),
+                detail=(
+                    "machine tolerance must match `abs(delta) <= NUMBER` with "
+                    "optional `and sign unchanged` and no other clauses"
+                ),
+            )
+        )
+        return None
     if not isinstance(record.get("result"), str) or record.get("result") not in {
         "revalidated",
         "changed",
@@ -2673,23 +2710,42 @@ def _preflight_revalidations(
     return validated
 
 
+MACHINE_TOLERANCE = re.compile(
+    r"\s*abs\s*\(\s*delta\s*\)\s*<=\s*"
+    r"(?P<limit>(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)"
+    r"(?:\s+and\s+sign\s+unchanged)?\s*",
+    re.IGNORECASE,
+)
+
+
+def _parse_tolerance(expression: Any) -> tuple[float, bool] | None:
+    if not isinstance(expression, str):
+        return None
+    match = MACHINE_TOLERANCE.fullmatch(expression)
+    if match is None:
+        return None
+    limit = float(match.group("limit"))
+    if not math.isfinite(limit) or limit < 0:
+        return None
+    sign_unchanged = bool(
+        re.search(r"\band\s+sign\s+unchanged\s*$", expression, re.IGNORECASE)
+    )
+    return limit, sign_unchanged
+
+
 def _tolerance_accepts(old: Any, new: Any, expression: str) -> bool:
     if (
         not isinstance(old, (int, float))
         or not isinstance(new, (int, float))
-        or not isinstance(expression, str)
     ):
         return False
-    match = re.search(r"abs\s*\(\s*delta\s*\)\s*<=\s*([0-9.eE+-]+)", expression)
-    if not match:
+    parsed = _parse_tolerance(expression)
+    if parsed is None:
         return False
-    try:
-        limit = float(match.group(1))
-    except ValueError:
-        return False
+    limit, sign_unchanged = parsed
     if abs(float(new) - float(old)) > limit:
         return False
-    if "sign unchanged" in expression.lower():
+    if sign_unchanged:
         old_sign = 0 if old == 0 else math.copysign(1, old)
         new_sign = 0 if new == 0 else math.copysign(1, new)
         return old_sign == new_sign
@@ -3676,7 +3732,7 @@ def _gate_checks(
                 )
             )
         evidence = cards.get(str(evaluation.get("evidence_card")))
-        if (
+        if evaluation.get("status") != "inapplicable" and (
             evidence is None
             or str(evidence.get("pipeline_id")) != pipeline_id
             or evidence.get("status") != "current"
@@ -4062,27 +4118,16 @@ def _gate_checks(
                         _issue("GATE_RELEASED", gate_id=gate_id, pipeline_id=pipeline_id)
                     )
         elif status == "inapplicable":
-            # An override needs the same evidentiary shape as a release, and it
-            # needs two people. Otherwise it is the cheapest way to make a
-            # declared gate disappear.
+            # The published v2.1 contract requires a reason, declarer and
+            # accepter. Do not silently strengthen that portable schema with
+            # local timestamp, evidence-card or distinct-identity fields.
             required = (
                 "applicability_reason",
                 "declared_by",
                 "accepted_by",
-                # Without it, a gate that fired could be retro-declared
-                # never-applicable after results with no record of when.
-                "accepted_at",
-                "evidence_card",
             )
             missing = [field for field in required if not evaluation.get(field)]
-            if not missing and _as_datetime(evaluation.get("accepted_at")) is None:
-                missing.append("accepted_at")
-            same_hand = (
-                not missing
-                and str(evaluation.get("declared_by"))
-                == str(evaluation.get("accepted_by"))
-            )
-            if missing or same_hand:
+            if missing:
                 blocking.append(
                     _issue(
                         "GATE_INAPPLICABLE_INCOMPLETE",
@@ -4090,10 +4135,8 @@ def _gate_checks(
                         pipeline_id=pipeline_id,
                         missing=missing,
                         detail=(
-                            "declared_by and accepted_by must be different"
-                            if same_hand
-                            else "an inapplicable gate requires a recorded reason, "
-                            "two authorities, and supporting evidence"
+                            "an inapplicable gate requires a recorded reason, "
+                            "declarer, and accepter"
                         ),
                     )
                 )
@@ -4170,6 +4213,8 @@ def _recompute_assessments(
             and relation.get("relation") == "supports"
             and cards.get(str(relation.get("evidence_card_id")), {}).get("provenance")
             in {"confirmatory", "analytical"}
+            and cards.get(str(relation.get("evidence_card_id")), {}).get("status")
+            == "current"
             and not cards.get(
                 str(relation.get("evidence_card_id")), {}
             ).get("_stale_reasons")
@@ -4298,23 +4343,13 @@ def _disclosure_location_resolves(
 def _challenge_is_disclosed(claim_id: str, registry: dict, claim: dict) -> bool:
     """Has the reader been told, next to the claim, what is wrong with it?
 
-    There are two ways to record that, and they used to be independent: a
-    `disclosure` block on the relation, and a corroborated
-    `counterevidence_prominence` on an assertion site. Requiring both meant
-    authoring the same fact twice in two vocabularies, with only one of them
-    named by the writing checks. A site disclosure that the prominence check has
-    already corroborated *is* a disclosure of the claim's live challenges, so it
-    now satisfies this one too; the relation-level block remains for a claim
-    with no assertion site to hang the disclosure on.
+    Relation- and site-level disclosures both carry stable challenge identities.
+    Corroborating one generic site sentence proves only that some qualification
+    exists; it cannot stand in for set inclusion across every live challenge.
     """
 
     live_challenges = set(claim.get("_live_challenge_ids", []))
     source_cache: dict[Path, tuple[str, list[str]]] = {}
-    if any(
-        site.get("_counterevidence_corroborated") is True
-        for site in claim.get("assertion_sites", []) or []
-    ):
-        return bool(live_challenges)
     disclosed = {
         str(item["challenge_id"])
         for item in claim.get("challenge_disclosures", [])
@@ -4323,6 +4358,15 @@ def _challenge_is_disclosed(claim_id: str, registry: dict, claim: dict) -> bool:
             registry, item.get("paper_location"), source_cache
         )
     }
+    for site in claim.get("assertion_sites", []) or []:
+        if site.get("_counterevidence_corroborated") is not True:
+            continue
+        disclosure = site.get("counterevidence_disclosure")
+        if isinstance(disclosure, dict):
+            disclosed.update(
+                str(challenge_id)
+                for challenge_id in disclosure.get("challenge_ids", [])
+            )
     cards = _id_map(registry.get("evidence_cards", []), "evidence_card_id")
     disclosed.update(
         str(relation["relation_id"])
@@ -6465,6 +6509,7 @@ DATA_NOTE_NAMES = ("README.md", "DATA.md", "data.md", "merge.md", "MERGE.md")
 FIGURE_SUFFIXES = (".png",)
 TABLE_SUFFIXES = (".csv", ".md")
 PDF_SUFFIX = ".pdf"
+LATEX_SOURCE_SUFFIXES = (".tex",)
 
 
 # A table or a figure is whatever the paper labels and points a reader at. The
@@ -6486,20 +6531,51 @@ def _labelled_exhibits(sources: dict) -> dict[str, set[str]]:
     return found
 
 
+def _checkpoint_c_submission_checks(
+    state: dict, blocking: list[dict]
+) -> None:
+    submissions = [
+        output
+        for output in state.get("outputs", {}).values()
+        if output.get("kind") == "submission"
+    ]
+    if not submissions:
+        blocking.append(
+            _issue(
+                "SUBMISSION_OUTPUT_MISSING",
+                detail="Checkpoint C requires an output with kind submission",
+            )
+        )
+        return
+    for output in submissions:
+        declared = output.get("manuscript_sources")
+        if not _string_list(declared) or not declared:
+            blocking.append(
+                _issue(
+                    "MANUSCRIPT_SOURCES_REQUIRED",
+                    output_id=output.get("output_id"),
+                    detail=(
+                        "a Checkpoint C submission must declare at least one "
+                        "resolvable manuscript source"
+                    ),
+                )
+            )
+
+
 def _output_layout_checks(
     registry: dict, state: dict, blocking: list[dict], reports: list[dict]
 ) -> None:
     """Check that a submission has been delivered, not merely produced.
 
-    Runs only on outputs that declare manuscript sources, and only at
-    Checkpoint C, because it is a statement about a finished thing.
+    Runs on every submission at Checkpoint C, because omitting manuscript
+    metadata must not also omit the delivery check.
     """
 
     root = Path(registry.get("_root", "."))
     outputs = [
         output
         for output in state.get("outputs", {}).values()
-        if output.get("kind") == "submission" and output.get("manuscript_sources")
+        if output.get("kind") == "submission"
     ]
     if not outputs:
         return
@@ -6566,12 +6642,25 @@ def _output_layout_checks(
         if latex.is_dir()
         else False
     )
+    latex_source = (
+        any(item.suffix.lower() in LATEX_SOURCE_SUFFIXES for item in latex.rglob("*"))
+        if latex.is_dir()
+        else False
+    )
     if latex.is_dir() and not compiled:
         blocking.append(
             _issue(
                 "OUTPUT_PDF_MISSING",
                 path=f"{OUTPUT_ROOT}/LaTeX",
                 detail="the compiled PDF belongs beside the sources that made it",
+            )
+        )
+    if latex.is_dir() and not latex_source:
+        blocking.append(
+            _issue(
+                "OUTPUT_LATEX_SOURCE_MISSING",
+                path=f"{OUTPUT_ROOT}/LaTeX",
+                detail="the delivered LaTeX directory needs at least one .tex source",
             )
         )
 
@@ -6584,7 +6673,7 @@ def _output_layout_checks(
     # resolves and what a reader is pointed at, so it is the thing to count.
     exhibits = _labelled_exhibits(_manuscript_sources(registry, state))
     exported = {
-        item.stem.lower()
+        (item.stem.lower(), item.suffix.lower())
         for item in (result.rglob("*") if result.is_dir() else ())
         if item.is_file()
     }
@@ -6595,10 +6684,8 @@ def _output_layout_checks(
             name = label.split(":", 1)[-1].strip().lower()
             if not any(
                 name in stem
-                for stem in exported
-                if any(
-                    (result / f"{stem}{suffix}").exists() for suffix in suffixes
-                )
+                for stem, suffix in exported
+                if suffix in suffixes
             ):
                 missing.append(label)
         return missing
@@ -6633,6 +6720,7 @@ def _output_layout_checks(
             displayed_tables=len(exhibits["tables"]),
             displayed_figures=len(exhibits["figures"]),
             pdf=compiled,
+            latex_source=latex_source,
         )
     )
 
@@ -7217,6 +7305,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     _applicability_checks(registry, blocking, checkpoint)
     _recompute_assessments(registry, state, derived_challenges, derived, blocking)
     if checkpoint == "C":
+        _checkpoint_c_submission_checks(state, blocking)
         _writing_strength_checks(registry, state, blocking, reports)
         _manuscript_coverage_checks(registry, state, blocking, reports)
         _citation_checks(registry, state, blocking, reports)

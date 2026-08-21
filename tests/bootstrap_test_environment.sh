@@ -39,6 +39,7 @@ fi
 python3 -m venv .venv
 .venv/bin/python -m pip install --upgrade pip
 .venv/bin/python -m pip install -r requirements-dev.txt
+tools/validate_registry --version >/dev/null
 
 mkdir -p .r-lib
 install_output=$(mktemp)

@@ -35,8 +35,9 @@ availability never changes assessment.
 `stale` cannot be set or cleared manually.
 
 Evidence cards remain execution artifacts. They record
-`provenance: confirmatory | exploratory`. Only confirmatory cards may change a
-claim assessment. Evidence relations are separate records with
+`provenance: confirmatory | exploratory` and `status: current | stale |
+withdrawn`. Only a current, non-derived-stale confirmatory card may support a
+claim. Evidence relations are separate records with
 `supports | challenges | bounds`, author, date, and rationale.
 
 Reported figures are non-claim numerical values. They record `pipeline_id`,
@@ -76,6 +77,10 @@ revalidation:
   evidence_card: ...
 ```
 
+Machine tolerance is a closed grammar: `abs(delta) <= NUMBER`, optionally
+followed by exactly `and sign unchanged`. Unsupported or trailing clauses are
+invalid rather than silently ignored.
+
 For `kind: reported_figure`, machine revalidation is the default path:
 re-resolve `source_artifact` + `source_locator` under the new pipeline, compare
 the value against `tolerance`, and on success update `value` and `pipeline_id`
@@ -89,7 +94,9 @@ error.
 
 A submission export accepts `current + supported` claims. It accepts
 `current + challenged` claims only when every challenge has a disclosed,
-adjacent paper location. It rejects stale, superseded, retired, withdrawn, and
+adjacent paper location. A site-level disclosure names the stable
+`challenge_ids` it covers; one generic qualification cannot satisfy multiple
+challenge identities. It rejects stale, superseded, retired, withdrawn, and
 unresolved claims, and any mixed-pipeline output outside a declared
 reconciliation block.
 

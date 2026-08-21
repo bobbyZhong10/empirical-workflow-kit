@@ -187,8 +187,19 @@ def base_registry() -> dict:
     }
 
 
-def write_registry(root: Path, registry: dict | None = None) -> Path:
+def write_registry(
+    root: Path, registry: dict | None = None, *, deliver: bool = False
+) -> Path:
     registry = copy.deepcopy(registry or base_registry())
+    if deliver:
+        submissions = [
+            output
+            for output in registry["outputs"]["outputs"]
+            if output.get("kind") == "submission"
+        ]
+        assert submissions
+        for output in submissions:
+            output["manuscript_sources"] = ["paper/manuscript.tex"]
     root.mkdir(parents=True, exist_ok=True)
     for filename in REGISTRY_FILES:
         key = filename.removesuffix(".yaml")
@@ -233,6 +244,29 @@ def write_registry(root: Path, registry: dict | None = None) -> Path:
             "<!-- ER-C1 --> However, one challenge is disclosed here.\n"
             "<!-- ER-C2 --> However, a second challenge is disclosed here.\n",
             encoding="utf-8",
+        )
+    if deliver:
+        (paper / "manuscript.tex").write_text(
+            "% delivered manuscript\n", encoding="utf-8"
+        )
+        output_root = root / "output"
+        for name in ("data", "code", "result", "LaTeX"):
+            (output_root / name).mkdir(parents=True, exist_ok=True)
+        (output_root / "data" / "README.md").write_text(
+            "Source, merge, filter, and row-count note.\n", encoding="utf-8"
+        )
+        (output_root / "data" / "panel.csv").write_text("x\n1\n", encoding="utf-8")
+        (output_root / "code" / "01_estimate.R").write_text(
+            "# code\n", encoding="utf-8"
+        )
+        (output_root / "result" / "README.md").write_text(
+            "No exhibits.\n", encoding="utf-8"
+        )
+        (output_root / "LaTeX" / "manuscript.tex").write_text(
+            "% source\n", encoding="utf-8"
+        )
+        (output_root / "LaTeX" / "manuscript.pdf").write_bytes(
+            b"%PDF-1.5\n"
         )
     return root
 
@@ -358,9 +392,38 @@ def test_load_registry_reads_all_human_editable_yaml_files(tmp_path):
 
 
 def test_validate_registry_accepts_a_registry_directory(tmp_path):
-    report = validate_registry(write_registry(tmp_path), checkpoint="C")
+    report = validate_registry(
+        write_registry(tmp_path, deliver=True), checkpoint="C"
+    )
     assert report["blocking"] == []
     assert "REGISTRY_VALID" in codes(report, "reports")
+
+
+def test_checkpoint_c_cannot_skip_submission_manuscript_and_delivery(tmp_path):
+    """Omitting manuscript_sources must not turn unknown coverage into success."""
+
+    registry = base_registry()
+    output = registry["outputs"]["outputs"][0]
+    output.pop("manuscript_sources", None)
+    root = write_registry(tmp_path, registry)
+
+    report = validate_registry(load_registry(root), checkpoint="C")
+
+    assert "MANUSCRIPT_SOURCES_REQUIRED" in codes(report, "blocking")
+    assert "OUTPUT_ROOT_MISSING" in codes(report, "blocking")
+    assert "REGISTRY_VALID" not in codes(report, "reports")
+
+
+def test_checkpoint_c_requires_a_submission_output(tmp_path):
+    registry = base_registry()
+    registry["outputs"]["outputs"] = []
+
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), checkpoint="C"
+    )
+
+    assert "SUBMISSION_OUTPUT_MISSING" in codes(report, "blocking")
+    assert "REGISTRY_VALID" not in codes(report, "reports")
 
 
 def test_missing_registry_file_is_a_stable_blocking_error(tmp_path):
@@ -1229,6 +1292,44 @@ def test_withdrawing_every_supporting_relation_restores_unresolved(tmp_path):
     assert "PUBLICATION_INELIGIBLE" in codes(report, "blocking")
 
 
+@pytest.mark.parametrize(
+    ("status", "valid_status"),
+    [("withdrawn", True), ("stale", True), ("garbage", False)],
+)
+def test_only_current_evidence_cards_can_support_a_publishable_claim(
+    tmp_path, status, valid_status
+):
+    """A separate current gate card must not launder a non-current support card."""
+
+    registry = base_registry()
+    registry["evidence_cards"]["evidence_cards"].append(
+        {
+            "evidence_card_id": "EC-support",
+            "pipeline_id": "p1",
+            "provenance": "confirmatory",
+            "status": status,
+            "source_artifact": "results/{pipeline_id}.json",
+            "depends_on": [{"kind": "raw_field", "id": "outcome"}],
+        }
+    )
+    registry["evidence_relations"]["evidence_relations"][0][
+        "evidence_card_id"
+    ] = "EC-support"
+
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry)), checkpoint="C"
+    )
+
+    if valid_status:
+        claim = report["state"]["claims"]["H1.r1"]
+        assert claim["assessment"] == "unresolved"
+        assert "PUBLICATION_INELIGIBLE" in codes(report, "blocking")
+        assert "INVALID_ENUM_VALUE" not in codes(report, "blocking")
+    else:
+        assert "INVALID_ENUM_VALUE" in codes(report, "blocking")
+        assert "REGISTRY_VALID" not in codes(report, "reports")
+
+
 def _gate_report(tmp_path: Path, status: str, **updates) -> dict:
     registry = base_registry()
     evaluation = registry["gates"]["gate_evaluations"][0]
@@ -1569,6 +1670,38 @@ def test_all_identity_matched_challenge_disclosures_allow_challenged_claim(tmp_p
     assert "PUBLICATION_INELIGIBLE" not in codes(report, "blocking")
 
 
+def test_site_disclosure_must_name_every_live_challenge(tmp_path):
+    """One generic contrastive sentence cannot disclose two distinct challenges."""
+
+    registry = base_registry()
+    _add_challenge(registry, "ER-C1", "EC-C1")
+    _add_challenge(registry, "ER-C2", "EC-C2")
+    site = assertion_site(
+        "claim-site",
+        declared_tier="T2",
+        counterevidence_prominence="separate_contrastive_sentence",
+        counterevidence_disclosure={
+            "path": "paper/assertions.md",
+            "anchor": "generic-disclosure",
+        },
+    )
+    source = (
+        "<!-- claim-site --> Treatment increases retention.\n"
+        "<!-- generic-disclosure --> However, one diagnostic weakens the claim.\n"
+    )
+
+    undisclosed = write_assertion_registry(
+        tmp_path / "generic", [site], source, registry
+    )
+    assert "PUBLICATION_INELIGIBLE" in codes(undisclosed, "blocking")
+
+    site["counterevidence_disclosure"]["challenge_ids"] = ["ER-C1", "ER-C2"]
+    disclosed = write_assertion_registry(
+        tmp_path / "identified", [site], source, registry
+    )
+    assert "PUBLICATION_INELIGIBLE" not in codes(disclosed, "blocking")
+
+
 def test_withdrawn_and_exploratory_challenges_do_not_require_disclosure(tmp_path):
     registry = base_registry()
     _add_challenge(registry, "ER-withdrawn", "EC-withdrawn", status="withdrawn")
@@ -1849,7 +1982,7 @@ def test_inapplicable_requirement_requires_completed_substitutes(tmp_path):
 
 
 def test_cli_emits_json_and_exit_status_matches_blocking(tmp_path, capsys):
-    valid_root = write_registry(tmp_path / "valid")
+    valid_root = write_registry(tmp_path / "valid", deliver=True)
     assert main([str(valid_root), "--checkpoint", "C", "--format", "json"]) == 0
     payload = json.loads(capsys.readouterr().out)
     assert set(payload) >= {"checkpoint", "blocking", "reports", "derived"}
@@ -1906,7 +2039,7 @@ def _write_comparison_artifacts(root: Path, source: float, destination: float) -
 def test_machine_claim_revalidation_resolves_artifact_bound_comparison(tmp_path):
     registry = base_registry()
     _artifact_authenticated_claim_revalidation(registry)
-    root = write_registry(tmp_path, registry)
+    root = write_registry(tmp_path, registry, deliver=True)
     _write_comparison_artifacts(root, 2.0, 2.005)
     report = validate_registry(load_registry(root), "C")
     claim = report["state"]["claims"]["H1.r1"]
@@ -1916,6 +2049,29 @@ def test_machine_claim_revalidation_resolves_artifact_bound_comparison(tmp_path)
         "from_value": 2.0,
         "to_value": 2.005,
     }
+
+
+@pytest.mark.parametrize(
+    "tolerance",
+    [
+        "abs(delta) <= 0.01 and sign unchanged and delta == 999",
+        "IGNORE THIS abs(delta) <= 0.01 trailing garbage",
+    ],
+)
+def test_machine_revalidation_rejects_unparsed_tolerance_clauses(
+    tmp_path, tolerance
+):
+    registry = base_registry()
+    record = _artifact_authenticated_claim_revalidation(registry)
+    record["tolerance"] = tolerance
+    root = write_registry(tmp_path, registry)
+    _write_comparison_artifacts(root, 2.0, 2.005)
+
+    report = validate_registry(load_registry(root), "C")
+
+    assert "REVALIDATION_TOLERANCE_INVALID" in codes(report, "blocking")
+    assert report["state"]["claims"]["H1.r1"]["pipeline_id"] == "p1"
+    assert "REVALIDATED_CLAIM" not in codes(report, "derived")
 
 
 def test_inline_machine_claim_values_cannot_override_artifact_comparison(tmp_path):
@@ -2244,7 +2400,9 @@ def test_authenticated_semantic_equivalence_suppresses_only_its_resolved_scope(
             "evidence_card": "EC-1",
         }
     ]
-    report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
+    report = validate_registry(
+        load_registry(write_registry(tmp_path, registry, deliver=True)), "C"
+    )
     assert "SEMANTIC_DISCLOSURE_REQUIRED" not in codes(report, "reports")
     assert report["blocking"] == []
 
@@ -4306,6 +4464,61 @@ def test_delivered_data_needs_a_note_saying_how_it_was_assembled(tmp_path):
     assert "OUTPUT_DATA_NOTE_MISSING" in codes(report, "blocking")
 
 
+def test_delivered_latex_requires_source_as_well_as_compiled_pdf(tmp_path):
+    registry = copy.deepcopy(base_registry())
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
+    output = root / "output"
+    for name in ("data", "code", "result", "LaTeX"):
+        (output / name).mkdir(parents=True, exist_ok=True)
+    (output / "data" / "README.md").write_text("merge note\n", encoding="utf-8")
+    (output / "data" / "panel.csv").write_text("a\n1\n", encoding="utf-8")
+    (output / "code" / "01.R").write_text("# code\n", encoding="utf-8")
+    (output / "result" / "readme.md").write_text("No exhibits.\n", encoding="utf-8")
+    (output / "LaTeX" / "manuscript.pdf").write_bytes(b"%PDF-1.5\n")
+
+    report = validate_registry(load_registry(root), checkpoint="C")
+
+    assert "OUTPUT_LATEX_SOURCE_MISSING" in codes(report, "blocking")
+    assert "REGISTRY_VALID" not in codes(report, "reports")
+
+
+def test_nested_result_exports_satisfy_labelled_exhibits(tmp_path):
+    registry = copy.deepcopy(base_registry())
+    registry["outputs"]["outputs"][0]["manuscript_sources"] = [
+        "paper/manuscript.tex"
+    ]
+    root = write_registry(tmp_path, registry)
+    (root / "paper" / "manuscript.tex").write_text(
+        MANUSCRIPT
+        + "\n\\captionof{table}{Summary}\\label{tab:sumstats}\n"
+        + "\\captionof{figure}{Event study}\\label{fig:event}\n",
+        encoding="utf-8",
+    )
+    output = root / "output"
+    for name in ("data", "code", "result/tables", "result/figures", "LaTeX"):
+        (output / name).mkdir(parents=True, exist_ok=True)
+    (output / "data" / "README.md").write_text("merge note\n", encoding="utf-8")
+    (output / "data" / "panel.csv").write_text("a\n1\n", encoding="utf-8")
+    (output / "code" / "01.R").write_text("# code\n", encoding="utf-8")
+    (output / "result" / "tables" / "table_sumstats.csv").write_text(
+        "a\n1\n", encoding="utf-8"
+    )
+    (output / "result" / "figures" / "figure_event.png").write_bytes(
+        b"\x89PNG\r\n"
+    )
+    (output / "LaTeX" / "manuscript.tex").write_text("% source\n", encoding="utf-8")
+    (output / "LaTeX" / "manuscript.pdf").write_bytes(b"%PDF-1.5\n")
+
+    report = validate_registry(load_registry(root), checkpoint="C")
+
+    assert "OUTPUT_TABLE_EXPORT_MISSING" not in codes(report, "blocking")
+    assert "OUTPUT_FIGURE_EXPORT_MISSING" not in codes(report, "blocking")
+
+
 def test_a_deferred_remedy_is_not_a_compensated_gate(tmp_path):
     """Naming the right remedy is not carrying it out.
 
@@ -4719,23 +4932,23 @@ def _gate_registry(registry, status, **evaluation_fields):
     return registry
 
 
-def test_inapplicable_gate_needs_two_authorities_and_evidence(tmp_path):
+def test_inapplicable_gate_accepts_the_published_minimum_record(tmp_path):
     registry = _gate_registry(
         base_registry(),
         "inapplicable",
         applicability_reason="The panel is not in scope.",
         declared_by="analyst",
         accepted_by="analyst",
-        accepted_at="2026-03-01T00:00:00Z",
     )
+    evaluation = registry["gates"]["gate_evaluations"][0]
+    evaluation.pop("coverage")
+    evaluation.pop("evidence_card")
+
     report = validate_registry(load_registry(write_registry(tmp_path, registry)), "C")
-    incomplete = [
-        item
-        for item in report["blocking"]
-        if item["code"] == "GATE_INAPPLICABLE_INCOMPLETE"
-    ]
-    assert incomplete
-    assert "must be different" in incomplete[0]["detail"]
+
+    assert "MISSING_REQUIRED_FIELD" not in codes(report, "blocking")
+    assert "GATE_INAPPLICABLE_INCOMPLETE" not in codes(report, "blocking")
+    assert "GATE_INAPPLICABLE" in codes(report, "reports")
 
 
 def test_inapplicable_gate_does_not_score_as_a_passed_gate(tmp_path):

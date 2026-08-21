@@ -5,6 +5,7 @@ repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
 cd "$repo_root"
 
 registry_python="$repo_root/.venv/bin/python"
+registry_command="$repo_root/tools/validate_registry"
 bootstrap_command="bash tests/bootstrap_test_environment.sh"
 
 preflight_error() {
@@ -148,14 +149,14 @@ run_registry_fixture() {
   local fixture_path="tests/smoke/registry-fixtures/$fixture"
 
   if [[ "$expected_status" == pass ]]; then
-    if ! "$registry_python" tools/validate_registry.py "$fixture_path" \
+    if ! "$registry_command" "$fixture_path" \
       --checkpoint C --format json >"$registry_output"; then
       echo "$fixture registry unexpectedly failed" >&2
       cat "$registry_output" >&2
       exit 1
     fi
   else
-    if "$registry_python" tools/validate_registry.py "$fixture_path" \
+    if "$registry_command" "$fixture_path" \
       --checkpoint C --format json >"$registry_output"; then
       echo "$fixture registry unexpectedly passed" >&2
       cat "$registry_output" >&2
@@ -176,14 +177,14 @@ run_writing_registry_fixture() {
   cp -R "tests/smoke/registry-fixtures/writing-strength/$fixture/." "$staged_fixture"
 
   if [[ "$expected_status" == pass ]]; then
-    if ! "$registry_python" tools/validate_registry.py "$staged_fixture" \
+    if ! "$registry_command" "$staged_fixture" \
       --checkpoint C --format json >"$registry_output"; then
       echo "$fixture writing-strength registry unexpectedly failed" >&2
       cat "$registry_output" >&2
       exit 1
     fi
   else
-    if "$registry_python" tools/validate_registry.py "$staged_fixture" \
+    if "$registry_command" "$staged_fixture" \
       --checkpoint C --format json >"$registry_output"; then
       echo "$fixture writing-strength registry unexpectedly passed" >&2
       cat "$registry_output" >&2

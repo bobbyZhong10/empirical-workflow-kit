@@ -138,15 +138,16 @@ A challenged claim must show the reader what is wrong with it, and there are two
 places the registry will take that from:
 
 - `counterevidence_prominence` plus `counterevidence_disclosure` on the
-  assertion site — the ordinary case, and the one the writing checks talk about;
+  assertion site — the ordinary case, with `challenge_ids` naming every live
+  challenge that sentence discloses;
 - a `disclosure: {adjacent: true, paper_location: ...}` block on the challenging
   relation — for a claim with no assertion site to hang it on.
 
-**Either satisfies both checks.** A corroborated site disclosure now also
-discharges the publication gate's `challenge_undisclosed`, so the fact is
-recorded once. If you see that reason at Checkpoint C, the site disclosure is
-missing or uncorroborated — fix it there rather than adding a second record on
-the relation.
+**Either satisfies both checks when its identities cover the live challenge
+set.** A corroborated site disclosure discharges the publication gate only for
+the stable `challenge_ids` it names. If you see `challenge_undisclosed` at
+Checkpoint C, the site disclosure is missing, uncorroborated, or does not name
+every live challenge.
 
 ## Where the judgement goes instead
 

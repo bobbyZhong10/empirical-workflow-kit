@@ -65,6 +65,10 @@ revalidation:
   evidence_card: ...
 ```
 
+The machine-tolerance grammar is closed: `abs(delta) <= NUMBER`, optionally
+followed by exactly `and sign unchanged`. Extra predicates or surrounding text
+are invalid and are never partially executed.
+
 For `kind: reported_figure`, machine revalidation is the default path: re-resolve
 `source_artifact` + `source_locator` under the new pipeline, compare the value
 against `tolerance`, and on success update `value` and `pipeline_id` in place

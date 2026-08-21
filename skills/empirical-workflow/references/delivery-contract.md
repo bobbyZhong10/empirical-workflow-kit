@@ -11,6 +11,11 @@ only inside a `.tex` file, the merge whose logic is in someone's head.
 > **A finished project delivers into `output/`.** Everything a reader needs and
 > nothing they have to ask for.
 
+Checkpoint C also requires at least one `kind: submission` output, with a
+nonempty, resolvable `manuscript_sources` list on every submission. It reports
+`SUBMISSION_OUTPUT_MISSING` or `MANUSCRIPT_SOURCES_REQUIRED` before an omitted
+submission can be mistaken for a finished one.
+
 ```
 output/
   data/     the final data the paper was produced from, plus a markdown note
@@ -23,6 +28,7 @@ output/
 Checkpoint C blocks on it. The codes are `OUTPUT_ROOT_MISSING`,
 `OUTPUT_DIRECTORY_MISSING`, `OUTPUT_DIRECTORY_EMPTY`,
 `OUTPUT_DATA_NOTE_MISSING`, `OUTPUT_PDF_MISSING`,
+`OUTPUT_LATEX_SOURCE_MISSING`,
 `OUTPUT_TABLE_EXPORT_MISSING` and `OUTPUT_FIGURE_EXPORT_MISSING`, with
 `OUTPUT_DELIVERY` as the summary report.
 
@@ -82,6 +88,8 @@ and what the reader is sent to, so a label is what gets counted.
 
 `OUTPUT_TABLE_EXPORT_MISSING` and `OUTPUT_FIGURE_EXPORT_MISSING` name the
 specific label that has no export, so a table added late is caught by name.
+Exports may be organized in nested directories such as `result/tables/` and
+`result/figures/`; the validator preserves those resolved paths when matching.
 
 Generate these from the same script that generates what the paper embeds.
 Exporting by hand afterwards is how the two versions come to disagree.
@@ -94,7 +102,8 @@ to run `pdflatex` twice and get the same document.
 
 The PDF belongs here too, beside the sources that made it. A PDF without its
 sources cannot be corrected; sources without the PDF cannot be checked against
-what was submitted.
+what was submitted. The validator requires both at least one `.tex` source and
+the compiled PDF.
 
 ## What this contract does not do
 

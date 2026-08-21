@@ -1,1 +1,5 @@
-outputs: []
+outputs:
+  - output_id: paper
+    kind: submission
+    status: current
+    manuscript_sources: [paper/manuscript.tex]

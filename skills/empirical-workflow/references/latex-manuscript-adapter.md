@@ -183,7 +183,7 @@ Do not hand-author the registry. Three quarters of it is derivable.
 
 ```bash
 python3 tools/scaffold_registry.py init .                 # skeletons, not blank files
-python3 tools/validate_registry.py . --checkpoint C       # discovery lists what is unregistered
+tools/validate_registry . --checkpoint C                  # discovery lists what is unregistered
 python3 tools/scaffold_registry.py sites . --limit 10     # stubs for those sentences
 python3 tools/scaffold_registry.py figures . \
     --artifact results/p1.json --pipeline p1              # figures read from the artefact
@@ -201,7 +201,7 @@ reaches zero.
 ## Build
 
 ```bash
-python3 tools/validate_registry.py . --checkpoint C --format json > build/registry.json
+tools/validate_registry . --checkpoint C --format json > build/registry.json
 python3 tools/render_figure_macros.py . --output paper/figures.tex
 cd paper && pdflatex manuscript && bibtex manuscript && pdflatex manuscript && pdflatex manuscript
 ```

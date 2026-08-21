@@ -83,7 +83,8 @@ check.
   it may differ, and a test in the kit compares the two blocks byte for byte.
 - The workflow carries one version number, defined once in
   `tools/validate_registry.py` and reported by
-  `python3 tools/validate_registry.py --version`.
+  `tools/validate_registry --version`. The wrapper always uses the
+  repository-local Python environment created by the documented bootstrap.
 - Every registry records `kit_version`. The scaffold writes it; the validator
   reports `KIT_VERSION_UNDECLARED` or `KIT_VERSION_MISMATCH` and blocks at
   Checkpoint C, so a project cannot be carried forward under rules it was never
@@ -114,7 +115,9 @@ pipeline, and the delivered `output/code` must contain both.
 ## Delivery contract
 
 A finished project delivers into `output/`. This is not a filing preference; it
-is what "finished" means, and Checkpoint C enforces it.
+is what "finished" means, and Checkpoint C enforces it. Checkpoint C requires at
+least one `kind: submission` output and a nonempty, resolvable
+`manuscript_sources` list for each submission; omitting either is blocking.
 
 ```
 output/
@@ -141,10 +144,10 @@ Three rules govern it:
 
 The validator reports `OUTPUT_ROOT_MISSING`, `OUTPUT_DIRECTORY_MISSING`,
 `OUTPUT_DIRECTORY_EMPTY`, `OUTPUT_DATA_NOTE_MISSING`, `OUTPUT_PDF_MISSING`,
-`OUTPUT_TABLE_EXPORT_MISSING` and `OUTPUT_FIGURE_EXPORT_MISSING` against this
-contract, and `OUTPUT_DELIVERY` as the summary. Exhibits are counted by their
-`\label`, not by the environment they are wrapped in, so the end-matter
-convention some journals use is handled.
+`OUTPUT_LATEX_SOURCE_MISSING`, `OUTPUT_TABLE_EXPORT_MISSING` and
+`OUTPUT_FIGURE_EXPORT_MISSING` against this contract, and `OUTPUT_DELIVERY` as
+the summary. Exhibits are counted by their `\label`, not by the environment
+they are wrapped in, and exports may live in nested result directories.
 
 ## Evidence records
 

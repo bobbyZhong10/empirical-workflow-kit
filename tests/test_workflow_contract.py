@@ -1,4 +1,6 @@
+import os
 from pathlib import Path
+import subprocess
 
 import yaml
 
@@ -457,6 +459,24 @@ def test_runtime_adapters_and_records():
         )
 
 
+def test_canonical_validator_uses_the_bootstrapped_interpreter(tmp_path):
+    command = ROOT / "tools" / "validate_registry"
+    completed = subprocess.run(
+        [str(command), "--version"],
+        cwd=tmp_path,
+        env={**os.environ, "PYTHONNOUSERSITE": "1"},
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    assert completed.returncode == 0, completed.stderr
+    assert completed.stdout.strip() == "empirical-workflow 2.3"
+
+    canonical = "tools/validate_registry"
+    for path in ("AGENTS.md", "CLAUDE.md", "RESEARCH_PROTOCOL.md", "README.md"):
+        assert canonical in read(path), path
+
+
 def test_codex_install_uses_discovered_agents_skill_path():
     for path in ("README.md", "docs/v2-migration-guide.md"):
         body = read(path)
@@ -617,6 +637,8 @@ def test_smoke_environment_preflight_isolated_and_actionable():
     assert "local package_status=$?" in bootstrap
     assert "verify_r_package" in bootstrap
     assert bootstrap.index("verify_r_package") < bootstrap.index("Repository-local smoke-test environment is ready")
+    assert 'registry_command="$repo_root/tools/validate_registry"' in runner
+    assert "tools/validate_registry --version" in bootstrap
     assert ".r-lib/" in ignore
 
 

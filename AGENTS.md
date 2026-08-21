@@ -4,7 +4,7 @@
 
 **Workflow version: 2.3.** Every project records `kit_version` in its
 registry, and `tools/validate_registry.py` blocks at Checkpoint C when the two
-disagree. Check with `python3 tools/validate_registry.py --version`.
+disagree. Check with `tools/validate_registry --version`.
 
 This repository uses [RESEARCH_PROTOCOL.md](RESEARCH_PROTOCOL.md) as its
 portable research contract. Before acting, read it and the active
@@ -23,8 +23,8 @@ enforce is guidance; anything the validator enforces is binding on both.
 Two checkpoints gate the work, and both are run by the same command:
 
 ```bash
-python3 tools/validate_registry.py <registry> --checkpoint B   # construction
-python3 tools/validate_registry.py <registry> --checkpoint C   # submission
+tools/validate_registry <registry> --checkpoint B   # construction
+tools/validate_registry <registry> --checkpoint C   # submission
 ```
 
 A stage is not complete until its checkpoint returns zero blocking findings.
