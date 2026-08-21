@@ -598,6 +598,28 @@ def test_smoke_covers_expected_identity_handoff_and_failed_identification():
     assert "decision-log.md" in recovery
 
 
+def test_smoke_environment_preflight_isolated_and_actionable():
+    runner = read("tests/smoke/run_smoke.sh")
+    bootstrap = read("tests/bootstrap_test_environment.sh")
+    ignore = read(".gitignore")
+    for module in ("import pyarrow", "import yaml"):
+        assert module in runner
+    assert "find_spec" not in runner
+    for package in ("arrow", "yaml", "fixest", "modelsummary"):
+        assert package in runner
+        assert package in bootstrap
+    for body in (runner, bootstrap):
+        assert "print_diagnostic_excerpt" in body
+        assert "process_status_message" in body
+        assert "terminated by signal" in body
+        assert "Rscript --vanilla" in body
+    assert "local package_status=$?" in runner
+    assert "local package_status=$?" in bootstrap
+    assert "verify_r_package" in bootstrap
+    assert bootstrap.index("verify_r_package") < bootstrap.index("Repository-local smoke-test environment is ready")
+    assert ".r-lib/" in ignore
+
+
 def test_readme_cross_runtime_quickstart():
     body = read("README.md")
     for phrase in (

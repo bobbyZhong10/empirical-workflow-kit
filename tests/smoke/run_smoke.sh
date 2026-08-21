@@ -13,19 +13,49 @@ preflight_error() {
   exit 1
 }
 
+process_status_message() {
+  local status=$1
+  if (( status > 128 )); then
+    printf 'terminated by signal %d (exit status %d)' "$((status - 128))" "$status"
+  else
+    printf 'exited with status %d' "$status"
+  fi
+}
+
+print_diagnostic_excerpt() {
+  local diagnostic_path=$1
+  local label=$2
+  echo "Diagnostic excerpt for $label (first 20 lines, at most 4096 bytes):" >&2
+  if [[ -s "$diagnostic_path" ]]; then
+    LC_ALL=C head -c 4096 "$diagnostic_path" | tr -cd '\11\12\15\40-\176' | sed -n '1,20p' >&2
+  else
+    echo "(no diagnostic output captured)" >&2
+  fi
+}
+
 if [[ ! -x "$registry_python" ]]; then
   preflight_error "missing executable $registry_python"
 fi
 
-if ! "$registry_python" - <<'PY'
-from importlib.util import find_spec
+python_preflight_output=$(mktemp)
+if "$registry_python" - >"$python_preflight_output" 2>&1 <<'PY'
+try:
+    import pyarrow
+except Exception as error:
+    raise SystemExit(f"pyarrow failed to import: {type(error).__name__}: {error}")
 
-missing = [package for package in ("pyarrow", "yaml") if find_spec(package) is None]
-if missing:
-    raise SystemExit(", ".join(missing))
+try:
+    import yaml
+except Exception as error:
+    raise SystemExit(f"yaml failed to import: {type(error).__name__}: {error}")
 PY
 then
-  preflight_error "the repository-local Python environment is missing PyArrow or PyYAML"
+  rm -f "$python_preflight_output"
+else
+  python_preflight_status=$?
+  print_diagnostic_excerpt "$python_preflight_output" "repository-local Python import preflight"
+  rm -f "$python_preflight_output"
+  preflight_error "the repository-local Python environment cannot import one or more required modules (PyArrow, PyYAML; $(process_status_message "$python_preflight_status"))"
 fi
 
 if ! command -v Rscript >/dev/null 2>&1; then
@@ -45,14 +75,17 @@ check_r_package() {
 
   # Run one package per R process.  A broken package can crash R while its
   # namespace loads; isolating it keeps that crash out of the workflow run.
-  if ! Rscript --vanilla -e '
+  if Rscript --vanilla -e '
     package <- commandArgs(trailingOnly = TRUE)[[1]]
     if (!requireNamespace(package, quietly = TRUE)) quit(status = 1)
   ' "$package" >"$package_output" 2>&1; then
     rm -f "$package_output"
-    preflight_error "R package '$package' is unavailable or cannot be loaded in an isolated R session"
+  else
+    local package_status=$?
+    print_diagnostic_excerpt "$package_output" "R package '$package'"
+    rm -f "$package_output"
+    preflight_error "R package '$package' is unavailable or cannot be loaded in an isolated R session ($(process_status_message "$package_status"))"
   fi
-  rm -f "$package_output"
 }
 
 for r_package in arrow yaml fixest modelsummary; do
