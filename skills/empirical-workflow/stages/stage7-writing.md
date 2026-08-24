@@ -23,6 +23,13 @@
   dash, no contraction, no possessive on a named thing, no cross-reference
   parked in parentheses. Policy text, prices, dates, company statements and
   public datasets are footnotes with links, not reference-list entries.
+- Keep one central contribution visible in the abstract, introduction, section
+  openings, and conclusion. Use the Stage 3 paper story as the argument map; if
+  final evidence narrows the claim, record a decision and propagate the
+  narrowing before revising prose.
+- Make each main exhibit answer a stated reader question. Begin each paragraph
+  with its proposition, advance only that proposition, and report the estimate
+  before interpreting it.
 - Write in evidence-first order: theory, data, results, robustness, discussion
   and limitations, then introduction and conclusion. The last-written
   introduction summarizes observed results rather than constraining them.
@@ -85,6 +92,8 @@
   maintaining a second source of truth, and retain validator BLOCK, WARN, and
   INFO results with their assertion-site anchors.
 
+- `docs/paper_story.md` updated with final claim scope and a completed
+  revision-diagnostics audit from `references/elite-is-paper-standards.md`.
 - Citation-verification record, selected outlet-positioning record, review
   requests and findings, revision log, submission checks, relevant Evidence
   cards, decision-log entries, and updated status.

@@ -18,6 +18,10 @@
   identification precedent, competing explanation, or outlet positioning).
 - Cluster the evidence into research conversations, assess the gap as a
   falsifiable claim, and compare framing against target-outlet expectations.
+- Read `references/elite-is-paper-standards.md`. Distil the literature into one
+  prospective theoretical move rather than a list of related findings. Test
+  whether each retained conversation, construct, and empirical precedent is
+  necessary to that move.
 
 ## Required artifacts
 

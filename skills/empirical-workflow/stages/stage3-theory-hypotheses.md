@@ -8,8 +8,13 @@
 
 ## Automatic actions
 
-- Select one primary theoretical lens, state the causal mechanism, and mark
-  which links are observed versus inferred.
+- Read `references/elite-is-paper-standards.md` and complete
+  `templates/paper-story-template.md` before interpreting estimates. Select one
+  primary theoretical lens, state the causal mechanism, and mark which links
+  are observed versus inferred.
+- Define every focal construct, its level of analysis, proxy, and distinction
+  from adjacent constructs. Check that theoretical scope does not exceed the
+  data, design, or empirical unit.
 - Write the identifying-assumption sentence in language a skeptical reader can
   challenge, and map evidence and diagnostics that could support or fail it.
 - Define hypotheses before estimates: claim, expected sign, boundary condition,
@@ -28,6 +33,9 @@
 - `docs/hypothesis_estimate_map.md`: locked hypothesis-to-estimate map with
   each hypothesis, specification, sample, coefficient, and expected table or
   figure.
+- `docs/paper_story.md`: completed paper-story template with the single
+  contribution headline, construct cards, bounded claim, exhibit sequence, and
+  section-purpose matrix.
 - `docs/checkpoints/checkpoint_a.md`: complete Checkpoint A record with
   evidence and a pass, revise, or pause outcome.
 - Evidence cards for material theory and design claims, decision-log entries

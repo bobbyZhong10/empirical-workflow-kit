@@ -69,6 +69,10 @@ Read a reference only when the selected stage calls for it:
   submission is finished; read at Stage 7 and before Checkpoint C.
 - `references/writing-standards.md`: the house prose style, four rules of which
   are checked; read before drafting and before the final pass.
+- `references/elite-is-paper-standards.md`: contribution, construct, argument,
+  and exhibit discipline for elite IS papers; read in Stages 2, 3, and 7.
+- `templates/paper-story-template.md`: contribution-to-evidence planning
+  template; complete in Stage 3 and update in Stage 7.
 - `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
 - `references/latex-manuscript-adapter.md`: Stage 7 LaTeX binding of the
   manuscript to the registry; read only when the format adapter is applied.
