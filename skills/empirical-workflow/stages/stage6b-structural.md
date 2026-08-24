@@ -8,12 +8,16 @@
 - The current status, decision-log tail, relevant Evidence cards, and method
   authorities for estimation and inference.
 
-Read `references/data-contract.md` before consuming analysis data. If the
-structural branch uses R, read `references/r-standards.md` before validation,
+Read `references/data-contract.md` and `references/operational-quality-loop.md`
+before consuming analysis data. If the structural branch uses R, read
+`references/r-standards.md` before validation,
 construction, diagnostics, or estimation.
 
 ## Automatic actions
 
+- Before a formal solver run, verify the data and objective on a small,
+  deterministic case; where an inherited implementation exists, reproduce a
+  known baseline before accepting extension results.
 - State agents, choice sets, information, timing, objectives, equilibrium, and
   tractability assumptions. Explain what the structure delivers that a reduced
   form cannot: a bounded counterfactual, welfare object, or parameter of

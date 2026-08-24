@@ -78,6 +78,9 @@ Read a reference only when the selected stage calls for it:
   manuscript to the registry; read only when the format adapter is applied.
 - `references/writing-under-the-registry.md`: how to satisfy a writing check in
   the paper's own voice; read when a finding asks you to change prose.
+- `references/operational-quality-loop.md`: planning, baseline reproduction,
+  progressive validation, debugging, and completion evidence; read before
+  changing research scripts, pipelines, validators, or registry logic.
 - `templates/status-template.md`: project status record.
 
 ## Shared recordkeeping

@@ -8,7 +8,8 @@
   observation unit and data-format conventions.
 
 Read `references/python-standards.md` before creating or changing numbered
-Python data scripts. Read `references/data-contract.md` before producing an
+Python data scripts. Read `references/operational-quality-loop.md` before
+changing a build pipeline or its validation. Read `references/data-contract.md` before producing an
 analysis-ready export, its contract, or its merge audit.
 
 ## Automatic actions
@@ -22,6 +23,9 @@ analysis-ready export, its contract, or its merge audit.
   Tabulate unit entry and exit by period and investigate material changes.
 - Preserve raw inputs, write reproducible numbered build scripts, and create
   Evidence cards for material source and quality findings.
+- When extending an inherited pipeline or replication package, reproduce a
+  known baseline before accepting extension output; record the match, tolerance,
+  or authorized explanation for any discrepancy.
 
 ## Required artifacts
 
@@ -36,6 +40,9 @@ analysis-ready export, its contract, or its merge audit.
 - Numbered build scripts that follow `references/python-standards.md`, a
   derived-data manifest, and, for every analysis-ready export, the Parquet,
   versioned contract, and merge audit required by `references/data-contract.md`.
+- `docs/baseline_reproduction.md` when an inherited pipeline or replication
+  package is extended: source version, commands, target, tolerance, outcome,
+  and authorized explanation for any deviation.
 - Relevant Evidence cards and an updated `_status.md`.
 
 ## Red lines

@@ -12,11 +12,15 @@
 
 Read `references/identification-decision-tree.md` before choosing an estimator
 and `references/robustness-checklists.md` before planning diagnostics. Read
-`references/data-contract.md` and `references/r-standards.md` before consuming
-analysis data or running R validation, construction, diagnostics, or estimation.
+`references/data-contract.md`, `references/r-standards.md`, and
+`references/operational-quality-loop.md` before consuming analysis data or
+running R validation, construction, diagnostics, or estimation.
 
 ## Automatic actions
 
+- Before a formal batch, run a small deterministic smoke case or fixture and
+  preserve its validation result. When extending a prior analysis, reproduce
+  the known baseline before accepting a new specification.
 - Create an identification memo before the first formal estimation batch. It
   records Tree-0 dates (announcement, effective, actual treatment, and
   outcome), anticipation, intensity/repeat/exit rules, interference,
