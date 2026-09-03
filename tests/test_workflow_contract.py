@@ -502,7 +502,7 @@ def test_canonical_validator_uses_the_bootstrapped_interpreter(tmp_path):
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    assert completed.stdout.strip() == "empirical-workflow 2.5"
+    assert completed.stdout.strip() == "empirical-workflow 2.6"
 
     canonical = "tools/validate_registry"
     for path in ("AGENTS.md", "CLAUDE.md", "RESEARCH_PROTOCOL.md", "README.md"):

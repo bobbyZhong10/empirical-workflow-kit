@@ -2,7 +2,7 @@
 
 <!-- shared-contract: generated, identical in CLAUDE.md and AGENTS.md -->
 
-**Workflow version: 2.5.** Every project records `kit_version` in its
+**Workflow version: 2.6.** Every project records `kit_version` in its
 registry, and `tools/validate_registry.py` blocks at Checkpoint C when the two
 disagree. Check with `tools/validate_registry --version`.
 

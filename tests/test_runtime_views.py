@@ -25,9 +25,12 @@ INSTALL = ROOT / "scripts" / "install_runtime_views.py"
 VERIFY = ROOT / "scripts" / "verify_runtime_parity.py"
 
 MANAGED_SKILLS = [
+    "bibcheck",
     "bibliography-audit",
     "causal-design",
+    "compile-latex",
     "conjoint",
+    "council",
     "course-site",
     "did",
     "empirical-workflow",
@@ -36,14 +39,18 @@ MANAGED_SKILLS = [
     "iv",
     "latex-production",
     "literature-review",
+    "litreview",
     "manuscript-review",
     "preregister",
     "rdd",
+    "reading-papers",
     "referee-response",
+    "replication-package",
     "replication-release",
     "research-council",
     "research-sources",
     "research-talk",
+    "review-paper",
     "selection-on-observables",
     "slide-review",
     "synthetic-control",
@@ -51,6 +58,15 @@ MANAGED_SKILLS = [
 ]
 MANAGED_AGENTS = ["tikz-reviewer"]
 PROJECT_VIEWS = {"claude": ".claude/skills", "codex": ".agents/skills"}
+SKILL_ALIASES = {
+    "bibcheck": "bibliography-audit",
+    "compile-latex": "latex-production",
+    "council": "research-council",
+    "litreview": "literature-review",
+    "reading-papers": "research-sources",
+    "replication-package": "replication-release",
+    "review-paper": "manuscript-review",
+}
 
 
 def kit_version():
@@ -139,6 +155,28 @@ def test_manifest_inventory_matches_the_canonical_tree():
     assert data["managed_skills"] == MANAGED_SKILLS == on_disk
     agents = sorted(p.stem for p in (ROOT / "agents").glob("*.md"))
     assert data["managed_agents"] == MANAGED_AGENTS == agents
+
+
+def test_upstream_compatibility_aliases_are_thin_routes_to_canonical_skills():
+    data = manifest()
+    assert data["skill_aliases"] == SKILL_ALIASES
+    for alias, target in SKILL_ALIASES.items():
+        body = (ROOT / "skills" / alias / "SKILL.md").read_text(encoding="utf-8")
+        assert re.search(rf"^name: {re.escape(alias)}$", body, re.M)
+        assert f"../{target}/SKILL.md" in body
+        assert "This alias adds no behavior" in body
+        assert len(body.splitlines()) <= 20
+        assert target not in SKILL_ALIASES
+
+
+def test_every_locked_upstream_skill_name_is_runtime_discoverable():
+    lock = yaml.safe_load((ROOT / "upstream.lock.yaml").read_text(encoding="utf-8"))
+    upstream_names = {
+        entry["source"].removeprefix("skills/")
+        for entry in lock["entries"]
+        if entry["source"].startswith("skills/")
+    }
+    assert upstream_names <= set(MANAGED_SKILLS)
 
 
 # --- committed project views ----------------------------------------------------

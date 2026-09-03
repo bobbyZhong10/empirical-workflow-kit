@@ -9,7 +9,7 @@
 # tests/test_runtime_views.py and scripts/verify_runtime_parity.py both check.
 
 schema_version: 1
-workflow_version: "2.5"
+workflow_version: "2.6"
 
 canonical_source:
   protocol: RESEARCH_PROTOCOL.md
@@ -23,9 +23,12 @@ canonical_source:
 # or replaced by the runtime-view tooling; any other entry in a view directory
 # belongs to someone else and is left alone.
 managed_skills:
+  - bibcheck
   - bibliography-audit
   - causal-design
+  - compile-latex
   - conjoint
+  - council
   - course-site
   - did
   - empirical-workflow
@@ -34,18 +37,33 @@ managed_skills:
   - iv
   - latex-production
   - literature-review
+  - litreview
   - manuscript-review
   - preregister
   - rdd
+  - reading-papers
   - referee-response
+  - replication-package
   - replication-release
   - research-council
   - research-sources
   - research-talk
+  - review-paper
   - selection-on-observables
   - slide-review
   - synthetic-control
   - teaching-lecture
+
+# Upstream-compatible discovery names. Each facade contains triggers and a
+# single route to its canonical implementation; it never copies the prompt.
+skill_aliases:
+  bibcheck: bibliography-audit
+  compile-latex: latex-production
+  council: research-council
+  litreview: literature-review
+  reading-papers: research-sources
+  replication-package: replication-release
+  review-paper: manuscript-review
 
 managed_agents:
   - tikz-reviewer

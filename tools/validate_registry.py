@@ -192,7 +192,7 @@ ANALYTICAL_SITE_TYPES = {"model_internal", "hypothesis"}
 # this program: whoever runs it, the same registry produces the same verdict.
 # A project records the version it was validated against, and a mismatch is a
 # finding rather than a silent difference in behaviour.
-KIT_VERSION = "2.5"
+KIT_VERSION = "2.6"
 
 DISCOVERY_MODES = {"enforce", "report"}
 # Parts a reader consumes on their own. A qualification met in the body is met

@@ -141,6 +141,13 @@ routes through Stage 6a and the common mandatory-pause contract.
 Focused operations write into the same evidence, decision, status, and
 governance records. They cannot bypass a checkpoint or mandatory pause.
 
+All 20 skill names from the inspected upstream workflow remain directly
+discoverable. Renamed operations use thin compatibility aliases—`bibcheck`,
+`compile-latex`, `council`, `litreview`, `reading-papers`,
+`replication-package`, and `review-paper`—that route to the canonical skills in
+the table above. The aliases retain familiar invocation names without copying
+or forking the underlying prompts.
+
 ## Install for a project
 
 Clone the repository and keep its canonical tree intact:

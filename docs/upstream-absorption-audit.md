@@ -40,14 +40,14 @@ preferences were not made research-validity rules.
 
 | Upstream source | Canonical destination | Files accounted for |
 |---|---|---|
-| `skills/reading-papers/` | `skills/research-sources/` | `SKILL.md`, `REFERENCE.md`, and `paper.py` absorbed; the personal Zotero launcher was replaced by runtime-profile configuration |
-| `skills/litreview/SKILL.md` | `skills/literature-review/SKILL.md` | Topic discovery, ranking, deduplication, access honesty, and synthesis prompt absorbed |
-| `skills/bibcheck/SKILL.md` | `skills/bibliography-audit/SKILL.md` | Entry-level canonical-metadata audit and corrected-copy workflow absorbed |
-| `skills/council/SKILL.md` | `skills/research-council/SKILL.md` | Independent critic fanout and non-voting synthesis absorbed |
-| `skills/review-paper/SKILL.md` | `skills/manuscript-review/SKILL.md` | Multi-role manuscript review and severity triage absorbed |
+| `skills/reading-papers/` | `skills/reading-papers/` facade → `skills/research-sources/` | Upstream name remains directly discoverable; `SKILL.md`, `REFERENCE.md`, and `paper.py` are owned by the canonical target, and the personal Zotero launcher was replaced by runtime-profile configuration |
+| `skills/litreview/SKILL.md` | `skills/litreview/` facade → `skills/literature-review/` | Upstream name remains directly discoverable; topic discovery, ranking, deduplication, access honesty, and synthesis prompt are owned by the canonical target |
+| `skills/bibcheck/SKILL.md` | `skills/bibcheck/` facade → `skills/bibliography-audit/` | Upstream name remains directly discoverable; entry-level canonical-metadata audit and corrected-copy workflow are owned by the canonical target |
+| `skills/council/SKILL.md` | `skills/council/` facade → `skills/research-council/` | Upstream name remains directly discoverable; independent critic fanout and non-voting synthesis are owned by the canonical target |
+| `skills/review-paper/SKILL.md` | `skills/review-paper/` facade → `skills/manuscript-review/` | Upstream name remains directly discoverable; multi-role manuscript review and severity triage are owned by the canonical target |
 | `skills/referee-response/SKILL.md` | `skills/referee-response/SKILL.md` | Location verification, response drafting, and stress-test prompt absorbed |
-| `skills/replication-package/` | `skills/replication-release/` | Skill and all four scanners absorbed, with stronger release authority gates |
-| `skills/compile-latex/` | `skills/latex-production/` | Compile diagnostics, log patterns, and rendered-figure loop absorbed |
+| `skills/replication-package/` | `skills/replication-package/` facade → `skills/replication-release/` | Upstream name remains directly discoverable; the canonical target owns the skill and all four scanners, with stronger release authority gates |
+| `skills/compile-latex/` | `skills/compile-latex/` facade → `skills/latex-production/` | Upstream name remains directly discoverable; the canonical target owns compile diagnostics, log patterns, and the rendered-figure loop |
 | `skills/preregister/SKILL.md` | `skills/preregister/SKILL.md` | Registry-specific fields, MUST/SHOULD/MAY prompts, and retrospective-refusal gate absorbed |
 | `skills/course-site/SKILL.md` | `skills/course-site/SKILL.md` | Site/deck boundary, Quarto structure, and publication workflow absorbed |
 | `skills/research-talk/` | `skills/research-talk/` | Skill, starter template, four references, and house-style file absorbed |
@@ -63,6 +63,10 @@ preferences were not made research-validity rules.
 
 `methods/fixed-effects/` is a local focused pack added for the workflow's associational panel
 branch. It does not replace an upstream source.
+
+All 20 upstream skill names are now runtime-discoverable. Seven renamed capabilities use thin,
+manifest-declared compatibility facades; the facades preserve upstream trigger vocabulary while
+the canonical targets remain the only owners of substantive prompts and supporting files.
 
 ## Tooling and non-skill files
 

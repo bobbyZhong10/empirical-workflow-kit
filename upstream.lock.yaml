@@ -56,7 +56,7 @@ entries:
   - source: skills/bibcheck
     source_oid: 925988318dd4b3007f693f4d0bd075969ea0646b
     disposition: adapted
-    destinations: [skills/bibliography-audit]
+    destinations: [skills/bibcheck, skills/bibliography-audit]
   - source: skills/causal-design
     source_oid: 48971624518f1e6ce7a9454f0a4279c2f99a18e4
     disposition: decomposed
@@ -64,7 +64,7 @@ entries:
   - source: skills/compile-latex
     source_oid: 10fb2cd1d32d7aba79d45a90e6843f6ebc270f6f
     disposition: adapted
-    destinations: [skills/latex-production]
+    destinations: [skills/compile-latex, skills/latex-production]
   - source: skills/conjoint
     source_oid: 2fb7f67d92aac09261d03f440d037ec1a068a5a7
     disposition: decomposed
@@ -72,7 +72,7 @@ entries:
   - source: skills/council
     source_oid: 0d2e9753a5a63e5ed072d89b9a1ae2ab946c0d5e
     disposition: adapted
-    destinations: [skills/research-council]
+    destinations: [skills/council, skills/research-council]
   - source: skills/course-site
     source_oid: a55036b879172f9807da1f9b58459e8525f66793
     disposition: adapted
@@ -92,7 +92,7 @@ entries:
   - source: skills/litreview
     source_oid: 680dedaef2882af076adeb2744c966ae108e4b8e
     disposition: adapted
-    destinations: [skills/literature-review]
+    destinations: [skills/litreview, skills/literature-review]
   - source: skills/preregister
     source_oid: e3842f6acbca6f34026f67dbb08feb10195b83d9
     disposition: adapted
@@ -104,7 +104,7 @@ entries:
   - source: skills/reading-papers
     source_oid: 6f89e464e727d2ba98760530437e42e35a4c0f1b
     disposition: adapted
-    destinations: [skills/research-sources]
+    destinations: [skills/reading-papers, skills/research-sources]
   - source: skills/referee-response
     source_oid: 28cba375c5287b739b9aae14360b10a08de7b658
     disposition: adapted
@@ -112,7 +112,7 @@ entries:
   - source: skills/replication-package
     source_oid: e41687c75258cad79ddbe53e98b5c6dcf691fd3b
     disposition: adapted
-    destinations: [skills/replication-release]
+    destinations: [skills/replication-package, skills/replication-release]
   - source: skills/research-talk
     source_oid: d8874396ba4e61dbec57ec3497cd5e63c69bd01f
     disposition: adapted
@@ -120,7 +120,7 @@ entries:
   - source: skills/review-paper
     source_oid: 0eca3f80bfbeff1e3f1401bef7b9adde227bf9dd
     disposition: adapted
-    destinations: [skills/manuscript-review]
+    destinations: [skills/review-paper, skills/manuscript-review]
   - source: skills/slide-review
     source_oid: 652d0555764923a2b4b5a8167f7316b62adb1399
     disposition: adapted
