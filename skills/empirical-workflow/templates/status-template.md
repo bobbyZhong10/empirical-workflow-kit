@@ -41,8 +41,9 @@ is only the current project snapshot.
 | Checkpoint B | | | |
 | 6a Reduced Form | | | |
 | 6b Structural | | | |
-| Checkpoint C | | | |
+| Analysis readiness | | | |
 | 7 Writing & Review | | | |
+| Checkpoint C | | | |
 
 ## 4. Locked specifications
 

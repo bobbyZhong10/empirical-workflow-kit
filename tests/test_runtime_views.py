@@ -126,11 +126,19 @@ def test_manifest_names_the_canonical_source_and_the_views():
     assert data["schema_version"] == 1
     assert data["workflow_version"] == kit_version()
     assert data["canonical_source"] == {
+        "kit_root": ".",
         "protocol": "RESEARCH_PROTOCOL.md",
         "skills_root": "skills",
         "presentation_tooling": "presentation-tooling",
         "agents_root": "agents",
+        "bootstrap_cli": "scripts/bootstrap_project.py",
         "runtime_cli": "scripts/ewf.py",
+        "registry_cli": "tools/validate_registry",
+        "registry_validator": "tools/validate_registry.py",
+        "registry_scaffold": "tools/scaffold_registry.py",
+        "figure_renderer": "tools/render_figure_macros.py",
+        "parity_cli": "scripts/verify_runtime_parity.py",
+        "installer_cli": "scripts/install_runtime_views.py",
         "upstream_lock": "upstream.lock.yaml",
     }
     assert data["runtime_views"]["claude"] == {
@@ -482,7 +490,7 @@ def test_adapters_route_both_runtimes_to_the_manifest_and_canonical_skills():
             "source of truth",
             "workflow.manifest.yaml",
             "RESEARCH_PROTOCOL.md",
-            "skills/empirical-workflow/SKILL.md",
+            "<skills_root>/empirical-workflow/SKILL.md",
             "runtime-profile.yaml",
             "stale",
             "primary language used in their first substantive request",

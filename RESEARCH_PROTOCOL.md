@@ -62,7 +62,8 @@ make execution order clear, and each script has one plainly stated purpose.
 Checkpoints are gates. They require the specified evidence, a status update,
 and a decision to proceed, revise, or pause. A failed checkpoint returns work
 to the relevant earlier stage rather than being converted into a caveat at the
-end of the workflow. Only a passing checkpoint authorizes the next stage.
+end of the workflow. Checkpoints A and B authorize their next analysis phases;
+Checkpoint C is the final writing, delivery, and release-readiness gate.
 
 ## Specification discipline
 

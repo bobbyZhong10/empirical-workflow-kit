@@ -1,6 +1,6 @@
 ---
 name: research-talk
-description: Author a Quarto reveal.js deck for a research talk: seminar, conference, job talk, brown bag. TRIGGER on "slides for my talk", "seminar deck", "job talk", "turn this paper into slides", "add an appendix slide", "export a handout". Classroom material is teaching-lecture; auditing an existing deck is slide-review.
+description: "Author a Quarto reveal.js deck for a research talk: seminar, conference, job talk, or brown bag. TRIGGER on slides for my talk, seminar deck, job talk, turning a paper into slides, adding an appendix slide, or exporting a handout. Classroom material is teaching-lecture; auditing an existing deck is slide-review."
 ---
 
 # Research talk decks

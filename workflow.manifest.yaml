@@ -9,14 +9,22 @@
 # tests/test_runtime_views.py and scripts/verify_runtime_parity.py both check.
 
 schema_version: 1
-workflow_version: "2.6"
+workflow_version: "2.7"
 
 canonical_source:
+  kit_root: .
   protocol: RESEARCH_PROTOCOL.md
   skills_root: skills
   presentation_tooling: presentation-tooling
   agents_root: agents
+  bootstrap_cli: scripts/bootstrap_project.py
   runtime_cli: scripts/ewf.py
+  registry_cli: tools/validate_registry
+  registry_validator: tools/validate_registry.py
+  registry_scaffold: tools/scaffold_registry.py
+  figure_renderer: tools/render_figure_macros.py
+  parity_cli: scripts/verify_runtime_parity.py
+  installer_cli: scripts/install_runtime_views.py
   upstream_lock: upstream.lock.yaml
 
 # Skills the kit owns. Only these names are ever created, checked, backed up,

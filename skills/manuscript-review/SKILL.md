@@ -1,12 +1,15 @@
 ---
 name: manuscript-review
-description: Referee a full manuscript against a named target journal: parallel agents on style, consistency, unsupported claims, math, exhibits, and contribution, triaged CRITICAL/MAJOR/MINOR. TRIGGER on "review my paper", "referee my draft", "is this ready to submit", "what would a referee say", "desk reject risk", "read this like Reviewer 2", "referee this for [journal]", "write my referee report". Critiquing an idea or plan is council; answering referees is referee-response.
+description: "Referee a full manuscript against a named target journal through independent lenses on style, consistency, unsupported claims, math, exhibits, and contribution, triaged CRITICAL/MAJOR/MINOR. TRIGGER on review my paper, referee my draft, is this ready to submit, what would a referee say, desk reject risk, read this like Reviewer 2, referee this for a journal, or write my referee report. Critiquing an idea or plan is council; answering referees is referee-response."
 ---
 
 # manuscript-review
 
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`
+before using a path below.
 
 Adapted from `ericluo04/claude-academic-workflow` at commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
 
@@ -26,11 +29,22 @@ buried-contribution gate from
 | `--quick` | off | run only agents 6 and 3, skip the rest |
 | `--referee` | off | journal referee mode: a submittable report, see below |
 
-Recognized journals, case-insensitive. Marketing: `MKSCI`, `JMR`, `JCR`, `MS`. Economics:
-`AER`, `QJE`, `JPE`, `Econometrica`, `REStud`, `AEJMacro`, `JME`, `RED`. Finance: `JF`, `JFE`,
-`RFS`, `JFQA`. Anything unrecognized is treated as a file path, and an absent journal means
-`top-field`: high general standards for a leading field journal, no specific persona. Add
-journals by editing this list. Store the result as `TARGET_JOURNAL`.
+Recognized journals, case-insensitive, covering the UTD 24 and FT 50 lists plus the top economics
+and IO journals; full names, publishers, and list membership are in
+`<skills_root>/literature-review/references/journal-scope.md`. Information systems: `MISQ`,
+`ISR`, `JMIS`, `IJOC`. Operations: `OR` (or `OpsRes`), `MSOM`, `POM`, `JOM`. Marketing: `MKSCI`,
+`JMR`, `JM`, `JCR`, `JCP`, `JAMS`. Management and organization: `AMJ`, `AMR`, `ASQ`, `OrgSci`,
+`SMJ`, `JIBS`, `JMgmt`, `JMS`, `OrgStud`, `OBHDP`, `JAP`, `ResPol`, `JBV`, `ETP`, `SEJ`.
+Current FT 50 additions: `AMA` (Academy of Management Annals), `ASR` (American Sociological
+Review), `PsychSci` (Psychological Science). Former FT 50 titles remain recognized as valid target
+aliases but are not labeled current FT 50 unless the central scope reference says so.
+Cross-field: `MS`. Accounting: `TAR`, `JAR`, `JAE`, `AOS`, `CAR`, `RAST`. Finance: `JF`, `JFE`,
+`RFS`, `JFQA`, `RoF`. Economics: `AER`, `AERI`, `QJE`, `JPE`, `Econometrica`, `REStud`, `REStat`,
+`JEEA`, `AEJApplied`, `AEJPolicy`, `AEJMicro`, `AEJMacro`, `JME`, `RED`. Industrial
+organization: `RAND`, `JIE`, `IJIO`, `JEMS`, `QME`. Anything unrecognized is treated as a file
+path, and an absent journal means `top-field`: high general standards for a leading field
+journal, no specific persona. Add journals by editing this list. Store the result as
+`TARGET_JOURNAL`.
 
 ## Referee mode
 
@@ -102,11 +116,12 @@ abstract. If no figures turn up, tell the user they may live in a non-standard d
 re-run with an explicit path. Same for tables, adding that agent 5 will then be limited to
 captions and cross-references.
 
-## Phase 2: launch the agents
+## Phase 2: run the review lenses
 
-One message, all agents at once, `subagent_type: general-purpose`. Each agent prompt is the
-shared brief below, then that agent's checklist, then its output sections. Subagents inherit
-nothing, so write the shared brief into every prompt in full. Agent 6 additionally gets the line
+When authorized workers are available, dispatch all requested lenses concurrently; otherwise run
+them sequentially into the isolated files required above. Each review prompt is the shared brief
+below, then that lens's checklist, then its output sections. Do not assume workers inherit context,
+so write the shared brief into every prompt in full. Agent 6 additionally gets the line
 "The target journal is `<TARGET_JOURNAL>`" and keeps the conditional logic in its brief intact.
 
 ### Shared brief (paste into every agent prompt)
@@ -171,7 +186,7 @@ Technical reviewer checking whether the paper contradicts itself.
 7. Citations. Every author-year cited in text must have a bibliography entry. Flag missing ones.
    For citations that carry the paper's positioning (closest prior work, "X shows Y" claims that
    the argument leans on), verify with
-   `skills/research-sources/scripts/paper.py resolve "<author year title>" --json` and
+   `<skills_root>/research-sources/scripts/paper.py resolve "<author year title>" --json` and
    flag any characterization that does not match the cited work. Do not audit the whole
    bibliography entry by entry; that is the `bibliography-audit` skill's job. Check the citations the
    argument leans on.
@@ -195,7 +210,7 @@ agent 6's job.
 4. Missing caveats. Walk the obvious threats for this design (selection into the sample, reverse
    causality, measurement error, omitted variables) and flag each one the paper never addresses.
 5. Priority claims ("we are the first to show", "no prior study has examined"). Check with
-   `skills/research-sources/scripts/paper.py resolve` or `cites`; if a counterexample
+   `<skills_root>/research-sources/scripts/paper.py resolve` or `cites`; if a counterexample
    turns up, that is `[CRITICAL]`. If the search is inconclusive, flag it as an unverified
    priority assertion the authors must confirm, and do not rule on it yourself.
 6. Statistical versus economic or managerial significance: significance reported with no
@@ -264,10 +279,13 @@ or incomplete notes (by figure number); Cross-reference issues; Formatting incon
 ### Agent 6, contribution evaluation (adversarial top-journal referee)
 
 Demanding associate editor deciding whether the paper goes to referees or gets desk rejected.
-Exacting and specific, not hostile. Adopt the norms of `TARGET_JOURNAL`: for a named marketing
-journal, its scope, methodological bar, framing expectations around substantive marketing
-relevance and managerial implications, and its audience; for a named economics or finance
-journal, the same; for `top-field`, high general standards with no journal persona.
+Exacting and specific, not hostile. Adopt the norms of `TARGET_JOURNAL`: for a named IS, OM,
+marketing, or management journal, its scope, methodological bar, framing expectations (theory
+contribution and construct novelty at MISQ and AMJ; decision consequence at Management Science,
+ISR, OR, and M&SOM; substantive marketing relevance and managerial implications at the marketing
+journals; mechanism and boundary condition at Organization Science and SMJ), and its audience;
+for a named economics, IO, accounting, or finance journal, the same; for `top-field`, high
+general standards with no journal persona.
 
 Part 1, the central contribution. State in one sentence what the paper claims to contribute. Is
 it new or a replication in a new setting? What is the closest prior paper and what does this add
@@ -280,7 +298,8 @@ commands, comments, and the abstract), count words until the first sentence cont
 "we show", "we document", "our main result", "the headline", "we report", "in this paper, we",
 "the contribution", or "we contribute". Report the count and the phrase that matched, or "no
 trigger found in body". Over 2500 words: `[MAJOR]`, headline finding buried deep, strong
-desk-reject risk at MKSCI, JMR, JCR, and MS. Between 1500 and 2500: `[WARN]`, buried roughly
+desk-reject risk at the UTD 24 flagships (MS, MKSCI, JMR, JCR, ISR, MISQ, OR, MSOM, AMJ, ASQ).
+Between 1500 and 2500: `[WARN]`, buried roughly
 three double-spaced pages in, a common desk-reject signal. At or under 1500: `[OK]`. If the
 abstract already delivers the headline unambiguously, downgrade `[WARN]` to `[INFO]` and note
 why. Never downgrade `[MAJOR]`: a 2500-word runway buries the finding whatever the abstract says.

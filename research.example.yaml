@@ -4,7 +4,7 @@ reference_pools: [UTD24, FT50, TopEcon, JAIS, IJRM]
 research_domain: platform_and_firm_panel_causal
 observation_unit: firm_quarter
 analysis_languages:
-  etl: python
+  etl: r
   estimation: r
 allowed_designs: [fixed_effects, selection_on_observables, did, event_study, ddd, iv, rdd, synthetic_control, field_experiment, conjoint]
 autonomy_mode: complete_with_red_lines
@@ -15,6 +15,6 @@ artifact_language: English
 analysis_input_contract:
   data_version: firm_quarter_v2026_08_15
   dataset_path: data/analysis/firm_quarter.parquet
-  producing_script: code/py/04_export.py
+  producing_script: code/r/04_export.R
   time_granularity: quarter
   primary_key: [firm_id, year_qtr]

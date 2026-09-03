@@ -1,6 +1,8 @@
 # LaTeX Manuscript Adapter (Management Science / INFORMS)
 
-Read this at Stage 7, not earlier. The journal format adapter is applied only
+Read this at Stage 7, not earlier. Resolve `<kit_root>`, `<skills_root>`, `<registry_cli>`,
+`<registry_scaffold>`, and `<figure_renderer>` from
+`workflow.manifest.yaml:canonical_source` before using the paths below. The journal format adapter is applied only
 after the scientific content is stable; copying a template into a project
 before then invites formatting work to substitute for analysis.
 
@@ -10,10 +12,10 @@ Copy the INFORMS class, bibliography style, and template into the project's
 `paper/` directory at Stage 7:
 
 ```
-cp Template_for_Management_Science_Journal/informs3.cls        paper/
-cp Template_for_Management_Science_Journal/informs2014.bst     paper/
-cp Template_for_Management_Science_Journal/Management-Science-template.tex paper/manuscript.tex
-cp skills/empirical-workflow/templates/claimsite.sty           paper/
+cp <kit_root>/Template_for_Management_Science_Journal/informs3.cls        paper/
+cp <kit_root>/Template_for_Management_Science_Journal/informs2014.bst     paper/
+cp <kit_root>/Template_for_Management_Science_Journal/Management-Science-template.tex paper/manuscript.tex
+cp <skills_root>/empirical-workflow/templates/claimsite.sty    paper/
 ```
 
 Use `Management-Science-template-with-ECompanion.tex` instead when the paper
@@ -57,7 +59,7 @@ The manuscript never types a quantitative value. It calls the registry:
 Retention rises by \figval{retention_pp} for participating firms.
 ```
 
-`tools/render_figure_macros.py` writes `paper/figures.tex` from the registry's
+`<figure_renderer>` writes `paper/figures.tex` from the registry's
 reported figures. A figure that is stale, superseded, or bound to a superseded
 pipeline is **not emitted**, so `\figval` raises a LaTeX error and the build
 fails rather than typesetting a value the registry has retired. A figure
@@ -182,10 +184,10 @@ well-formatted entry with a wrong DOI still fails.
 Do not hand-author the registry. Three quarters of it is derivable.
 
 ```bash
-python3 tools/scaffold_registry.py init .                 # skeletons, not blank files
-tools/validate_registry . --checkpoint C                  # discovery lists what is unregistered
-python3 tools/scaffold_registry.py sites . --limit 10     # stubs for those sentences
-python3 tools/scaffold_registry.py figures . \
+python3 <registry_scaffold> init .                 # skeletons, not blank files
+<registry_cli> . --checkpoint C                    # discovery lists what is unregistered
+python3 <registry_scaffold> sites . --limit 10     # stubs for those sentences
+python3 <registry_scaffold> figures . \
     --artifact results/p1.json --pipeline p1              # figures read from the artefact
 ```
 
@@ -201,8 +203,8 @@ reaches zero.
 ## Build
 
 ```bash
-tools/validate_registry . --checkpoint C --format json > build/registry.json
-python3 tools/render_figure_macros.py . --output paper/figures.tex
+<registry_cli> . --checkpoint C --format json > build/registry.json
+python3 <figure_renderer> . --output paper/figures.tex
 cd paper && pdflatex manuscript && bibtex manuscript && pdflatex manuscript && pdflatex manuscript
 ```
 

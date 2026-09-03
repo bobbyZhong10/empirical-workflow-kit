@@ -1,37 +1,47 @@
 # R Coding Standards
 
-R is the analysis language. The reasons are practical: estimation results come
-back as objects that can be checked programmatically, so the workflow can verify
-its own output rather than parse a log file.
+R is the default language for the empirical pipeline from ingestion through
+figures and tables. The reasons are practical: transformations and estimation
+results remain inspectable objects, so the workflow can verify its own output
+rather than parse logs or coordinate two language environments by default.
 
 ## Project layout
 
 ```
 code/
 ├── 00_setup.R        packages, paths, options, seed
-├── 01_validate_contract.R  validates Python's Parquet, contract, and merge audit
-├── 02_construct.R    analysis-variable construction; the attrition log lives here
-├── 03_descriptives.R
-├── 04_main.R         baseline and specification ladder
-├── 05_diagnostics.R  design specific evidence for identification
-├── 06_robustness.R
-├── 07_mechanism_het.R
-└── 08_tables.R       export only, no estimation
+├── 01_ingest.R       read-only ingestion and source assertions
+├── 02_clean_merge.R  cleaning, entity resolution, joins, and merge audit
+├── 03_entities.R     optional unit construction or crosswalks
+├── 04_export.R       Parquet, data contract, and immutable merge audit
+├── 05_validate_contract.R  independently validates the analysis-data boundary
+├── 06_construct.R    analysis-variable construction; the attrition log lives here
+├── 07_descriptives.R
+├── 08_main.R         baseline and specification ladder
+├── 09_diagnostics.R  design-specific evidence for identification
+├── 10_robustness.R
+├── 11_mechanism_het.R
+└── 12_tables.R       export only, no estimation
 ```
 
-Python owns raw ingestion, cleaning, entity resolution, and merging. It exports
-the analysis-ready Parquet data, YAML contract, and merge audit before R begins.
-R starts with contract validation, then analysis construction. Multiple scripts,
-never one file. Each script runs standalone after `00_setup.R`. No script
-writes to `data/raw/`.
+R owns raw ingestion, cleaning, entity resolution, merging, construction, and
+analysis by default. It exports the analysis-ready Parquet data, YAML contract,
+and merge audit, then validates those artifacts independently before formal
+analysis. Multiple scripts, never one file. Each script runs standalone after
+`00_setup.R`. No script writes to `data/raw/`.
 
-## Python-to-R data-contract gate
+When a recorded Python exception produces the analysis-ready export, preserve
+the same contract boundary and begin the R portion at `05_validate_contract.R`.
+The exception changes the producer, not the validation, provenance, or delivery
+requirements.
 
-Python supplies the analysis input as a Parquet file and a versioned YAML
-contract beside it. The exact schema and required fields are defined in
+## Analysis-data contract gate
+
+The Stage 1 producer supplies the analysis input as a Parquet file and a
+versioned YAML contract beside it. The exact schema and required fields are defined in
 `data-contract.md` and its `data-contract-template.yaml`.
 
-`01_validate_contract.R` must run before `02_construct.R` reads or constructs
+`05_validate_contract.R` must run before `06_construct.R` reads or constructs
 analysis variables. It loads the YAML contract, Parquet input, and versioned
 merge-audit artifact, then aborts on any failed key, count, or required-field
 check. It independently loads `research.yaml` and compares the contract's

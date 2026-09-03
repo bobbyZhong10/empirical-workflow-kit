@@ -1,12 +1,15 @@
 ---
 name: research-sources
-description: Read one known paper the user points at: a link, DOI, title, author name, or vague reference. TRIGGER when the user pastes a paper URL, names a paper to read or summarize, asks "what does X argue", or asks what an author has written. A topic-level search is literature-review; auditing a .bib is bibliography-audit.
+description: "Read one known paper the user points at: a link, DOI, title, author name, or vague reference. TRIGGER when the user pastes a paper URL, names a paper to read or summarize, asks what X argues, or asks what an author has written. A topic-level search is literature-review; auditing a .bib is bibliography-audit."
 ---
 
 # Research sources
 
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`
+before using a path below.
 
 Adapted from `research-sources` in `ericluo04/claude-academic-workflow` at commit
 `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
@@ -18,7 +21,7 @@ first answer on hard cases (common author names, paywalled venues). Verify, as f
 ## The command
 
 ```bash
-skills/research-sources/scripts/paper.py <cmd> "<query>" [flags]
+<skills_root>/research-sources/scripts/paper.py <cmd> "<query>" [flags]
 ```
 
 | cmd | does |
@@ -126,12 +129,13 @@ extractable text. Only then is OCR worth it. If you have such a setup, route it 
 
 ## Zotero: the user's citation library
 
-A Zotero MCP server is connected; its tools are underscore-named under `mcp__zotero__`, e.g.
-`zotero_search_items`. This is the user's own reference manager.
+Treat Zotero as an optional private-library connector. Use it only when
+`runtime-profile.yaml` declares an available Zotero capability; otherwise continue through the
+open-web access ladder and disclose that the private-library check was skipped.
 
-- Reads work only while the Zotero desktop app is open with the local API enabled
+- Local connector reads work only while the Zotero desktop app is open with the local API enabled
   (Settings → Advanced → "Allow other applications on this computer to communicate with Zotero").
-  If a `zotero_*` call fails, that's almost always the cause, so ask the user to open Zotero.
+  If a Zotero connector call fails, that is a common cause, so ask the user to open Zotero.
 - Use it to: search what they already have, read PDF full text and their own annotations/notes,
   pull BibTeX for citing, and find items by tag. Prefer *their* copy of a paper over re-fetching;
   it's faster and it's the version they annotated.
@@ -265,18 +269,19 @@ correct"* (Section 6, p. 22). Read: published version, arXiv HTML rung.
 
 ## Working with many papers
 
-Per the user's standing preference, for several papers at once spawn parallel subagents, one
-paper each, returning structured summaries. Every API call in `paper.py` now retries with
+For several papers, use one isolated reading record per paper. If the runtime profile and user
+policy authorize parallel workers, the records may run in parallel; otherwise process them
+sequentially with the same output contract. Every API call in `paper.py` now retries with
 exponential backoff on 429/503 (arXiv, Semantic Scholar, OpenAlex, Crossref), and the OpenAlex key
-gives a 10,000-credit daily budget, so a fan-out of a dozen readers is safe. Two things still
-apply: results are disk-cached (so re-reads across agents are free), and for a very large batch
+may provide a larger daily budget. Do not assume a particular quota or concurrency ceiling; read
+the active profile and service response. Two things still apply: results are disk-cached, and for a very large batch
 (many dozens) keep arXiv-heavy concurrency modest, since arXiv politeness is ~1 request / 3s.
 
 ## Setup state
 
-- This setup assumes Zotero MCP (`zotero-mcp-launch.sh` reads `scholar.env`), Playwright MCP,
-  and Scholar Gateway are installed and connected; adjust to your machine. `paper.py` needs no keys.
-- `the file named by SCHOLAR_ENV_FILE`: put `OPENALEX_API_KEY` and `S2_API_KEY` here, plus the
-  optional Zotero web-API creds; REFERENCE.md §7 says how to get all of them.
+- Resolve Zotero, browser automation, and scholarly search capabilities from `runtime-profile.yaml`.
+  They are optional; the sequential `paper.py` baseline must remain usable without them.
+- If the runtime profile names a scholar environment file, it may contain `OPENALEX_API_KEY`,
+  `S2_API_KEY`, and optional Zotero web-API credentials. `REFERENCE.md` section 7 documents them.
 - Background on the whole landscape (what's blocked, what's open, why a script beat a fleet of MCP
   servers): `REFERENCE.md` in this directory.

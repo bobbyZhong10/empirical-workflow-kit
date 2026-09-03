@@ -1,0 +1,20 @@
+project_name: ""
+target_outlets: []
+reference_pools: []
+research_domain: ""
+observation_unit: ""
+analysis_languages:
+  etl: r
+  estimation: r
+allowed_designs: []
+autonomy_mode: complete_with_red_lines
+current_stage: stage_1_data_infrastructure
+primary_data_format: parquet
+conversation_language: initial_user_primary_language
+artifact_language: English
+analysis_input_contract:
+  data_version: ""
+  dataset_path: data/analysis/analysis.parquet
+  producing_script: code/r/04_export.R
+  time_granularity: ""
+  primary_key: []

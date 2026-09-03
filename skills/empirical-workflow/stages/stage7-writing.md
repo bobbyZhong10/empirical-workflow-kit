@@ -106,6 +106,9 @@
 - A response matrix with each claimed manuscript location independently pin-verified, and a release
   checklist recording current journal policy, confidentiality disposition, safety scans, manifest,
   source revision, and archive checksum when those operations apply.
+- `docs/checkpoints/checkpoint_c.md` with the final validator command, zero
+  blocking findings, review disposition, delivery evidence, and recorded
+  proceed, revise, or pause decision.
 
 ## Red lines
 
@@ -123,7 +126,7 @@
 
 ## Exit condition
 
-The manuscript has complete three-line economics tables, verified citations,
+Checkpoint C has zero blocking findings. The manuscript has complete three-line economics tables, verified citations,
 and a claim-to-evidence audit in which each substantive claim traces to a
 recorded result and limitation. Independent-runtime identification review is
 CLEAR or CONDITIONAL with tracked resolution; no unresolved HOLD remains; and
@@ -138,5 +141,8 @@ the publication decision and remaining limitations are documented.
 3. Run review at the required depth; give the independent runtime the
    identification memo, diagnostic evidence, Evidence cards, and relevant
    manuscript section rather than an executor summary.
-4. Resolve findings, verify cross-references and table order, document the
-   publication decision, then apply the outlet formatting adapter.
+4. Resolve findings, verify cross-references and table order, then apply the
+   outlet formatting adapter and assemble the delivery tree.
+5. Run Checkpoint C, record its blocking count and review disposition, and only
+   then document release readiness. External circulation or submission still
+   requires the separately recorded authority decision.

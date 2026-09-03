@@ -22,9 +22,15 @@ The project view is preferred because it pins the task to the checkout being
 edited. Use the user view only when one canonical checkout is intentionally
 shared across projects.
 
+For an existing external research repository, run
+`python3 scripts/bootstrap_project.py /absolute/path/to/project --codex` from
+the kit checkout. This installs project-local relative discovery links through
+an ignored `.workflow/kit` binding and initializes only missing project records.
+It does not copy prompts or overwrite existing research configuration.
+
 ## Start and hand off
 
-Run `python3 scripts/ewf.py doctor`, then read `RESEARCH_PROTOCOL.md`, the
+Run the manifest-named runtime CLI with `doctor`, then read `RESEARCH_PROTOCOL.md`, the
 active project configuration, current status, relevant Evidence card, and the
 tail of `decision-log.md`. A method facade improves automatic discovery but
 cannot select an unapproved design or skip Stage 6a.

@@ -99,7 +99,7 @@ def main() -> int:
     for runtime in selected_runtimes(args):
         if args.project:
             view = repo / manifest["runtime_views"][runtime]["skills"]
-            target_for = lambda name: f"../../skills/{name}"
+            target_for = lambda name: os.path.relpath(canonical_skills / name, start=view)
         else:
             view = Path(os.path.expanduser(manifest["user_views"][runtime]["skills"]))
             target_for = lambda name: str((canonical_skills / name).resolve())
@@ -123,7 +123,7 @@ def main() -> int:
                 install_entry(
                     view / f"{name}.md",
                     canonical_agents / f"{name}.md",
-                    f"../../agents/{name}.md",
+                    os.path.relpath(canonical_agents / f"{name}.md", start=view),
                     check=args.check,
                     replace=args.replace_managed,
                     stamp=stamp,

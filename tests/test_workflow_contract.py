@@ -357,11 +357,12 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
 
     assert " ".join(structural.split("## Exit condition", 1)[1].split()) == " ".join(
         """
-        The structural Checkpoint C record shows that every parameter is identified or
+        The structural analysis-readiness record shows that every parameter is identified or
         labeled calibrated and sourced; multiple starts and uncertainty are reported;
         targeted and untargeted fit, sensitivity, and reduced-form discipline are
-        visible; and each counterfactual has a support boundary. Every claim traces to
-        its Evidence card and output.
+        visible; and each counterfactual has a support boundary. Every planned claim
+        traces to its Evidence card and output. This record authorizes drafting, not
+        circulation or submission.
 
         ## 6b operating sequence
 
@@ -372,7 +373,7 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
         3. Run sensitivity and reduced-form companion checks; return to primitives on
            a material fit failure.
         4. Produce bounded counterfactuals, evidence cards, three-line tables, and the
-           structural Checkpoint C record.
+           structural analysis-readiness record.
         """.split()
     )
     assert (
@@ -402,7 +403,7 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
     ) in writing_action_bullets
     assert " ".join(writing.split("## Exit condition", 1)[1].split()) == " ".join(
         """
-        The manuscript has complete three-line economics tables, verified citations,
+        Checkpoint C has zero blocking findings. The manuscript has complete three-line economics tables, verified citations,
         and a claim-to-evidence audit in which each substantive claim traces to a
         recorded result and limitation. Independent-runtime identification review is
         CLEAR or CONDITIONAL with tracked resolution; no unresolved HOLD remains; and
@@ -417,8 +418,11 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
         3. Run review at the required depth; give the independent runtime the
            identification memo, diagnostic evidence, Evidence cards, and relevant
            manuscript section rather than an executor summary.
-        4. Resolve findings, verify cross-references and table order, document the
-           publication decision, then apply the outlet formatting adapter.
+        4. Resolve findings, verify cross-references and table order, then apply the
+           outlet formatting adapter and assemble the delivery tree.
+        5. Run Checkpoint C, record its blocking count and review disposition, and only
+           then document release readiness. External circulation or submission still
+           requires the separately recorded authority decision.
         """.split()
     )
     assert (
@@ -436,7 +440,7 @@ def test_example_config_values():
         "reference_pools": ["UTD24", "FT50", "TopEcon", "JAIS", "IJRM"],
         "research_domain": "platform_and_firm_panel_causal",
         "observation_unit": "firm_quarter",
-        "analysis_languages": {"etl": "python", "estimation": "r"},
+        "analysis_languages": {"etl": "r", "estimation": "r"},
         "allowed_designs": [
             "fixed_effects",
             "selection_on_observables",
@@ -457,7 +461,7 @@ def test_example_config_values():
         "analysis_input_contract": {
             "data_version": "firm_quarter_v2026_08_15",
             "dataset_path": "data/analysis/firm_quarter.parquet",
-            "producing_script": "code/py/04_export.py",
+            "producing_script": "code/r/04_export.R",
             "time_granularity": "quarter",
             "primary_key": ["firm_id", "year_qtr"],
         },
@@ -502,7 +506,7 @@ def test_canonical_validator_uses_the_bootstrapped_interpreter(tmp_path):
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    assert completed.stdout.strip() == "empirical-workflow 2.6"
+    assert completed.stdout.strip() == "empirical-workflow 2.7"
 
     canonical = "tools/validate_registry"
     for path in ("AGENTS.md", "CLAUDE.md", "RESEARCH_PROTOCOL.md", "README.md"):
@@ -613,16 +617,79 @@ def test_data_contract_template():
     assert step["left_match_rate"] == step["matched_left_row_count"] / step["left_source"]["input_row_count"]
 
 
-def test_r_standards_start_after_python_etl():
+def test_language_policy_is_r_first_and_python_is_a_recorded_exception():
     body = read("skills/empirical-workflow/references/r-standards.md")
+    python = read("skills/empirical-workflow/references/python-standards.md")
     contract = read("skills/empirical-workflow/references/data-contract.md")
-    assert "01_validate_contract.R" in body
-    assert "02_construct.R" in body
-    assert "01_ingest.R" not in body
-    assert "02_clean.R" not in body
-    assert "Python owns raw ingestion, cleaning, entity resolution, and merging." in body
-    assert "`code/r/01_validate_contract.R` is the prerequisite" in contract
-    assert "before `code/r/02_construct.R`" in contract
+    readme = read("README.md")
+    protocol = read("RESEARCH_PROTOCOL.md")
+    assert "R is the default language" in protocol
+    assert "01_ingest.R" in body
+    assert "02_clean_merge.R" in body
+    assert "recorded Python exception" in body
+    assert "Python is an exception" in python
+    assert "recorded and justified" in python
+    assert "Python is the default producer" not in readme
+    assert "Python ETL exports" not in contract
+    assert "recorded Python exception" in contract
+    smoke_log = read("tests/smoke/handoff-fixture/decision-log.md")
+    assert "Python exception" in smoke_log
+
+
+def test_checkpoint_c_follows_writing_and_stage_six_exits_to_analysis_readiness():
+    router = read("skills/empirical-workflow/SKILL.md")
+    status = read("skills/empirical-workflow/templates/status-template.md")
+    stage6a = read("skills/empirical-workflow/stages/stage6a-reduced-form.md")
+    stage6b = read("skills/empirical-workflow/stages/stage6b-structural.md")
+    stage7 = read("skills/empirical-workflow/stages/stage7-writing.md")
+    assert "Checkpoint C follows Stage 7" in router
+    assert "Checkpoint C follows Stage 6" not in router
+    assert status.index("| 7 Writing & Review") < status.index("| Checkpoint C")
+    for stage6 in (stage6a, stage6b):
+        assert "docs/checkpoints/analysis_readiness.md" in stage6
+        assert "complete Checkpoint C" not in stage6
+    assert "Checkpoint C" in stage7.split("## Exit condition", maxsplit=1)[1]
+
+
+def test_cross_project_commands_resolve_canonical_paths_from_the_manifest():
+    manifest = yaml.safe_load(read("workflow.manifest.yaml"))["canonical_source"]
+    for key in (
+        "kit_root",
+        "skills_root",
+        "bootstrap_cli",
+        "runtime_cli",
+        "registry_cli",
+        "registry_validator",
+        "registry_scaffold",
+        "figure_renderer",
+        "parity_cli",
+        "installer_cli",
+    ):
+        assert manifest[key]
+
+    skill_files = (
+        "skills/research-sources/SKILL.md",
+        "skills/bibliography-audit/SKILL.md",
+        "skills/literature-review/SKILL.md",
+        "skills/manuscript-review/SKILL.md",
+        "skills/preregister/SKILL.md",
+        "skills/replication-release/SKILL.md",
+    )
+    for path in skill_files:
+        body = read(path)
+        assert "<skills_root>" in body
+        assert "skills/research-sources" not in body
+        assert "skills/replication-release/scripts" not in body
+
+    latex = read("skills/empirical-workflow/references/latex-manuscript-adapter.md")
+    for hard_coded in (
+        "python3 tools/scaffold_registry.py",
+        "tools/validate_registry .",
+        "python3 tools/render_figure_macros.py",
+    ):
+        assert hard_coded not in latex
+    for logical_path in ("<registry_scaffold>", "<registry_cli>", "<figure_renderer>"):
+        assert logical_path in latex
 
 
 def test_smoke_covers_expected_identity_handoff_and_failed_identification():
@@ -955,3 +1022,139 @@ def test_documentation_maps_full_absorbed_workflow():
         assert phrase in combined
     assert "research-sources → literature-review → preregister" in combined
     assert "manuscript-review → referee-response → replication-release" in combined
+
+
+def test_journal_scope_matches_current_utd24_and_april_2026_ft50():
+    body = read("skills/literature-review/references/journal-scope.md")
+    memberships = {"U": set(), "F": set()}
+    for line in body.splitlines():
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if (
+            len(cells) < 5
+            or not cells[0].startswith("`")
+            or cells[0] == "`--venue` string"
+        ):
+            continue
+        title = cells[0].strip("`")
+        for marker, column in (("U", 1), ("F", 2)):
+            if cells[column] == marker:
+                memberships[marker].add(title)
+
+    expected_utd24 = {
+        "The Accounting Review",
+        "Journal of Accounting and Economics",
+        "Journal of Accounting Research",
+        "The Journal of Finance",
+        "Journal of Financial Economics",
+        "Review of Financial Studies",
+        "Information Systems Research",
+        "INFORMS Journal on Computing",
+        "MIS Quarterly",
+        "Journal of Consumer Research",
+        "Journal of Marketing",
+        "Journal of Marketing Research",
+        "Marketing Science",
+        "Management Science",
+        "Operations Research",
+        "Journal of Operations Management",
+        "Manufacturing & Service Operations Management",
+        "Production and Operations Management",
+        "Academy of Management Journal",
+        "Academy of Management Review",
+        "Administrative Science Quarterly",
+        "Organization Science",
+        "Journal of International Business Studies",
+        "Strategic Management Journal",
+    }
+    expected_ft50 = {
+        "Academy of Management Annals",
+        "Academy of Management Journal",
+        "Academy of Management Review",
+        "Accounting, Organizations and Society",
+        "The Accounting Review",
+        "Administrative Science Quarterly",
+        "American Economic Review",
+        "American Sociological Review",
+        "Contemporary Accounting Research",
+        "Econometrica",
+        "Entrepreneurship Theory and Practice",
+        "Harvard Business Review",
+        "Human Resource Management",
+        "Information Systems Research",
+        "Journal of Accounting and Economics",
+        "Journal of Accounting Research",
+        "Journal of Applied Psychology",
+        "Journal of Business Venturing",
+        "Journal of Consumer Psychology",
+        "Journal of Consumer Research",
+        "The Journal of Finance",
+        "Journal of Financial and Quantitative Analysis",
+        "Journal of Financial Economics",
+        "Journal of International Business Studies",
+        "Journal of Management",
+        "Journal of Management Information Systems",
+        "Journal of Management Studies",
+        "Journal of Marketing",
+        "Journal of Marketing Research",
+        "Journal of Operations Management",
+        "Journal of Political Economy",
+        "Journal of the Academy of Marketing Science",
+        "Management Science",
+        "Manufacturing & Service Operations Management",
+        "Marketing Science",
+        "MIS Quarterly",
+        "MIT Sloan Management Review",
+        "Operations Research",
+        "Organization Science",
+        "Organizational Behavior and Human Decision Processes",
+        "Production and Operations Management",
+        "Psychological Science",
+        "The Quarterly Journal of Economics",
+        "Research Policy",
+        "Review of Accounting Studies",
+        "The Review of Economic Studies",
+        "Review of Finance",
+        "Review of Financial Studies",
+        "Strategic Entrepreneurship Journal",
+        "Strategic Management Journal",
+    }
+    assert memberships["U"] == expected_utd24
+    assert memberships["F"] == expected_ft50
+    assert "April 2026" in body
+    for removed in ("Human Relations", "Journal of Business Ethics", "Organization Studies"):
+        assert removed not in memberships["F"]
+
+
+def test_short_skill_entries_are_declared_facades_not_duplicate_implementations():
+    manifest = yaml.safe_load(read("workflow.manifest.yaml"))
+    aliases = set(manifest["skill_aliases"])
+    methods = {
+        path.name
+        for path in (ROOT / "skills/empirical-workflow/methods").iterdir()
+        if path.is_dir()
+    }
+    short = {
+        path.parent.name
+        for path in (ROOT / "skills").glob("*/SKILL.md")
+        if len(path.read_text(encoding="utf-8").splitlines()) <= 20
+    }
+    assert short == aliases | methods
+    for method in methods:
+        body = read(f"skills/{method}/SKILL.md")
+        assert "method-facade-contract.md" in body
+        assert f"methods/{method}/prompt.md" in body
+
+
+def test_literature_skills_degrade_portably_when_optional_capabilities_are_absent():
+    for path in (
+        "skills/literature-review/SKILL.md",
+        "skills/bibliography-audit/SKILL.md",
+    ):
+        body = read(path)
+        frontmatter = body.split("---", 2)[1]
+        assert "allowed-tools:" not in frontmatter
+        assert "runtime-profile.yaml" in body
+        assert "sequential" in body
+    literature = read("skills/literature-review/SKILL.md")
+    assert "If a Zotero connector is configured and available" in literature
+    assert "Launch every reader with the `Agent` tool" not in literature

@@ -1,10 +1,12 @@
 ---
 name: slide-review
-description: Audit a Quarto reveal.js deck that already exists: render it, screenshot every slide in a browser, and report overflow, unreadable type, low contrast, broken figures, failed math, and a weak argument. TRIGGER on "review my slides", "check my deck", "pre-talk check", "am I ready to present", "are my slides readable", "is anything cut off". Authoring a new deck is research-talk or teaching-lecture.
-argument-hint: "[deck.qmd|deck.html] [--preflight] [--type=talk|lecture] [--slides=1-12] [--goal=\"...\"]"
+description: "Audit a Quarto reveal.js deck that already exists: render it, screenshot every slide in a browser, and report overflow, unreadable type, low contrast, broken figures, failed math, and a weak argument. TRIGGER on reviewing slides, checking a deck, a pre-talk check, presentation readiness, slide readability, or clipped content. Authoring a new deck is research-talk or teaching-lecture."
 ---
 
 # slide-review
+
+Invocation: `[deck.qmd|deck.html] [--preflight] [--type=talk|lecture]
+[--slides=1-12] [--goal="..."]`
 
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
@@ -481,8 +483,9 @@ when the primary PDF helper is unavailable.
 
 ## Stage 6: fan out
 
-Now the browser is idle and the PNGs are on disk, so this part parallelizes safely. One `Agent` call
-per lens, all in one message, `subagent_type: "general-purpose"`. Every reviewer gets the deck facts
+Now the browser is idle and the PNGs are on disk. If the runtime profile and user policy authorize
+parallel workers, use one worker per lens; otherwise run the same lenses sequentially. Every
+reviewer gets the deck facts
 (canvas 1050x700, screenshots at scale 2.0, root font size, deck type, and the ground colour from
 `deck.ground`) and absolute PNG paths, and every reviewer is told to read the images.
 

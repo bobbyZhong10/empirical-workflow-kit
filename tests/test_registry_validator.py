@@ -4325,7 +4325,7 @@ def test_both_runtimes_are_given_the_same_contract():
     # Both must send the reader to the protocol and to the same gate.
     for required in (
         "RESEARCH_PROTOCOL.md",
-        "skills/empirical-workflow/SKILL.md",
+            "<skills_root>/empirical-workflow/SKILL.md",
         "tools/validate_registry.py",
         "--checkpoint B",
         "--checkpoint C",

@@ -7,8 +7,9 @@
 - Read-only raw sources, their provenance and license terms, and the approved
   observation unit and data-format conventions.
 
-Read `references/python-standards.md` before creating or changing numbered
-Python data scripts. Read `references/operational-quality-loop.md` before
+Read `references/r-standards.md` before creating or changing data scripts. Read
+`references/python-standards.md` only for a recorded Python exception. Read
+`references/operational-quality-loop.md` before
 changing a build pipeline or its validation. Read `references/data-contract.md` before producing an
 analysis-ready export, its contract, or its merge audit.
 

@@ -1,5 +1,8 @@
 # Empirical Workflow v2 Implementation Plan
 
+> Historical implementation record. The current protocol, manifest, and stage
+> contracts supersede this plan wherever they differ.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox syntax for tracking.
 
 **Goal:** Upgrade the workflow kit into a portable, high-autonomy protocol for IS, management, and economics panel causal research.
@@ -16,7 +19,7 @@
 - Target firm, platform, and market panel causal research. MS, ISR, and MISQ are targets; UTD 24, FT50, top economics journals, JAIS, and IJRM are reference pools.
 - Keep CLAUDE.md and AGENTS.md thin. Put portable research rules only in RESEARCH_PROTOCOL.md.
 - Use numbered, direct Python and R research scripts. Do not introduce research-code packages, classes, or deep abstraction.
-- Python owns ingestion, merging, entity resolution, and Parquet exports. R owns construction, diagnostics, estimation, and tables.
+- R owns the end-to-end analysis pipeline by default. Python may own ingestion or export only as an explicitly recorded project exception; R still validates the boundary before formal analysis.
 - Never silently change a locked specification, sample, clustering level, or identifying strategy.
 - Never overwrite raw data.
 - The current Git top-level is /Users/bobbyzhong, not this workspace. Do not run git add or git commit unless git rev-parse --show-toplevel equals the workspace path exactly.
@@ -320,7 +323,7 @@ Run: test "$(git rev-parse --show-toplevel)" = "$PWD"
 
 Expected currently: FAIL. If safe after repository repair, commit with message: feat: strengthen causal and publication protocol.
 
-### Task 5: Python-R contract and code standards
+### Task 5: Analysis-data contract and code standards
 
 **Files:**
 - Create: skills/empirical-workflow/references/data-contract.md
@@ -330,7 +333,7 @@ Expected currently: FAIL. If safe after repository repair, commit with message: 
 - Modify: tests/test_workflow_contract.py
 
 **Interfaces:**
-- Consumes: Python ETL exports.
+- Consumes: R-produced analysis exports by default, or a recorded Python exception.
 - Produces: Parquet plus a YAML contract that R validates before formal analysis.
 
 - [ ] **Step 1: Add the failing data-contract test**

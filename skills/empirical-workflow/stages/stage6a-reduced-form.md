@@ -60,7 +60,7 @@ as needed. Load only the selected method pack; do not combine defaults from seve
   limitation, audit status, and decision-log reference.
 - Economics-style three-line tables and figures, the design-specific evidence
   matrix, mechanism/heterogeneity records, blindspot-audit verdict,
-  `docs/checkpoints/checkpoint_c.md`, decision-log entries, and updated status.
+  `docs/checkpoints/analysis_readiness.md`, decision-log entries, and updated status.
 
 ## Red lines
 
@@ -78,11 +78,13 @@ as needed. Load only the selected method pack; do not combine defaults from seve
 
 ## Exit condition
 
-Checkpoint C records proceed, revise, or authorized pause. It links each
-hypothesis and manuscript claim to a table/column, identification memo,
-Evidence card, evidence-matrix disposition, and blindspot verdict. A failed
-identification diagnostic returns work to the responsible earlier stage; a
-qualified result names the evidence that would change its conclusion.
+The analysis-readiness record authorizes evidence-backed drafting, revision, or
+a pause. It links each hypothesis and planned manuscript claim to a
+table/column, identification memo, Evidence card, evidence-matrix disposition,
+and blindspot verdict. A failed identification diagnostic returns work to the
+responsible earlier stage; a qualified result names the evidence that would
+change its conclusion. This record is not Checkpoint C and does not authorize
+circulation or submission.
 
 ## 6a operating sequence
 
@@ -92,4 +94,4 @@ qualified result names the evidence that would change its conclusion.
 3. Run diagnostics, then the applicable evidence-matrix rows; pause or
    backtrack on a high-severity design failure.
 4. Add pre-committed mechanism and heterogeneity evidence, run the blindspot
-   audit, render three-line tables, and complete Checkpoint C.
+   audit, render three-line tables, and complete the analysis-readiness review.

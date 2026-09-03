@@ -60,6 +60,7 @@ agents/tikz-reviewer.md              rendered-figure review contract
 presentation-tooling/                Quarto theme, staging, and visual gates
 tools/validate_registry.py           shared checkpoint validator
 scripts/                             runtime-view installation and verification
+scripts/bootstrap_project.py         safe attachment for an existing project
 scripts/ewf.py                       runtime profile loader, doctor, and tool runner
 examples/                            executable talk and lecture acceptance fixtures
 tests/                               contracts, validators, scanners, and smoke test
@@ -120,6 +121,12 @@ Thin skills such as `skills/did/SKILL.md` and `skills/rdd/SKILL.md` make named
 methods directly discoverable without copying their prompts. Every facade
 routes through Stage 6a and the common mandatory-pause contract.
 
+Short `SKILL.md` files are intentional only when declared in
+`workflow.manifest.yaml` as compatibility aliases or when they are method
+discovery facades. Contract tests require every other managed skill to remain a
+single substantive canonical implementation and reject duplicate frontmatter
+names.
+
 ## Focused operations
 
 | Need | Canonical skill |
@@ -141,6 +148,13 @@ routes through Stage 6a and the common mandatory-pause contract.
 Focused operations write into the same evidence, decision, status, and
 governance records. They cannot bypass a checkpoint or mandatory pause.
 
+The literature workflow centralizes venue coverage in
+`skills/literature-review/references/journal-scope.md`. Its current scope covers
+every UTD 24 and FT 50 journal, prioritizes information systems, operations
+management, marketing, and management and organization science, and adds top
+economics and industrial-organization venues. List membership controls the
+coverage audit, not a paper's relevance or evidentiary weight.
+
 All 20 skill names from the inspected upstream workflow remain directly
 discoverable. Renamed operations use thin compatibility aliases—`bibcheck`,
 `compile-latex`, `council`, `litreview`, `reading-papers`,
@@ -148,7 +162,7 @@ discoverable. Renamed operations use thin compatibility aliases—`bibcheck`,
 the table above. The aliases retain familiar invocation names without copying
 or forking the underlying prompts.
 
-## Install for a project
+## Install the kit checkout
 
 Clone the repository and keep its canonical tree intact:
 
@@ -205,13 +219,45 @@ Do not install by copying `skills/*` separately into `~/.claude/skills` and
 `~/.agents/skills`. Independent copies are the split-brain condition this
 repository prevents.
 
+## Attach an existing research project
+
+Keep the project's current data, code, results, and instructions in place. From
+the kit checkout, attach the canonical workflow to that project:
+
+```bash
+python3 scripts/bootstrap_project.py /absolute/path/to/research-project --claude
+```
+
+Use `--all` when both Claude Code and Codex will work in the project. The
+bootstrapper performs a collision preflight before writing, preserves an
+existing `research.yaml`, and appends a bounded workflow adapter to an existing
+`CLAUDE.md` or `AGENTS.md`. It creates project-owned protocol, status, decision,
+evidence, profile, and manifest files. Runtime discovery links remain relative
+and resolve through the ignored local `.workflow/kit` binding, so both runtimes
+execute this checkout's one canonical skill tree rather than copied prompts.
+
+Then enter the research project, complete `research.yaml`, and diagnose it:
+
+```bash
+cd /absolute/path/to/research-project
+.workflow/bin/ewf doctor
+```
+
+On another machine, check out the project's recorded kit version and rerun the
+same bootstrap command to recreate the ignored local binding. Commit the project
+records and runtime-view links, but never commit `.workflow/kit` itself.
+
 ## Start a research project
 
-1. Copy `research.example.yaml` to `research.yaml` and fill in the observation
-   unit, designs, authority, languages, and analysis-input contract.
-2. Copy `runtime-profile.example.yaml` to `runtime-profile.yaml` and enter
-   machine-specific paths and optional tool availability. Never embed personal
-   paths in a skill, prompt, adapter, or protocol.
+1. For work inside the kit checkout, copy `research.example.yaml` to
+   `research.yaml`. For an external existing project, use the bootstrap command
+   above. Fill in the observation unit, designs, authority, languages, and
+   analysis-input contract.
+2. Inside the kit checkout, copy `runtime-profile.example.yaml` to
+   `runtime-profile.yaml`; the external bootstrapper creates the corresponding
+   file automatically. Enter machine-specific paths and optional tool
+   availability. Never embed personal paths in a skill, prompt, adapter, or
+   protocol.
 3. Resolve and diagnose that profile:
 
    ```bash
@@ -247,18 +293,19 @@ At every cross-runtime handoff, the receiver reads, in order:
 The sender records the completed stage, changed artifacts, checks run, open
 risks, next action, and unresolved pause.
 
-## Python-to-R contract
+## Analysis-data contract
 
-Python is the default producer for ingestion, cleaning, joins, and portable
-analysis data. R is the default estimation consumer when the chosen method
-uses its econometric implementation. Their boundary is a versioned Parquet
-file plus a contract that records project identity, data version, producing
-script, row count, schema, primary key, and merge audit.
+R is the default language for ingestion, cleaning, joins, construction,
+estimation, inference, tables, and figures. A project may retain or introduce
+Python only when the protocol's exception criteria are met and the reason is
+recorded in `decision-log.md`. Any producer writes a versioned Parquet file
+plus a contract that records project identity, data version, producing script,
+row count, schema, primary key, and merge audit.
 
-The smoke test exercises this boundary end to end. It creates a deterministic
-96-row staggered-treatment panel in Python, validates identity and row-count
-failures, reads the Parquet artifact in R, estimates a fixed-effects event
-study, writes a simulated-results table, tests mandatory-pause behavior after
+The smoke test deliberately exercises the supported Python-to-R exception. It
+creates a deterministic 96-row staggered-treatment panel in Python, validates
+identity and row-count failures, reads the Parquet artifact in R, estimates a
+fixed-effects event study, writes a simulated-results table, tests mandatory-pause behavior after
 a failed identifying diagnostic, and reconstructs a handoff from durable
 state.
 

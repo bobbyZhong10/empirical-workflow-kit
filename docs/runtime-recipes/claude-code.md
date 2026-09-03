@@ -23,9 +23,15 @@ parity verifier reports regular copies, wrong targets, broken links, and stale
 entries. The installer replaces only kit-owned entries and only when
 `--replace-managed` is explicit; it refuses to overwrite another package.
 
+For an existing external research repository, run
+`python3 scripts/bootstrap_project.py /absolute/path/to/project --claude` from
+the kit checkout. This installs project-local relative discovery links through
+an ignored `.workflow/kit` binding and initializes only missing project records.
+It does not copy prompts or overwrite existing research configuration.
+
 ## Start and hand off
 
-Run `python3 scripts/ewf.py doctor`, then begin at the stage recorded in
+Run the manifest-named runtime CLI with `doctor`, then begin at the stage recorded in
 `research.yaml` and `_status.md`. A named request such as a DiD or RDD analysis
 may activate its method facade, which immediately routes through the shared
 Stage 6a contract and canonical method pack.

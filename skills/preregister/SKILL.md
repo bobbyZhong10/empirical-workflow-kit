@@ -8,6 +8,9 @@ description: Draft a registry-ready preregistration or preanalysis plan for AsPr
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
 
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`
+before using a path below.
+
 Adapted from Lan E. Luo's `claude-academic-workflow` preregistration skill at
 commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`. See
 `THIRD_PARTY_NOTICES.md`.
@@ -22,7 +25,7 @@ Structure and the MUST/SHOULD/MAY taxonomy descend from
 `pedrohcgs/claude-code-my-workflow`, as recorded by the upstream attribution.
 
 The durable source of preregistration state is the project record initialized
-from `skills/empirical-workflow/templates/preregistration-template.yaml`.
+from `<skills_root>/empirical-workflow/templates/preregistration-template.yaml`.
 Registry-form prose is an export from that record. Claim revisions and gate
 identifiers must match the project governance registry.
 
@@ -82,9 +85,12 @@ battery, plus the primary construct instrument.
 
 AEA RCT registration is required for field experiments at AEA journals (lab experiments are
 exempt) and accepted by Marketing Science and Management Science; either OSF or AEA works for
-the marketing journals. Clinical trials (ClinicalTrials.gov, ISRCTN) belong in their own
+those two. For any other UTD 24 or FT 50 target (the IS, OM, management, accounting, and finance
+journals in `<skills_root>/literature-review/references/journal-scope.md`), read the current
+author guidelines before choosing a registry, record the access date, and do not infer one
+journal's policy from another's. Clinical trials (ClinicalTrials.gov, ISRCTN) belong in their own
 registries and are out of scope here. PROSPERO takes only reviews with health outcomes, so it is
-not a destination for a marketing meta-analysis.
+not a destination for a business-school meta-analysis.
 
 ## Phase 3. Write the document
 
@@ -207,8 +213,9 @@ document still gets written but is reported as INCOMPLETE with the count of unre
 
 ## Phase 5. Verify the citations
 
-If the document cites prior literature, and `--no-verify` was not passed, spawn a general-purpose
-subagent with the Agent tool and this prompt. Pass the citation strings and the claim each one
+If the document cites prior literature, and `--no-verify` was not passed, verify it in an isolated
+pass. A separate worker may be used only when the runtime profile and user policy authorize one;
+otherwise run the same prompt sequentially. Pass the citation strings and the claim each one
 supports, not the draft, so the verifier judges the citation independently.
 
 Two checks run on every citation, each with its own verdict line.
@@ -224,7 +231,7 @@ here; bibliography-audit declares it out of scope, since bibliography-audit veri
 ```
 Verify these citations independently. For each one, run:
 
-  python skills/research-sources/scripts/paper.py resolve "<citation>" --json
+  <skills_root>/research-sources/scripts/paper.py resolve "<citation>" --json
 
 (The script is a uv self-contained script; run the path directly, it handles its own deps.)
 

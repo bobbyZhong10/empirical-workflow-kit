@@ -2,7 +2,7 @@
 project_name: "example_platform_adoption"
 data_version: "firm_quarter_v2026_08_15"
 produced_at_utc: "2026-08-15T14:30:00Z"
-producing_script: "code/py/04_export.py"
+producing_script: "code/r/04_export.R"
 dataset_path: "data/analysis/firm_quarter.parquet"
 data_hash:
   algorithm: "sha256"

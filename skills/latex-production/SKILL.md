@@ -234,12 +234,13 @@ machine.
 
 ### 6.4 Review
 
-Launch the `tikz-reviewer` agent (`subagent_type: "tikz-reviewer"`) with
-absolute paths: the PNG, the
+Apply the review contract in the canonical `agents/tikz-reviewer.md`. If the runtime profile and
+user policy authorize a separate reviewer worker, use it; otherwise apply the same contract
+sequentially. Provide absolute paths: the PNG, the
 current `.tex`, the round number against `--max-iter`, and the goal from `--goal`
 or the figure's `\caption`. Tell it to read the PNG and judge from the pixels.
 
-Its output contract is in `agents/tikz-reviewer.md`: either
+The output contract is either
 the bare word `APPROVED`, or a numbered list of severity-tagged findings each
 carrying its arithmetic and an exact search-and-replace. It already knows this,
 so do not restate the contract in the prompt.

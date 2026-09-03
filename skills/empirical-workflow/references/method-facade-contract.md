@@ -1,16 +1,17 @@
 # Method entry contract
 
-Method skills at `skills/<method>/SKILL.md` are discovery facades. They make a
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`.
+Method skills at `<skills_root>/<method>/SKILL.md` are discovery facades. They make a
 named empirical method visible to Claude Code and Codex while preserving one
-authoritative implementation under `skills/empirical-workflow/methods/`.
+authoritative implementation under `<skills_root>/empirical-workflow/methods/`.
 
 When a method facade is selected:
 
 1. Read the repository-root `RESEARCH_PROTOCOL.md`, active `research.yaml` (or
    `research.example.yaml` only when configuring a new project), `_status.md`,
    the most relevant current Evidence card, and the tail of `decision-log.md`.
-2. Read `skills/empirical-workflow/SKILL.md` and
-   `skills/empirical-workflow/stages/stage6a-reduced-form.md`.
+2. Read `<skills_root>/empirical-workflow/SKILL.md` and
+   `<skills_root>/empirical-workflow/stages/stage6a-reduced-form.md`.
 3. Confirm that the named method is allowed by `research.yaml`, that Stage 6a
    is authorized, and that no unresolved Mandatory pause blocks execution.
    A facade may explain or plan a method before Stage 6a, but it must not run a

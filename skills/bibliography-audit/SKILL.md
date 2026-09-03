@@ -1,7 +1,6 @@
 ---
 name: bibliography-audit
 description: Audit an existing .bib entry by entry against Crossref, OpenAlex, arXiv, and Zotero for wrong years, mis-cited authors, wrong venue or volume, dead DOIs, and hallucinated entries. TRIGGER on "/bibliography-audit", "audit my .bib", "verify my references", "check my bibliography", "are any of these citations fake", "did Claude hallucinate a citation", or a pre-submission bib audit.
-allowed-tools: Read, Write, Glob, Grep, Bash, Agent, Monitor, WebFetch, mcp__zotero__zotero_search_items, mcp__zotero__zotero_get_item_metadata
 ---
 
 # bibliography-audit
@@ -9,12 +8,21 @@ allowed-tools: Read, Write, Glob, Grep, Bash, Agent, Monitor, WebFetch, mcp__zot
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
 
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`
+before using a path below.
+
+Read `runtime-profile.yaml` before using optional connectors or parallel
+workers. Parallel batches are an optimization, not an evidence requirement.
+When workers are unavailable or not authorized, process the same five-entry
+batches sequentially and preserve one independent report per entry.
+
 Adapted from `bibliography-audit` in `ericluo04/claude-academic-workflow` at commit
 `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
 
-Given a `.bib`, spawn subagents over batches of 5 entries to verify each entry against canonical
-metadata, then emit a PASS/WARN/FAIL report and a `corrected.bib` the user reviews and merges. This
-skill never overwrites the source; the source `.bib` is never modified.
+Given a `.bib`, verify batches of 5 entries against canonical metadata, then
+emit a PASS/WARN/FAIL report and a `corrected.bib` the user reviews and merges.
+Use parallel workers only when authorized. This skill never overwrites the
+source; the source `.bib` is never modified.
 
 One agent asked to audit 200 entries in a single pass drifts: early entries get careful treatment,
 late entries get pattern-matched. Batches of 5 stay short enough that the cliff never arrives, and
@@ -71,11 +79,11 @@ verbatim copy of the source for provenance.
 
 ## Phase 1: dispatch
 
-Group the well-formed entries into batches of 5, preserving file order; the last batch holds the
-remainder. Launch one subagent per batch with the `Agent` tool, 8 per message, so 40 entries are in
-flight per wave. Wait for the wave to return, then send the next 8. 170 cited entries is 34 batch
-subagents in 5 waves. Respect `--max-parallel N` if the user passes it; drop to 2 when
-rate-limited.
+Group the well-formed entries into batches of 5, preserving file order; the
+last batch holds the remainder. When parallel workers are authorized, run at
+most 8 batches per wave, wait for the wave, and then send the next one. When
+they are not, run batches sequentially. Respect `--max-parallel N` if the user
+passes it and drop to 2 when rate-limited.
 
 Each subagent gets its batch's raw entry texts, the absolute `entries/` paths, one absolute output
 path `reports/<citekey>.json` per entry, and the check list below. Subagent working directories
@@ -90,18 +98,18 @@ Give each subagent a 60-second lookup budget per entry. On expiry it writes
 `{"verdict": "WARN", "diagnostic": "lookup_timeout"}` for that entry and moves to its next one.
 Raise the budget on a cold cache; `paper.py` disk-caches responses for 30 days, so reruns are fast.
 
-For a long run, dispatch waves of background subagents with the `Agent` tool and act on their
-completion notifications, sending the next wave as each one finishes.
+For a long parallel run, dispatch bounded waves and act on completion events,
+sending the next wave as each one finishes.
 
 ## Phase 2: per-entry checks
 
 ### The two lookup tools
 
 `paper.py` is the resolver from the `research-sources` skill. Read
-`skills/research-sources/SKILL.md` if unfamiliar.
+`<skills_root>/research-sources/SKILL.md` if unfamiliar.
 
 ```bash
-skills/research-sources/scripts/paper.py resolve "<query>" --json
+<skills_root>/research-sources/scripts/paper.py resolve "<query>" --json
 ```
 
 It returns a JSON array. Interpreting it is the whole game:
@@ -114,11 +122,12 @@ It returns a JSON array. Interpreting it is the whole game:
   candidates. Treat as "not found" unless one clears the 0.85 title threshold below.
 
 It does not return volume, issue, or pages. Crossref does, and Crossref is free and unmetered.
-Replace `you@example.edu` with your real address in both Crossref calls in this file: the
-`mailto=` parameter joins Crossref's polite pool, and Crossref asks for a real contact.
+If the runtime profile supplies a Crossref contact address, URL-encode it and add it as the
+`mailto=` parameter in both Crossref calls below. Otherwise omit the parameter; never commit a
+personal address or a placeholder address to a project artifact.
 
 ```bash
-curl -sS -w '\nHTTP:%{http_code}' "https://api.crossref.org/works/<doi>?mailto=you@example.edu" \
+curl -sS -w '\nHTTP:%{http_code}' "https://api.crossref.org/works/<doi><optional-mailto-query>" \
   | python3 -c 'import sys,json; b=sys.stdin.read(); code=b.rsplit("HTTP:",1)[1].strip()
 if code!="200": print(json.dumps({"crossref_status":code})); raise SystemExit
 m=json.loads(b.rsplit("\nHTTP:",1)[0])["message"]
@@ -126,8 +135,8 @@ print(json.dumps({k:m.get(k) for k in ("DOI","title","container-title","short-co
 ```
 
 A dead DOI returns HTTP 404 with the non-JSON body `Resource not found.`, so test the status code,
-never `$?` alone (`--fail` exits 56 here, not the documented 22). Use `WebFetch` on the same URL only
-if Bash is unavailable; it summarizes through a model and drops fields.
+never `$?` alone (`--fail` exits 56 here, not the documented 22). If shell access is unavailable,
+use a configured HTTP retrieval capability and record that its response may omit fields.
 
 Cost discipline. OpenAlex is metered: an identifier lookup costs 1 credit, anything routed through
 `search` (including title search) costs 10. Spend identifiers before strings. Order per entry:
@@ -153,7 +162,7 @@ only when the entry has no identifier at all.
 3. Title match, last resort only. With no DOI and no arXiv id:
 
    ```bash
-   curl -sS "https://api.crossref.org/works?query.bibliographic=<urlencoded+title>&rows=5&select=DOI,title,container-title,volume,issue,page,issued,author&mailto=you@example.edu"
+   curl -sS "https://api.crossref.org/works?query.bibliographic=<urlencoded+title>&rows=5&select=DOI,title,container-title,volume,issue,page,issued,author<optional-mailto-parameter>"
    ```
 
    Crossref ranks by relevance, and the preprint often outranks the version of record (a real case:
@@ -193,8 +202,16 @@ only when the entry has no identifier at all.
 
 7. Journal canonicalization. Compare `journal` against Crossref `container-title`. WARN on
    abbreviation drift (`J. Mark. Res.` for `Journal of Marketing Research`, `Mark. Sci.` for
-   `Marketing Science`, `Mgmt. Sci.` for `Management Science`, `Quant. Mark. Econ.` for
-   `Quantitative Marketing and Economics`). FAIL on a different journal entirely, confirmed by a
+   `Marketing Science`, `Mgmt. Sci.` or `Manag. Sci.` for `Management Science`, `Inf. Syst. Res.`
+   for `Information Systems Research`, `MIS Q.` for `MIS Quarterly`, `Oper. Res.` for `Operations
+   Research`, `Manuf. Serv. Oper. Manag.` for `Manufacturing & Service Operations Management`,
+   `Acad. Manag. J.` for `Academy of Management Journal`, `Strateg. Manag. J.` for `Strategic
+   Management Journal`, `Am. Econ. Rev.` for `American Economic Review`, `Q. J. Econ.` for `The
+   Quarterly Journal of Economics`, `RAND J. Econ.` for `The RAND Journal of Economics`,
+   `Quant. Mark. Econ.` for `Quantitative Marketing and Economics`). The canonical mastheads for
+   the UTD 24, FT 50, economics, and IO titles are in
+   `<skills_root>/literature-review/references/journal-scope.md`. FAIL on a different journal
+   entirely, confirmed by a
    disjoint `ISSN` set. Apply the same logic to `booktitle` on `@inproceedings` (ICML, NeurIPS, KDD
    and their full names).
 
@@ -203,10 +220,10 @@ only when the entry has no identifier at all.
    correct style. WARN on one field disagreeing. FAIL on two or more, which usually means a swapped
    entry, the title of paper A glued to the volume and pages of paper B.
 
-9. Zotero cross-check, optional. For a Better BibTeX shaped key, call
-   `mcp__zotero__zotero_search_items(query="<title>", qmode="titleCreatorYear", limit=3)` and pull
-   `mcp__zotero__zotero_get_item_metadata` on a hit. A Zotero item with a different DOI than the
-   entry is a WARN. Zotero reads work only while the desktop app is open, so any error means
+9. Zotero cross-check, optional. If `runtime-profile.yaml` declares an available Zotero connector,
+   search the item by title, creator, and year, limit the result to three candidates, and retrieve
+   metadata for the best hit. A Zotero item with a different DOI than the entry is a WARN. Local
+   Zotero connectors may require the desktop app to be open, so a connector error means
    `checks_skipped: ["zotero"]`, never a WARN.
 
    When a Zotero call fails, tell the user directly, in the chat reply and not only in the report:
@@ -324,8 +341,7 @@ and 6 through 8, and mark author-accent findings as skipped.
 
 ## Out of scope
 
-Do not add entries. Hand a DOI to `mcp__zotero__zotero_add_by_doi`, or use the research-sources
-skill for anything else.
+Do not add entries. Use the research-sources skill for acquisition or library changes.
 
 Do not overwrite the source `.bib` under any circumstances.
 

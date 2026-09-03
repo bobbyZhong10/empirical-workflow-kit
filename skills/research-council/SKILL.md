@@ -1,12 +1,15 @@
 ---
 name: research-council
-description: Five independent critic subagents in parallel on an idea, plan, design, R&R strategy, grant, or SKILL.md, then a synthesis pass that ranks findings by how much of the argument rests on them, never by vote count. TRIGGER on "council", "spawn critics", "parallel critique", "kitchen cabinet", "panel review", "stress-test this", "poke holes in this", "what would five experts say". A complete manuscript goes to manuscript-review.
+description: Five independent critic lenses on an idea, plan, design, R&R strategy, grant, or SKILL.md, then a synthesis pass that ranks findings by how much of the argument rests on them, never by vote count. TRIGGER on "council", "spawn critics", "parallel critique", "kitchen cabinet", "panel review", "stress-test this", "poke holes in this", "what would five experts say". A complete manuscript goes to manuscript-review.
 ---
 
 # council
 
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`
+before using a path below.
 
 Adapted from `ericluo04/claude-academic-workflow` at commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
 
@@ -48,9 +51,9 @@ policy does not authorize subagents, run the same lenses sequentially in isolate
 then perform synthesis only after all records exist. Preserve lens independence and never turn the
 sequence into a majority vote.
 
-## Default roster (quantitative marketing)
+## Default roster (quantitative business-school research)
 
-Spawned as `general-purpose` subagents with inline role-string prefixes. No persona files.
+Use inline role-string prefixes; no persona files are required.
 
 1. Skeptic. "Challenge the core claim. What would have to be true for this to be wrong? Where is
    the key assumption the author has not stress-tested? Name the specific assumption in
@@ -58,14 +61,20 @@ Spawned as `general-purpose` subagents with inline role-string prefixes. No pers
 2. Pre-mortem. "It is twelve months from now and this paper, plan, or grant has failed. What is
    the most likely failure mode? Walk back from the failure and name the decision point today at
    which it could have been avoided."
-3. Methodologist. "Challenge identification, measurement, and design. Quant-marketing tuned: DiD,
-   IV, RD, RCT, discrete choice experiment, eye-tracking, vignette, field experiment, scraped
-   panel, and embedding methods. Are the exclusion restrictions defensible? Is the unit of analysis
-   consistent with the unit of treatment? Is the clustering level defensible? For ML or GenAI
+3. Methodologist. "Challenge identification, measurement, and design. Tuned to quantitative IS,
+   OM, marketing, and management research: DiD, IV, RD, RCT, field and platform experiments,
+   discrete choice and conjoint, vignette, eye-tracking, scraped and platform panels, structural
+   and queueing models, and text and embedding methods. Are the exclusion restrictions
+   defensible? Is the unit of analysis consistent with the unit of treatment? Is the clustering level defensible? For ML or GenAI
    components, is train/test/holdout discipline intact, and does anything leak?"
-4. Academic editor. "Venue fit, narrative tightness, contribution framing. Default targets
-   Marketing Science, JMR, JCR, Management Science; recalibrate if the user signals
-   general-science (PNAS, Nature Human Behaviour) or economics. Does the contribution fit that
+4. Academic editor. "Venue fit, narrative tightness, contribution framing. Default targets are
+   the UTD 24 and FT 50 journals of the field the work sits in, per
+   `<skills_root>/literature-review/references/journal-scope.md`: IS (MIS Quarterly, ISR, JMIS),
+   OM (Operations Research, M&SOM, POM, JOM), marketing (Marketing Science, JMR, JM, JCR),
+   management (AMJ, ASQ, Organization Science, SMJ), and Management Science across all four.
+   Recalibrate to the top economics and IO journals (AER, QJE, JPE, Econometrica, REStud, RAND)
+   when the user signals economics, or to general-science (PNAS, Nature Human Behaviour) when
+   they signal that. Does the contribution fit that
    audience? Is the framing tight enough for a non-specialist editor? What gets cut, what gets
    expanded?"
 5. Harsh referee. "You are the most likely Reviewer 2. Produce the rejection arguments a sharp
@@ -108,9 +117,9 @@ truncating to `--n`. Truncation keeps the first K critics in list order, so `--n
 default roster drops the academic editor and the harsh referee. Create a scratch directory `$EWF_CACHE_DIR/research-council_<YYYYMMDD>_<run_id>/`
 for raw critic output.
 
-Phase 1, parallel dispatch. This is the key step. Send ONE message containing N subagent
-calls, one per critic, so they run concurrently. Never serialize them. Each call uses
-`subagent_type: general-purpose`, a three-to-five word description, and a prompt made of the
+Phase 1, independent critique. This is the key step. When authorized workers are available,
+dispatch one per critic concurrently. Otherwise run one isolated record per critic sequentially.
+Each review prompt uses a three-to-five word description and is made of the
 critic's role string, the target content, and: "Produce raw critique in this role's voice. Be
 specific to this target, not to the genre. Quote the target where you object to it. End with
 VERDICT plus a one-line rationale. Write your output to
@@ -119,9 +128,8 @@ message."
 
 Do not synthesize inline. Do not summarize across critics in the main thread. Collect.
 
-Phase 2, synthesis, a separate call after all critics return. One more `general-purpose` subagent
-gets the raw critic outputs, the original target, the report shape below, and this instruction
-spelled out verbatim:
+Phase 2, synthesis, a separate pass after all critics return. Give the synthesizer the raw critic
+outputs, the original target, the report shape below, and this instruction spelled out verbatim:
 
 > You are not summarizing votes. A single critic raising a key concern outweighs four
 > critics who did not notice it. Decide which concerns are key, meaning they would kill

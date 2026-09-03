@@ -65,7 +65,7 @@ construction, diagnostics, or estimation.
 - Assertion-registry entries for structural results and counterfactuals,
   including identified/calibrated status, any `identified → simulated`
   downgrade, model-internal typing, precision, and scope declarations.
-- Economics-style three-line tables, Checkpoint C structural record,
+- Economics-style three-line tables, `docs/checkpoints/analysis_readiness.md`,
   decision-log entries, and updated status.
 
 ## Red lines
@@ -82,11 +82,12 @@ construction, diagnostics, or estimation.
 
 ## Exit condition
 
-The structural Checkpoint C record shows that every parameter is identified or
+The structural analysis-readiness record shows that every parameter is identified or
 labeled calibrated and sourced; multiple starts and uncertainty are reported;
 targeted and untargeted fit, sensitivity, and reduced-form discipline are
-visible; and each counterfactual has a support boundary. Every claim traces to
-its Evidence card and output.
+visible; and each counterfactual has a support boundary. Every planned claim
+traces to its Evidence card and output. This record authorizes drafting, not
+circulation or submission.
 
 ## 6b operating sequence
 
@@ -97,4 +98,4 @@ its Evidence card and output.
 3. Run sensitivity and reduced-form companion checks; return to primitives on
    a material fit failure.
 4. Produce bounded counterfactuals, evidence cards, three-line tables, and the
-   structural Checkpoint C record.
+   structural analysis-readiness record.

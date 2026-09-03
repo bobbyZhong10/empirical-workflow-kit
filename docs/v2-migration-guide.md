@@ -32,19 +32,19 @@ silently replace old results; version any regenerated artifact.
 
 ## Bootstrap a new cross-runtime project
 
-1. Copy `RESEARCH_PROTOCOL.md`, `research.example.yaml` as `research.yaml`,
-   all needed `skills/`, `runtime-profile.example.yaml` as `runtime-profile.yaml`,
-   `presentation-tooling/`, `agents/`, `THIRD_PARTY_NOTICES.md`, and the adapter for each intended runtime.
-2. Copy `CLAUDE.md` when using Claude Code and `AGENTS.md` when using Codex.
-   Keep both if the project will switch runtimes.
-   Install the skill in the runtime-specific location: copy it to
-   `.claude/skills/empirical-workflow/` for Claude Code and to
-   `.agents/skills/empirical-workflow/` for Codex. Start Codex from the project
-   root so it discovers `SKILL.md`; `AGENTS.md` then routes empirical work to
-   the `empirical-workflow` skill.
-3. Create `_status.md`, `decision-log.md`, and the appropriate evidence-card
-   directory from the included templates. Fill `research.yaml` before work
-   begins; lock `analysis_input_contract` before R consumes a Python export.
+1. Run `python3 scripts/bootstrap_project.py /absolute/path/to/project --all`
+   from the kit checkout. Use `--claude` or `--codex` for a single runtime.
+   The command preflights managed-name collisions and never overwrites project
+   data, an existing configuration, or unowned skill content.
+2. The bootstrapper creates project-owned `RESEARCH_PROTOCOL.md`, adapters,
+   `research.yaml` when absent, `runtime-profile.yaml`, `_status.md`,
+   `decision-log.md`, and the evidence directory. Both runtime views use
+   relative links through the ignored `.workflow/kit` machine binding to the
+   same canonical skills at `.claude/skills/empirical-workflow` and
+   `.agents/skills/empirical-workflow`. Never copy a skill into both runtime directories.
+3. Fill `research.yaml` before work begins; lock `analysis_input_contract`
+   before formal analysis consumes the Stage 1 export. Record and justify any
+   Python exception before using the Python standards.
    Initialize a governance registry when the project has confirmatory claims, acceptance gates,
    multiple analysis pipelines, or outputs intended for circulation.
 4. Start through the workflow router. The active runtime reads the portable
@@ -83,7 +83,7 @@ LaTeX and presentation work is routed through `latex-production`, `research-talk
    contemporaneously logged.
 5. Create evidence cards for the current data version, locked specification,
    key diagnostics, and reported results. Link to the original artifacts.
-6. Validate the Python-to-R boundary before the next estimation run; do not
+6. Validate the analysis-data boundary before the next estimation run; do not
    retroactively overwrite prior data or estimates merely to fit v2 naming.
 
 ## Required handoff order

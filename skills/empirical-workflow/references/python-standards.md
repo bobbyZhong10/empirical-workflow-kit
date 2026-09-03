@@ -1,8 +1,12 @@
-# Python Coding Standards
+# Python Exception Coding Standards
 
-Python owns ingestion, cleaning, entity resolution, cross-source merging, and
-the export of analysis-ready data to R. Its purpose is transparent research
-data work, not a reusable software product.
+Python is an exception to the R-first workflow. Use this file only after the
+exception has been recorded and justified in `decision-log.md`, including the
+capability, scale, precision, or upstream-dependency reason R cannot meet. An
+inherited Python pipeline may be retained to reproduce a baseline; record that
+inheritance rather than rewriting working code merely to satisfy a language
+preference. Python's purpose is transparent research data work, not a reusable
+software product.
 
 ## Script layout
 
@@ -26,7 +30,7 @@ or derived outputs under `data/intermediate/` or `data/analysis/`.
 
 ## Exports and the R boundary
 
-`04_export.py` writes analysis data as Parquet, writes its versioned YAML
+The final Python script writes analysis data as Parquet, writes its versioned YAML
 contract beside it, and retains a versioned merge audit at
 `data/analysis/audits/<data_version>.merge-audit.yaml`. The contract must follow
 `references/data-contract.md` and start from

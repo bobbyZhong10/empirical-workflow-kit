@@ -4,7 +4,7 @@ pipelines:
   - pipeline_id: p01
     status: authoritative
     first_formal_batch_at: "2026-08-15T00:00:00Z"
-    producing_scripts: [code/py/04_export.py, code/r/03_main.R]
+    producing_scripts: [code/r/04_export.R, code/r/08_main.R]
     output_roots: [data/analysis, results]
 claims:
   - claim_key: H1_effect

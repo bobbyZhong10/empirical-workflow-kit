@@ -1,8 +1,10 @@
-# Python-to-R Data Contract
+# Analysis Data Contract
 
-Python ETL exports each analysis-ready dataset as a Parquet file and a YAML
-contract. R must validate the YAML record and the Parquet data before beginning
-formal analysis. The contract belongs beside the exported dataset, for example:
+The Stage 1 producer exports each analysis-ready dataset as a Parquet file and
+a YAML contract. R is the default producer. A recorded Python exception may
+produce the same artifacts, but it does not weaken any validation requirement.
+R must validate the YAML record and the Parquet data before beginning formal
+analysis. The contract belongs beside the exported dataset, for example:
 
 ```
 data/analysis/firm_quarter.parquet
@@ -10,8 +12,9 @@ data/analysis/firm_quarter.contract.yaml
 data/analysis/audits/firm_quarter_v2026_08_15.merge-audit.yaml
 ```
 
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`.
 The YAML template is
-`skills/empirical-workflow/templates/data-contract-template.yaml`. Copy it for
+`<skills_root>/empirical-workflow/templates/data-contract-template.yaml`. Copy it for
 each export; do not overwrite a contract for an earlier data version.
 
 ## Required fields
@@ -24,7 +27,7 @@ Every contract must contain the following populated fields.
 | `data_version` | Immutable version label for this export. |
 | `source_versions` | One entry per upstream source, with a source name and version or retrieval date. |
 | `data_hash` | Hash of the exported Parquet file, naming the hash algorithm. |
-| `producing_script` | Repository-relative numbered Python script that created the export. |
+| `producing_script` | Repository-relative numbered producer script that created the export. |
 | `produced_at_utc` | UTC timestamp at which the export was produced. |
 | `dataset_path` | Repository-relative Parquet path. |
 | `observation_unit` | Plain-language unit represented by one row. |
@@ -61,7 +64,7 @@ The audit must contain its `data_version`, `producing_script`,
 and row count. Each `merge_steps` entry must identify the merge and state its
 join type, left and right source names and versions, left and right input row
 counts, matched-left and unmatched-left row counts, left match rate, output row
-count, and disposition of unmatched rows. The Python producer must assert:
+count, and disposition of unmatched rows. The producer must assert:
 
 1. `matched_left_row_count + unmatched_left_row_count = left_input_row_count`.
 2. `left_match_rate = matched_left_row_count / left_input_row_count` when the
@@ -70,15 +73,15 @@ count, and disposition of unmatched rows. The Python producer must assert:
    contract's `dataset_path` and `row_count`.
 
 The standalone audit template is
-`skills/empirical-workflow/templates/merge-audit-template.yaml`. Retaining the
+`<skills_root>/empirical-workflow/templates/merge-audit-template.yaml`. Retaining the
 source totals and match outcomes makes every merge auditable even though the
 final Parquet cannot reproduce the raw matching inputs.
 
 ## R validation gate
 
-`code/r/01_validate_contract.R` is the prerequisite for analysis construction;
-contract validation must complete before `code/r/02_construct.R` reads or
-constructs analysis variables. `01_validate_contract.R` must:
+`code/r/05_validate_contract.R` is the prerequisite for analysis construction;
+contract validation must complete before `code/r/06_construct.R` reads or
+constructs analysis variables. `05_validate_contract.R` must:
 
 1. Read the YAML contract and the referenced Parquet file.
 2. Confirm project name and observation unit against `research.yaml`, and data
@@ -106,6 +109,6 @@ rerun the validation gate.
 ## Change discipline
 
 The producer updates Parquet, contract, and merge audit in the same export
-step. The R consumer does not edit any of these artifacts. A changed schema,
+step. The validation and analysis consumers do not edit any of these artifacts. A changed schema,
 key, observation unit, time granularity, required analysis field, or merge
 logic is a data-contract change and must be recorded before R analysis resumes.

@@ -14,6 +14,13 @@
 - Search and document four tracks: core theory, empirical phenomenon and
   closest studies, identification and method precedent, and constructs,
   measures, and target-outlet positioning.
+- Sweep the target field's UTD 24 and FT 50 venues, and the top economics and
+  IO journals when the question touches prices, competition, platforms, or
+  policy, using the venue pass and exact `--venue` strings in
+  `<skills_root>/literature-review/references/journal-scope.md`. Record the
+  swept titles in the search log. One discipline's journals are not a
+  complete map for a question that IS, OM, marketing, and management readers
+  all publish on.
 - Log searches, retained results, source links, publication metadata, and
   verification checks. Distinguish published papers from working papers, record source coverage,
   and label the exact version and access rung read.

@@ -8,6 +8,9 @@ description: Assemble a journal-ready replication archive for a quantitative-mar
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
 
+Resolve `<skills_root>` from `workflow.manifest.yaml:canonical_source.skills_root`
+before using a path below.
+
 Adapted from `ericluo04/claude-academic-workflow` at commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
 
 Build one sanitized zip a data editor can accept without follow-up. The archive is assembled from files that already exist. Nothing here re-runs the analysis or verifies that the numbers in the paper match the code; if that is what the user wants, say so and stop.
@@ -249,13 +252,13 @@ Qualtrics files that carry the researcher's own footprint:
 Runnable check, headers across every delimited and Excel file:
 
 ```bash
-python3 skills/replication-release/scripts/scan_headers.py "$SCAN_ROOT"
+python3 <skills_root>/replication-release/scripts/scan_headers.py "$SCAN_ROOT"
 ```
 
 Runnable check, values, for the identifier sitting in a column with an innocuous name:
 
 ```bash
-python3 skills/replication-release/scripts/scan_values.py "$SCAN_ROOT"
+python3 <skills_root>/replication-release/scripts/scan_values.py "$SCAN_ROOT"
 ```
 
 An `ipv4` hit can be a version string and a `phone` hit can be an id or a price, so report these with the count and the column name and let the user judge. A hit in a column the header scan called clean is the finding that matters most, since it means an identifier is hiding under an innocuous name.
@@ -263,7 +266,7 @@ An `ipv4` hit can be a version string and a `phone` hit can be an id or a price,
 Then read a sample of each open-text column with your own eyes:
 
 ```bash
-python3 skills/replication-release/scripts/sample_open_text.py "$FILE" "$COLUMN"
+python3 <skills_root>/replication-release/scripts/sample_open_text.py "$FILE" "$COLUMN"
 ```
 
 A ragged file is a finding in its own right: a Qualtrics export is rectangular, so a row with the wrong field count means the file was hand-edited or re-saved by something, and every column-based conclusion about it is suspect.
@@ -271,7 +274,7 @@ A ragged file is a finding in its own right: a Qualtrics export is rectangular, 
 Grep the `.qsf` before shipping it:
 
 ```bash
-python3 skills/replication-release/scripts/scan_qsf.py "$QSF"
+python3 <skills_root>/replication-release/scripts/scan_qsf.py "$QSF"
 ```
 
 The remedy, and it is the same one nearly every time: keep the raw platform export out of the archive, ship a de-identified analysis dataset next to the script that produces it from that raw export, and let the replicator verify every step after the drop. The de-identification script is the part that makes this credible, so it goes in `code/` with the rest and gets named in the README. Then write it into the data availability statement, in the form of route 4 in section 6: raw responses are withheld for human-subjects reasons, the de-identified analysis file is included, and the code that produced it from the raw export is included.

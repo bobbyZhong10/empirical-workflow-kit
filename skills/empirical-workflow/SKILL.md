@@ -131,10 +131,13 @@ data exchanges through stable artifacts such as Parquet.
 
 ## Checkpoint routing
 
-Checkpoint A follows Stage 3, Checkpoint B follows Stage 5, and Checkpoint C
-follows Stage 6. A checkpoint requires its stated evidence, a status update,
-and a recorded proceed, revise, or pause decision. Only a passing checkpoint
-authorizes the next stage. Run independent review where the protocol or project
+Checkpoint A follows Stage 3, Checkpoint B follows Stage 5, and Checkpoint C follows Stage 7.
+Stage 6 exits through a documented analysis-readiness review so evidence-backed
+writing can begin without pretending that the not-yet-written submission has
+already passed its final gate. A checkpoint requires its stated evidence, a
+status update, and a recorded proceed, revise, or pause decision. A passing A
+or B authorizes its next analysis phase; a passing C authorizes completion and
+release readiness. Run independent review where the protocol or project
 configuration requires it.
 
 ### Checkpoint A: research design is answerable

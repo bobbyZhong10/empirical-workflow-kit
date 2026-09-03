@@ -114,6 +114,13 @@ APA 7th, so the `Author, A. "Title," MIS Quarterly (25:1), 2001, pp. 107-136`
 form that many templates and reference managers still emit is now wrong for
 that journal too.
 
+Other UTD 24 and FT 50 outlets carry their own house styles: the SAGE marketing
+journals (Journal of Marketing Research, Journal of Marketing) follow the AMA
+style, the Academy of Management journals follow the AOM style guide, and the
+AEA journals follow Chicago author-date. Confirm the current author guidelines
+for the target before generating the `\bibpunct` line, and record the access
+date.
+
 The INFORMS class ships INFORMS punctuation and it is correct for an INFORMS
 outlet. Override it only when the target is APA. Generate the `\bibpunct`
 line from the same script that generates the entries, so the in-text form and

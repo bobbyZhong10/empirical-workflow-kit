@@ -33,7 +33,9 @@ def digest(path: Path) -> str:
 
 
 def kit_version(repo: Path) -> str:
-    source = (repo / "tools" / "validate_registry.py").read_text(encoding="utf-8")
+    manifest = yaml.safe_load((repo / "workflow.manifest.yaml").read_text(encoding="utf-8"))
+    validator = manifest["canonical_source"].get("registry_validator", "tools/validate_registry.py")
+    source = (repo / validator).read_text(encoding="utf-8")
     match = re.search(r'^KIT_VERSION = "([^"]+)"', source, re.MULTILINE)
     if not match:
         raise RuntimeError("KIT_VERSION is missing from tools/validate_registry.py")
@@ -128,7 +130,7 @@ def main() -> int:
         if args.project:
             view = Path(manifest["runtime_views"][runtime]["skills"])
             view_abs = repo / view
-            expected = lambda name: f"../../skills/{name}"
+            expected = lambda name: os.path.relpath(canonical_root / name, start=view_abs)
         else:
             raw = manifest["user_views"][runtime]["skills"]
             view_abs = Path(os.path.expanduser(raw))
@@ -166,7 +168,7 @@ def main() -> int:
         for name in manifest.get("managed_agents", []):
             entry = repo / agents_view / f"{name}.md"
             canonical = repo / manifest["canonical_source"]["agents_root"] / f"{name}.md"
-            target = f"../../agents/{name}.md"
+            target = os.path.relpath(canonical, start=repo / agents_view)
             if not entry.is_symlink():
                 status = "MISSING_VIEW" if not entry.exists() else "DUPLICATE_IMPLEMENTATION"
                 add_row(rows, view=agents_view, skill=name, status=status)
