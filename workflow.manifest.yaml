@@ -9,31 +9,42 @@
 # tests/test_runtime_views.py and scripts/verify_runtime_parity.py both check.
 
 schema_version: 1
-workflow_version: "2.3"
+workflow_version: "2.4"
 
 canonical_source:
   protocol: RESEARCH_PROTOCOL.md
   skills_root: skills
   presentation_tooling: presentation-tooling
   agents_root: agents
+  runtime_cli: scripts/ewf.py
+  upstream_lock: upstream.lock.yaml
 
 # Skills the kit owns. Only these names are ever created, checked, backed up,
 # or replaced by the runtime-view tooling; any other entry in a view directory
 # belongs to someone else and is left alone.
 managed_skills:
   - bibliography-audit
+  - causal-design
+  - conjoint
   - course-site
+  - did
   - empirical-workflow
+  - field-experiment
+  - fixed-effects
+  - iv
   - latex-production
   - literature-review
   - manuscript-review
   - preregister
+  - rdd
   - referee-response
   - replication-release
   - research-council
   - research-sources
   - research-talk
+  - selection-on-observables
   - slide-review
+  - synthetic-control
   - teaching-lecture
 
 managed_agents:
@@ -60,5 +71,6 @@ upstream:
   repository: https://github.com/ericluo04/claude-academic-workflow
   baseline_commit: "8958cc246e65cdf7c36604f397a1c1719b7e2c14"
   inspected_commit: "8958cc246e65cdf7c36604f397a1c1719b7e2c14"
-  inspected_at: "2026-09-02"
+  inspected_at: "2026-09-03"
   audit: docs/upstream-absorption-audit.md
+  lock: upstream.lock.yaml

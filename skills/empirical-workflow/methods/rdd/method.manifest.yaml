@@ -1,0 +1,16 @@
+schema_version: 1
+method: rdd
+reviewed_at: 2026-07-28
+refresh:
+  max_age_days: 365
+  query: regression discontinuity, robust bias correction, local randomization, and discrete scores
+  approval_required: true
+software:
+  language: R
+  minimum_version: "4.1"
+  compatibility_source: details.md
+sources:
+  prompt: prompt.md
+  canon: canon.md
+  details: details.md
+  implementation: template.R

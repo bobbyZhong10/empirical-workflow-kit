@@ -4,17 +4,19 @@ Shared tooling for Quarto reveal.js decks: a Pandoc filter, two render-time
 quality gates, an offline checker, a starter theme, and the vendored assets
 that keep a deck self-hosted. Used by the `research-talk`, `teaching-lecture`,
 `slide-review`, and `course-site` skills, which expect this directory
-installed at `$EWF_PRESENTATION_ASSETS/` (see SETUP.md at the repo root).
+installed at `$EWF_PRESENTATION_ASSETS/` (see `runtime-profile.example.yaml`
+and `docs/runtime-recipes/` at the repository root).
 
 This file is the machinery reference: what each file does, what the filter
 rewrites, what the gates assert, and the settings that break a deck without
 saying so. How sparse a slide should be, what a title should say, how to pace
 a lecture, and which block class means what all live in the skills.
 
-The rendered decks under `docs/` are the example sources rendered with
-`starter-theme.scss`, a light editorial theme (warm paper ground, Literata
-display headings over IBM Plex Sans text, plum accent) that implements every
-hook the filter and the gates expect, with comments marking where taste goes.
+The executable acceptance sources under `examples/` use the same filter and
+gates without tracking generated output. `starter-theme.scss` is a light
+editorial theme (warm paper ground, Literata display headings over IBM Plex
+Sans text, plum accent) that implements every hook the filter and the gates
+expect, with comments marking where taste goes.
 Where a concrete number helps, this file cites measurements taken on a
 two-theme setup built on the same hooks (a talk theme and a lecture theme).
 Everything below about divider classes, the progress bar, jump buttons,

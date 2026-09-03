@@ -26,18 +26,27 @@ VERIFY = ROOT / "scripts" / "verify_runtime_parity.py"
 
 MANAGED_SKILLS = [
     "bibliography-audit",
+    "causal-design",
+    "conjoint",
     "course-site",
+    "did",
     "empirical-workflow",
+    "field-experiment",
+    "fixed-effects",
+    "iv",
     "latex-production",
     "literature-review",
     "manuscript-review",
     "preregister",
+    "rdd",
     "referee-response",
     "replication-release",
     "research-council",
     "research-sources",
     "research-talk",
+    "selection-on-observables",
     "slide-review",
+    "synthetic-control",
     "teaching-lecture",
 ]
 MANAGED_AGENTS = ["tikz-reviewer"]
@@ -105,6 +114,8 @@ def test_manifest_names_the_canonical_source_and_the_views():
         "skills_root": "skills",
         "presentation_tooling": "presentation-tooling",
         "agents_root": "agents",
+        "runtime_cli": "scripts/ewf.py",
+        "upstream_lock": "upstream.lock.yaml",
     }
     assert data["runtime_views"]["claude"] == {
         "skills": ".claude/skills",

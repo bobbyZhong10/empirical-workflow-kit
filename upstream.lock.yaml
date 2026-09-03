@@ -1,0 +1,135 @@
+schema_version: 1
+repository: https://github.com/ericluo04/claude-academic-workflow
+baseline_commit: 8958cc246e65cdf7c36604f397a1c1719b7e2c14
+inspected_at: 2026-09-03
+genericization_rules:
+  - Replace personal absolute paths with runtime-profile capabilities.
+  - Keep runtime adapters thin and move shared rules into portable contracts.
+  - Route only to skills shipped by this repository.
+  - Never import private settings, credentials, memory links, or unpublished skills.
+  - Preserve attribution and record every deliberate exclusion or replacement.
+entries:
+  - source: .gitignore
+    source_oid: 04498d1eb381cf65212a23a453aee508efc4e4c2
+    disposition: adapted
+    destinations: [.gitignore]
+  - source: ATTRIBUTION.md
+    source_oid: 16efe500342f628a67544613d87af57effdb54ca
+    disposition: adapted
+    destinations: [docs/upstream-attribution.md]
+  - source: CLAUDE.md
+    source_oid: 5c6997fbd8dd41d270dd3dd8000fd1d22841d136
+    disposition: decomposed
+    destinations: [RESEARCH_PROTOCOL.md, CLAUDE.md, AGENTS.md, skills/empirical-workflow/references/writing-standards.md]
+  - source: README.md
+    source_oid: fa039f02f621bad848a1e2f37e2e9265e4442e4e
+    disposition: adapted
+    destinations: [README.md]
+  - source: LICENSE
+    source_oid: 6757f2eb9f95bb635ba205a53ca9bb50a90fe9f4
+    disposition: retained-notice
+    destinations: [THIRD_PARTY_NOTICES.md]
+  - source: SETUP.md
+    source_oid: 2f61930f147ee637562df93f1e68a104d0c824bf
+    disposition: replaced
+    destinations: [runtime-profile.example.yaml, scripts/ewf.py, docs/runtime-recipes]
+  - source: docs/mirror-notes.md
+    source_oid: 854e3952b0d2524fcb2cc705de0f5a1c733b88df
+    disposition: adapted
+    destinations: [upstream.lock.yaml, scripts/audit_upstream.py, docs/upstream-absorption-audit.md]
+  - source: output-styles/concise-research.md
+    source_oid: 2308487bd7f81b31d4327eefa3cd6ef456f418eb
+    disposition: decomposed
+    destinations: [CLAUDE.md, AGENTS.md, docs/runtime-recipes]
+  - source: agents
+    source_oid: 895f19ff4cf8355582f5f7e8f76294f9e3bd3177
+    disposition: adapted
+    destinations: [agents]
+  - source: examples
+    source_oid: 107201d34d4345e29459b36c62928c18c37f96b8
+    disposition: replaced
+    destinations: [examples, tests/smoke/run_presentation_smoke.sh]
+  - source: slide-tooling
+    source_oid: 6870bd250edd1446cf3dfa621466e0d93d470232
+    disposition: adapted
+    destinations: [presentation-tooling]
+  - source: skills/bibcheck
+    source_oid: 925988318dd4b3007f693f4d0bd075969ea0646b
+    disposition: adapted
+    destinations: [skills/bibliography-audit]
+  - source: skills/causal-design
+    source_oid: 48971624518f1e6ce7a9454f0a4279c2f99a18e4
+    disposition: decomposed
+    destinations: [skills/causal-design, skills/fixed-effects, skills/selection-on-observables, skills/empirical-workflow/methods/causal-design, skills/empirical-workflow/methods/fixed-effects, skills/empirical-workflow/methods/selection-on-observables]
+  - source: skills/compile-latex
+    source_oid: 10fb2cd1d32d7aba79d45a90e6843f6ebc270f6f
+    disposition: adapted
+    destinations: [skills/latex-production]
+  - source: skills/conjoint
+    source_oid: 2fb7f67d92aac09261d03f440d037ec1a068a5a7
+    disposition: decomposed
+    destinations: [skills/conjoint, skills/empirical-workflow/methods/conjoint]
+  - source: skills/council
+    source_oid: 0d2e9753a5a63e5ed072d89b9a1ae2ab946c0d5e
+    disposition: adapted
+    destinations: [skills/research-council]
+  - source: skills/course-site
+    source_oid: a55036b879172f9807da1f9b58459e8525f66793
+    disposition: adapted
+    destinations: [skills/course-site]
+  - source: skills/did
+    source_oid: 0e3338e30b1f71355c03281a56728f5628f5d5b0
+    disposition: decomposed
+    destinations: [skills/did, skills/empirical-workflow/methods/did]
+  - source: skills/field-experiment
+    source_oid: f35e1afd0b63355d2edc4fae5041d19d966981cc
+    disposition: decomposed
+    destinations: [skills/field-experiment, skills/empirical-workflow/methods/field-experiment]
+  - source: skills/iv
+    source_oid: 9fe77812fdd3a4516fc7a596fcca3af80a64aee3
+    disposition: decomposed
+    destinations: [skills/iv, skills/empirical-workflow/methods/iv]
+  - source: skills/litreview
+    source_oid: 680dedaef2882af076adeb2744c966ae108e4b8e
+    disposition: adapted
+    destinations: [skills/literature-review]
+  - source: skills/preregister
+    source_oid: e3842f6acbca6f34026f67dbb08feb10195b83d9
+    disposition: adapted
+    destinations: [skills/preregister]
+  - source: skills/rdd
+    source_oid: 91d9c16d6aab962f68bdc993a58229cce6130301
+    disposition: decomposed
+    destinations: [skills/rdd, skills/empirical-workflow/methods/rdd]
+  - source: skills/reading-papers
+    source_oid: 6f89e464e727d2ba98760530437e42e35a4c0f1b
+    disposition: adapted
+    destinations: [skills/research-sources]
+  - source: skills/referee-response
+    source_oid: 28cba375c5287b739b9aae14360b10a08de7b658
+    disposition: adapted
+    destinations: [skills/referee-response]
+  - source: skills/replication-package
+    source_oid: e41687c75258cad79ddbe53e98b5c6dcf691fd3b
+    disposition: adapted
+    destinations: [skills/replication-release]
+  - source: skills/research-talk
+    source_oid: d8874396ba4e61dbec57ec3497cd5e63c69bd01f
+    disposition: adapted
+    destinations: [skills/research-talk]
+  - source: skills/review-paper
+    source_oid: 0eca3f80bfbeff1e3f1401bef7b9adde227bf9dd
+    disposition: adapted
+    destinations: [skills/manuscript-review]
+  - source: skills/slide-review
+    source_oid: 652d0555764923a2b4b5a8167f7316b62adb1399
+    disposition: adapted
+    destinations: [skills/slide-review]
+  - source: skills/synthetic-control
+    source_oid: 800ae5281e8d5be3ddcc8fd5d48e66200d308ba9
+    disposition: decomposed
+    destinations: [skills/synthetic-control, skills/empirical-workflow/methods/synthetic-control]
+  - source: skills/teaching-lecture
+    source_oid: ee716d7549eae41ee1f144405c933d9fbedc57d1
+    disposition: adapted
+    destinations: [skills/teaching-lecture]

@@ -9,6 +9,10 @@ runtime_profile:
     EWF_GHOSTSCRIPT: "gs"
     EWF_PRESENTATION_ASSETS: "presentation-tooling"
     EWF_COURSE_ROOT: null
+    R_LIBS_USER: ".r-lib"
+  languages:
+    python_command: python3
+    rscript_command: Rscript
   scholarly_sources:
     cache_dir: ".research-cache/papers"
     contact_email_env: SCHOLAR_MAILTO
@@ -42,3 +46,12 @@ runtime_profile:
     remote_alias: null
   notifications:
     completion_channel: null
+  validation:
+    required_tools: [python, rscript]
+    optional_tools: [node, quarto, latexmk, ghostscript]
+    minimum_versions:
+      python: "3.11"
+      rscript: "4.1"
+      node: "22"
+      quarto: "1.10"
+    r_packages: [arrow, yaml, fixest, modelsummary]

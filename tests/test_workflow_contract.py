@@ -490,7 +490,7 @@ def test_canonical_validator_uses_the_bootstrapped_interpreter(tmp_path):
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    assert completed.stdout.strip() == "empirical-workflow 2.3"
+    assert completed.stdout.strip() == "empirical-workflow 2.4"
 
     canonical = "tools/validate_registry"
     for path in ("AGENTS.md", "CLAUDE.md", "RESEARCH_PROTOCOL.md", "README.md"):
@@ -713,6 +713,11 @@ def test_absorbed_global_instructions_are_portably_routed():
         "EWF_COURSE_ROOT",
     ):
         assert name in profile["runtime_profile"]["environment_bindings"]
+    assert profile["runtime_profile"]["languages"]["python_command"]
+    assert profile["runtime_profile"]["languages"]["rscript_command"]
+    assert profile["runtime_profile"]["validation"]["required_tools"]
+    assert profile["runtime_profile"]["validation"]["minimum_versions"]["node"] == "22"
+    assert (ROOT / "scripts/ewf.py").is_file()
 
     for adapter in ("CLAUDE.md", "AGENTS.md"):
         body = read(adapter)

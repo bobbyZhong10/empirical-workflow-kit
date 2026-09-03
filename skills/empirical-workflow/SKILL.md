@@ -109,7 +109,9 @@ hard-coded personal path in a portable contract.
 Load a companion skill only for the operation at hand. Stage 2 routes known papers to
 `research-sources`, topic searches to `literature-review`, and BibTeX files to
 `bibliography-audit`. Stage 3 may invoke `preregister` prospectively. Stage 6a selects exactly one
-pack under `methods/`. Stage 7 may invoke `research-council`, `manuscript-review`,
+pack under `methods/`. Named-method facade skills provide direct discovery but route back through
+the shared method-entry contract and the same canonical pack; they never own a second prompt.
+Stage 7 may invoke `research-council`, `manuscript-review`,
 `referee-response`, `replication-release`, or the LaTeX and presentation skills. Companion outputs
 must be registered in the current stage artifacts and may not bypass a checkpoint or mandatory
 pause.

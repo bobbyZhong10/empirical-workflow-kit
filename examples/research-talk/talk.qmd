@@ -1,0 +1,48 @@
+---
+title: "A Minimal Research Talk"
+subtitle: "Executable acceptance fixture"
+author: "Example Researcher"
+format:
+  revealjs:
+    theme: simple
+    embed-resources: true
+    html-math-method: katex
+    self-contained-math: true
+    incremental: false
+    slide-number: c/t
+filters:
+  - ../../presentation-tooling/stage-slide.lua
+citeproc: false
+---
+
+## Research question
+
+How does a staged intervention change an observed outcome?
+
+::: {.assumption}
+The comparison identifies the target effect only under the registered design
+assumption.
+:::
+
+## Design {.section-break}
+
+## The analysis separates design, estimation, and interpretation
+
+- Lock the estimand and sample before estimation.
+- Pair the identifying assumption with a diagnostic.
+- Trace the reported result to a reproducible artifact.
+
+## The focal specification is explicit
+
+$$
+y_{it} = \alpha_i + \gamma_t + \beta D_{it} + \varepsilon_{it}.
+$$
+
+::: {.result}
+This fixture demonstrates rendering and quality gates; it makes no empirical
+claim.
+:::
+
+## Thank you {.thanks-slide .no-stage}
+
+Questions and comments are welcome.

@@ -1,0 +1,16 @@
+schema_version: 1
+method: selection-on-observables
+reviewed_at: 2026-08-26
+refresh:
+  max_age_days: 365
+  query: doubly robust estimation, double machine learning, overlap, and sensitivity analysis
+  approval_required: true
+software:
+  language: R
+  minimum_version: "4.1"
+  compatibility_source: details.md
+sources:
+  prompt: prompt.md
+  canon: canon.md
+  details: details.md
+  implementation: template.R

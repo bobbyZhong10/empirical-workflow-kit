@@ -45,6 +45,7 @@ RESEARCH_PROTOCOL.md                 portable research contract and red lines
 workflow.manifest.yaml               canonical-source and runtime-view manifest
 research.example.yaml                project configuration template
 runtime-profile.example.yaml         machine-specific tool and path template
+upstream.lock.yaml                   machine-readable upstream source ledger
 CLAUDE.md                            thin Claude Code runtime adapter
 AGENTS.md                            thin Codex runtime adapter
 skills/empirical-workflow/
@@ -59,6 +60,8 @@ agents/tikz-reviewer.md              rendered-figure review contract
 presentation-tooling/                Quarto theme, staging, and visual gates
 tools/validate_registry.py           shared checkpoint validator
 scripts/                             runtime-view installation and verification
+scripts/ewf.py                       runtime profile loader, doctor, and tool runner
+examples/                            executable talk and lecture acceptance fixtures
 tests/                               contracts, validators, scanners, and smoke test
 THIRD_PARTY_NOTICES.md               licenses and imported-source notices
 docs/upstream-absorption-audit.md    upstream-to-canonical absorption record
@@ -110,6 +113,12 @@ discontinuity, synthetic control, field experiments, and conjoint experiments.
 The shared method-governance rules require current literature, maintained
 implementations, explicit judgment when the literature does not settle a
 choice, and a recorded reason for every non-obvious default.
+
+Each pack has a machine-readable `method.manifest.yaml` with its review date,
+refresh query, refresh interval, software boundary, and canonical source files.
+Thin skills such as `skills/did/SKILL.md` and `skills/rdd/SKILL.md` make named
+methods directly discoverable without copying their prompts. Every facade
+routes through Stage 6a and the common mandatory-pause contract.
 
 ## Focused operations
 
@@ -196,10 +205,29 @@ repository prevents.
 2. Copy `runtime-profile.example.yaml` to `runtime-profile.yaml` and enter
    machine-specific paths and optional tool availability. Never embed personal
    paths in a skill, prompt, adapter, or protocol.
-3. Create `_status.md`, `decision-log.md`, and the first evidence records from
+3. Resolve and diagnose that profile:
+
+   ```bash
+   python3 scripts/ewf.py env
+   python3 scripts/ewf.py doctor
+   ```
+
+4. Create `_status.md`, `decision-log.md`, and the first evidence records from
    the templates routed by `empirical-workflow`.
-4. Start Claude Code or Codex at the repository root. The runtime adapter reads
+5. Start Claude Code or Codex at the repository root. The runtime adapter reads
    the same protocol, manifest, router, and project state.
+
+Run configured commands through the logical tool runner so the profile affects
+execution rather than documentation alone:
+
+```bash
+python3 scripts/ewf.py run rscript --vanilla analysis.R
+python3 scripts/ewf.py run quarto render talk.qmd
+python3 scripts/ewf.py run node presentation-tooling/deck-check.mjs fit talk.html
+```
+
+See `docs/runtime-recipes/` for Claude Code and Codex discovery, handoff,
+browser, document, secret, and optional-capability guidance.
 
 At every cross-runtime handoff, the receiver reads, in order:
 
@@ -255,11 +283,30 @@ Run the complete automated suite:
 .venv/bin/python -m pytest -q
 bash tests/run_contract_tests.sh
 bash tests/smoke/run_smoke.sh
+bash tests/smoke/run_presentation_smoke.sh
 python3 scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
 The smoke runner intentionally invokes several failing cases. Those cases pass
 only when the workflow blocks them with the documented errors.
+
+The presentation smoke renders both neutral examples and then runs the fit,
+staging, and offline gates. If the default Node installation is unavailable,
+set `EWF_NODE_COMMAND` to a working Node 22+ executable or configure
+`presentation.node_command` in the ignored runtime profile.
+
+## Upstream update audit
+
+The absorption mapping is executable:
+
+```bash
+python3 scripts/audit_upstream.py --offline
+python3 scripts/audit_upstream.py --fail-on-change
+```
+
+The offline command verifies that every destination declared in
+`upstream.lock.yaml` exists. The online command compares the pinned Git object
+IDs with upstream `HEAD` and reports only changed or missing source families.
 
 ## Release validation
 

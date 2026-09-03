@@ -1,0 +1,16 @@
+schema_version: 1
+method: did
+reviewed_at: 2026-08-26
+refresh:
+  max_age_days: 365
+  query: difference-in-differences, event studies, DDD, and nonlinear DiD
+  approval_required: true
+software:
+  language: R
+  minimum_version: "4.1"
+  compatibility_source: details.md
+sources:
+  prompt: prompt.md
+  canon: canon.md
+  details: details.md
+  implementation: template.R

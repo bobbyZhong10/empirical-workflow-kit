@@ -1,0 +1,41 @@
+---
+title: "Identification Before Estimation"
+subtitle: "Executable teaching fixture"
+author: "Example Instructor"
+format:
+  revealjs:
+    theme: simple
+    embed-resources: true
+    html-math-method: katex
+    self-contained-math: true
+    incremental: false
+    slide-number: c/t
+filters:
+  - ../../presentation-tooling/stage-slide.lua
+citeproc: false
+---
+
+## Learning objective
+
+By the end of this short lecture, students can distinguish an estimand, an
+identifying assumption, and an estimator.
+
+## Three layers {.section-break}
+
+## Start with the quantity, not the command
+
+1. Define the target population and estimand.
+2. State the assumption that identifies it.
+3. Choose an estimator and inference procedure compatible with the design.
+
+## A diagnostic tests a threat, not the entire design
+
+::: {.together}
+A passing diagnostic is evidence about a named failure mode. It is not proof
+that every identifying assumption holds.
+:::
+
+## Exit question {.closing-slide .no-stage}
+
+Which layer changes when poor overlap forces the analysis to target a narrower
+population?

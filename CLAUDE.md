@@ -2,7 +2,7 @@
 
 <!-- shared-contract: generated, identical in CLAUDE.md and AGENTS.md -->
 
-**Workflow version: 2.3.** Every project records `kit_version` in its
+**Workflow version: 2.4.** Every project records `kit_version` in its
 registry, and `tools/validate_registry.py` blocks at Checkpoint C when the two
 disagree. Check with `tools/validate_registry --version`.
 
@@ -62,9 +62,12 @@ card for every material factual claim, data source, design choice, diagnostic,
 and result.
 
 Resolve optional tools and machine-specific paths from `runtime-profile.yaml`,
-or from `runtime-profile.example.yaml` until a project profile exists. Durable
-writing, execution, method-choice, and code-review rules live in the focused
-references routed by the skill; do not duplicate them in this adapter.
+or from `runtime-profile.example.yaml` until a project profile exists. Run
+`scripts/ewf.py doctor` before relying on a configured capability and use
+`scripts/ewf.py run <tool>` so the selected command and environment bindings
+actually govern execution. Durable writing, execution, method-choice, and
+code-review rules live in the focused references routed by the skill; do not
+duplicate them in this adapter.
 
 ## Cross-runtime handoff
 
@@ -83,5 +86,7 @@ references routed by the skill; do not duplicate them in this adapter.
 
 Claude discovers `.claude/skills/empirical-workflow`, which resolves to the
 canonical `skills/empirical-workflow/` tree, and routes through its stage file.
-Claude keeps its reasoning in the conversation; nothing durable may live there.
-Where a task list is used it reflects the stages above, not a parallel plan.
+Named method facades in the same view route to the canonical Stage 6a packs.
+Claude keeps its reasoning in the conversation; nothing durable may live
+there. Where a task list is used it reflects the stages above, not a parallel
+plan.

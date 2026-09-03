@@ -5,7 +5,7 @@
 - Upstream repository: `https://github.com/ericluo04/claude-academic-workflow`
 - Baseline commit: `8958cc246e65cdf7c36604f397a1c1719b7e2c14`
 - Re-inspected commit: `8958cc246e65cdf7c36604f397a1c1719b7e2c14`
-- Re-inspected on: 2026-09-02
+- Re-inspected on: 2026-09-03
 - Result: upstream `main` had not changed since the baseline absorption.
 
 The upstream commit contains 669 tracked files: 70 skill files, 151 shared slide-tooling files,
@@ -53,13 +53,13 @@ preferences were not made research-validity rules.
 | `skills/research-talk/` | `skills/research-talk/` | Skill, starter template, four references, and house-style file absorbed |
 | `skills/teaching-lecture/` | `skills/teaching-lecture/` | Skill, starter template, five references, and house-style file absorbed |
 | `skills/slide-review/` | `skills/slide-review/` | Skill, three references, two scripts, and house-style file absorbed |
-| `skills/causal-design/` | `methods/causal-design/` plus `methods/selection-on-observables/` | Operational skill became `prompt.md`; canon, details, shared rules, bibliography, and R template were preserved and split at the design boundary |
-| `skills/did/` | `methods/did/` | Operational skill became `prompt.md`; canon, details, and R template absorbed |
-| `skills/iv/` | `methods/iv/` | Operational skill became `prompt.md`; canon, details, and R template absorbed |
-| `skills/rdd/` | `methods/rdd/` | Operational skill became `prompt.md`; canon, details, and R template absorbed |
-| `skills/synthetic-control/` | `methods/synthetic-control/` | Operational skill became `prompt.md`; canon, details, and R template absorbed |
-| `skills/field-experiment/` | `methods/field-experiment/` | Operational skill became `prompt.md`; canon, details, and R template absorbed |
-| `skills/conjoint/` | `methods/conjoint/` | Operational skill became `prompt.md`; canon, details, and R template absorbed |
+| `skills/causal-design/` | `skills/causal-design/` facade plus `methods/causal-design/` and `methods/selection-on-observables/` | Operational skill became the canonical `prompt.md`; thin discovery facades route both runtimes to the split design packs |
+| `skills/did/` | `skills/did/` facade plus `methods/did/` | Operational skill became `prompt.md`; canon, details, R template, freshness metadata, and direct discovery retained |
+| `skills/iv/` | `skills/iv/` facade plus `methods/iv/` | Operational skill became `prompt.md`; canon, details, R template, freshness metadata, and direct discovery retained |
+| `skills/rdd/` | `skills/rdd/` facade plus `methods/rdd/` | Operational skill became `prompt.md`; canon, details, R template, freshness metadata, and direct discovery retained |
+| `skills/synthetic-control/` | `skills/synthetic-control/` facade plus `methods/synthetic-control/` | Operational skill became `prompt.md`; canon, details, R template, freshness metadata, and direct discovery retained |
+| `skills/field-experiment/` | `skills/field-experiment/` facade plus `methods/field-experiment/` | Operational skill became `prompt.md`; canon, details, R template, freshness metadata, and direct discovery retained |
+| `skills/conjoint/` | `skills/conjoint/` facade plus `methods/conjoint/` | Operational skill became `prompt.md`; canon, details, R template, freshness metadata, and direct discovery retained |
 
 `methods/fixed-effects/` is a local focused pack added for the workflow's associational panel
 branch. It does not replace an upstream source.
@@ -70,11 +70,11 @@ branch. It does not replace an upstream source.
 |---|---|---|
 | `agents/tikz-reviewer.md` | `agents/tikz-reviewer.md` and `.claude/agents/` view | Absorbed; one canonical agent file |
 | `slide-tooling/` (151 files) | `presentation-tooling/` | Scripts, Quarto extension, theme, fonts, MathJax, and licenses absorbed |
-| `SETUP.md` | README, `runtime-profile.example.yaml`, and skill prerequisites | Decomposed; personal paths and secrets were converted to explicit configuration |
-| `ATTRIBUTION.md` and `LICENSE` | `THIRD_PARTY_NOTICES.md`, `docs/upstream-attribution.md`, and repository license | Attribution and license obligations retained |
+| `SETUP.md` | README, `runtime-profile.example.yaml`, `scripts/ewf.py`, and runtime recipes | Decomposed; personal paths and secrets became executable, diagnosable capabilities |
+| `ATTRIBUTION.md` and `LICENSE` | `THIRD_PARTY_NOTICES.md` and `docs/upstream-attribution.md` | Attribution and license obligations retained in the embedded notice and detailed lineage |
 | `README.md` | repository README and this audit | Capability descriptions, warnings, prerequisites, and architecture absorbed where applicable |
 | `.gitignore` | repository `.gitignore` | Relevant generated, cache, environment, and worktree exclusions absorbed |
-| `examples/` (five files) | No canonical implementation | Inspected as demonstrations; not copied because they are generated examples rather than reusable instructions |
+| `examples/` (five files) | `examples/` and `tests/smoke/run_presentation_smoke.sh` | Replaced with two neutral, compact acceptance fixtures rather than copying personal example content or generated output |
 | `docs/` (435 files) | No canonical implementation | Inspected as rendered examples and GitHub Pages output; reusable fonts and tooling already live in `presentation-tooling/` |
 | `output-styles/concise-research.md` | Runtime adapters and handoff/reporting rules | Portable outcomes absorbed; Claude-only presentation settings remain user preference |
 
@@ -94,3 +94,12 @@ and the installer refuses to replace an unowned collision.
 These changes preserve the mature prompts and method content while removing Claude-only storage,
 personal paths, duplicate implementations, and generated demonstration output from the portable
 contract.
+
+## Repeatable update audit
+
+`upstream.lock.yaml` records the baseline Git object ID, disposition, and local destinations for
+every source-bearing upstream family. `scripts/audit_upstream.py --offline` validates the local
+mapping without network access. The default online run clones the current upstream ref and reports
+source objects as `UNCHANGED`, `CHANGED`, `SOURCE_MISSING`, or `LOCK_MISMATCH`; use
+`--fail-on-change` when any unreviewed upstream change must fail automation. The lock preserves the
+upstream mirror's genericization discipline while making future re-inspection incremental.
