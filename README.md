@@ -286,19 +286,6 @@ certificate, and local possession of data is not redistribution authority.
 - Verify time-sensitive journal, registry, and release policies against current
   official sources before external circulation.
 
-## Upstream lineage
-
-The focused operations, method prompts, causal canon, and presentation tooling
-were adapted from Lan E. Luo's
-[`ericluo04/claude-academic-workflow`](https://github.com/ericluo04/claude-academic-workflow).
-The import was decomposed into the canonical stage, method, reference,
-operation, runtime-profile, and tooling locations instead of copying its global
-`CLAUDE.md` into either adapter. `docs/upstream-absorption-audit.md` records the
-inspected commit and the disposition of every upstream source family.
-
-See `THIRD_PARTY_NOTICES.md` and `docs/upstream-attribution.md` for licenses and
-detailed lineage. Retain those files when redistributing the adapted material.
-
 ## Design principles
 
 - Checkpoints are executable gates, not narrative summaries.
