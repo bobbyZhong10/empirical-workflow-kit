@@ -9,11 +9,14 @@
 
 ## Automatic actions
 
+- Route a known DOI, title, link, or named paper through `research-sources`; route a topic-level
+  search through `literature-review`; route an existing `.bib` through `bibliography-audit`.
 - Search and document four tracks: core theory, empirical phenomenon and
   closest studies, identification and method precedent, and constructs,
   measures, and target-outlet positioning.
 - Log searches, retained results, source links, publication metadata, and
-  verification checks. Distinguish published papers from working papers.
+  verification checks. Distinguish published papers from working papers, record source coverage,
+  and label the exact version and access rung read.
 - For each retained citation, label its purpose (theory, construct/measure,
   identification precedent, competing explanation, or outlet positioning).
 - Cluster the evidence into research conversations, assess the gap as a
@@ -40,6 +43,8 @@
 
 - Never claim novelty from an unverified or incomplete search, or cite a work
   whose bibliographic record and role have not been checked.
+- Never use an abstract-only record to support a claim that requires methods, results, robustness,
+  or limitations from the full text.
 - Do not flatten distinct conversations into a generic related-work list or
   choose an outlet only because it is aspirational.
 - Pause for a recorded decision if the best-supported framing changes the

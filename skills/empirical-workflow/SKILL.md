@@ -81,7 +81,35 @@ Read a reference only when the selected stage calls for it:
 - `references/operational-quality-loop.md`: planning, baseline reproduction,
   progressive validation, debugging, and completion evidence; read before
   changing research scripts, pipelines, validators, or registry logic.
+- `references/research-writing.md`: durable prose, effect-interpretation,
+  limitation, and quotation rules; read when producing or reviewing research
+  prose.
+- `references/execution-discipline.md`: work-value, object-inspection,
+  verification, parallelism, destructive-action, and scope rules; read when a
+  stage plans execution or review.
+- `references/method-governance.md`: literature-first method choice,
+  source-supplied boundaries, and the pilot/sweep decision rule; read before a
+  method, metric, measurement, sample, or inference choice.
+- `references/code-review.md`: concise research-code review taxonomy; read
+  only when reviewing or simplifying code.
 - `templates/status-template.md`: project status record.
+- `templates/handoff-template.md`: cross-runtime transfer record.
+
+Runtime-specific executable paths, caches, browser profiles, and connector
+availability come from the project `runtime-profile.yaml`, initialized from
+the repository-root `runtime-profile.example.yaml`. A missing optional tool
+degrades the affected operation and must be reported; it does not authorize a
+hard-coded personal path in a portable contract.
+
+## Focused operation routing
+
+Load a companion skill only for the operation at hand. Stage 2 routes known papers to
+`research-sources`, topic searches to `literature-review`, and BibTeX files to
+`bibliography-audit`. Stage 3 may invoke `preregister` prospectively. Stage 6a selects exactly one
+pack under `methods/`. Stage 7 may invoke `research-council`, `manuscript-review`,
+`referee-response`, `replication-release`, or the LaTeX and presentation skills. Companion outputs
+must be registered in the current stage artifacts and may not bypass a checkpoint or mandatory
+pause.
 
 ## Shared recordkeeping
 

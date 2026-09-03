@@ -1,3 +1,6 @@
 pytest>=9.0,<10
 PyYAML>=6.0,<7
 pyarrow>=18.0
+httpx
+lxml
+pypdf

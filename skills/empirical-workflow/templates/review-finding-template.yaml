@@ -1,0 +1,16 @@
+finding:
+  id: RF-001
+  reviewer_role: identification
+  severity: HOLD
+  category: identifying_assumption
+  claim_or_location: "[FILL IN]"
+  evidence:
+    source_path: "[FILL IN]"
+    anchor: "[FILL IN]"
+    excerpt_or_observation: "[FILL IN]"
+  why_it_matters: "[FILL IN]"
+  required_resolution: "[FILL IN]"
+  argument_dependency: "[FILL IN: what conclusion rests on this]"
+  status: open
+  resolved_by: null
+  decision_log_ref: null

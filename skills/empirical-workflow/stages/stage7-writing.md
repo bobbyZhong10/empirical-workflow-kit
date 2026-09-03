@@ -68,10 +68,16 @@
 - Verify every citation's bibliographic facts, stable source, and purpose label
   before it supports text. Match the outlet framing to the verified
   theory-source, empirical-analogue, and method-authority roles.
+- Run `bibliography-audit` on the cited bibliography before release. Treat metadata verification
+  and claim support as separate checks: a valid record does not prove that the cited sentence is
+  supported by the version actually read.
 - Run the selected review ladder: internal consistency, full review, referee
   simulation, then an independent-runtime identification review before
   submission. Record CLEAR, CONDITIONAL, or HOLD, findings, and resolution in
   the review record and decision log.
+- Route a focused adversarial panel through `research-council`, a complete manuscript through
+  `manuscript-review`, a decision letter through `referee-response`, and the final reproducibility
+  archive through `replication-release`. Store their outputs as governed records, not chat-only state.
 
 - When the journal format adapter is applied, bind each assertion site to its
   sentence with a marker that changes no typeset output, generate the
@@ -97,6 +103,9 @@
 - Citation-verification record, selected outlet-positioning record, review
   requests and findings, revision log, submission checks, relevant Evidence
   cards, decision-log entries, and updated status.
+- A response matrix with each claimed manuscript location independently pin-verified, and a release
+  checklist recording current journal policy, confidentiality disposition, safety scans, manifest,
+  source revision, and archive checksum when those operations apply.
 
 ## Red lines
 

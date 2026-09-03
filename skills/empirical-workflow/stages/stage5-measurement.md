@@ -24,6 +24,10 @@ identity fields in `research.yaml` before validation.
   identifiers.
 - Produce and adversarially review descriptives, missingness, outliers, mass
   points, pre-period comparability, and within-fixed-effect variation.
+- Freeze the acceptance-gate definitions that apply to construction,
+  measurement, sample eligibility, and treatment timing. Evaluate coverage for
+  every declared scope; `not_evaluated` and incomplete coverage block
+  Checkpoint B.
 
 ## Required artifacts
 
@@ -37,6 +41,9 @@ identity fields in `research.yaml` before validation.
   pre-period checks, anomalies, missingness, outliers, and resolution status.
 - `docs/checkpoints/checkpoint_b.md`, relevant Evidence cards, decision-log
   entries, and an updated `_status.md`.
+- The project governance registry initialized from
+  `templates/governance-registry-template.yaml`, with authority-signed frozen
+  gate definitions and completed applicability records.
 
 ## Red lines
 

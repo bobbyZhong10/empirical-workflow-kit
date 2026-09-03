@@ -23,11 +23,18 @@ silently replace old results; version any regenerated artifact.
 | Unstructured source or result notes | Literature maps and evidence cards in `skills/empirical-workflow/templates/` |
 | Informal Python-to-R transfer | Parquet plus a versioned data contract and merge audit |
 | Estimation before recorded validation | R contract validation, identification diagnostics, and mandatory-stop routing |
+| One generic causal prompt | A selectively loaded method pack with prompt, canon, details, and R template |
+| Ad hoc paper lookup and citation checks | `research-sources`, `literature-review`, and `bibliography-audit` |
+| Informal commitments and release decisions | `preregister`, governance registry validation, and recorded gates |
+| Chat-only critique or R&R drafting | `research-council`, `manuscript-review`, and pin-verified `referee-response` records |
+| Hand-built submission archive | `replication-release` with policy verification, confidentiality review, scans, and manifest |
+| Personal LaTeX/slide paths in global instructions | `runtime-profile.yaml`, `latex-production`, `research-talk`, `teaching-lecture`, `slide-review`, and `course-site` |
 
 ## Bootstrap a new cross-runtime project
 
 1. Copy `RESEARCH_PROTOCOL.md`, `research.example.yaml` as `research.yaml`,
-   `skills/empirical-workflow/`, and the adapter for each intended runtime.
+   all needed `skills/`, `runtime-profile.example.yaml` as `runtime-profile.yaml`,
+   `presentation-tooling/`, `agents/`, `THIRD_PARTY_NOTICES.md`, and the adapter for each intended runtime.
 2. Copy `CLAUDE.md` when using Claude Code and `AGENTS.md` when using Codex.
    Keep both if the project will switch runtimes.
    Install the skill in the runtime-specific location: copy it to
@@ -38,11 +45,30 @@ silently replace old results; version any regenerated artifact.
 3. Create `_status.md`, `decision-log.md`, and the appropriate evidence-card
    directory from the included templates. Fill `research.yaml` before work
    begins; lock `analysis_input_contract` before R consumes a Python export.
+   Initialize a governance registry when the project has confirmatory claims, acceptance gates,
+   multiple analysis pipelines, or outputs intended for circulation.
 4. Start through the workflow router. The active runtime reads the portable
    protocol and project record, then loads only the current stage contract.
 5. At a handoff, finish an atomic task, write the decision and evidence,
    update status, and record changed artifacts, open risks, next action, and
    unresolved mandatory pauses.
+
+## Operating sequence after migration
+
+For discovery and design, the default route is `research-sources → literature-review → preregister
+→ method pack`. A known paper uses `research-sources`; a topic uses `literature-review`; an existing
+BibTeX database uses `bibliography-audit`. Stage 6a loads only the locked method pack and registers
+any departure from its dated canon.
+
+For writing and release, use `manuscript-review → referee-response → replication-release`.
+`research-council` is available for a bounded adversarial panel before a full manuscript exists.
+The release sequence requires a reproduction attempt, current official policy verification,
+confidentiality and redistribution decisions, safety scans on source inputs, sanitization only on
+staging copies, and a checksum manifest. Packaging by itself is not reproducibility certification.
+
+LaTeX and presentation work is routed through `latex-production`, `research-talk`,
+`teaching-lecture`, `slide-review`, and `course-site`. Their executables and assets come from
+`runtime-profile.yaml`; migrate local paths there rather than into an adapter or prompt.
 
 ## Migrate an existing `_status.md` project
 
@@ -108,3 +134,8 @@ PyArrow.
 | Results and tables | `stages/stage7-writing.md`; evidence-card template; smoke table renderer |
 | Audit, error handling, and recovery | `references/blindspot-audit.md`; protocol independent review; status and decision-log templates |
 | Validation and implementation boundary | `tests/test_workflow_contract.py`; `tests/smoke/run_smoke.sh` |
+| Source discovery and bibliography | `research-sources`; `literature-review`; `bibliography-audit` |
+| Prospective commitments and claim governance | `preregister`; governance registry templates and validator |
+| Method-specific causal execution | `skills/empirical-workflow/methods/`; Stage 6a selective routing |
+| Review, response, and replication release | `research-council`; `manuscript-review`; `referee-response`; `replication-release` |
+| LaTeX and presentation production | `latex-production`; `research-talk`; `teaching-lecture`; `slide-review`; `course-site`; `presentation-tooling/` |

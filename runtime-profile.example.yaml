@@ -1,0 +1,44 @@
+runtime_profile:
+  profile_name: portable_example
+  project_root: "."
+  environment_bindings:
+    EWF_CACHE_DIR: ".research-cache"
+    EWF_STATE_DIR: ".research-state"
+    EWF_PDF_HELPER: null
+    EWF_LATEXMK: "latexmk"
+    EWF_GHOSTSCRIPT: "gs"
+    EWF_PRESENTATION_ASSETS: "presentation-tooling"
+    EWF_COURSE_ROOT: null
+  scholarly_sources:
+    cache_dir: ".research-cache/papers"
+    contact_email_env: SCHOLAR_MAILTO
+    openalex_key_env: OPENALEX_API_KEY
+    semantic_scholar_key_env: S2_API_KEY
+    zotero:
+      enabled: false
+      connector_name: null
+  documents:
+    docx_text_command: null
+    pdf_text_command: null
+    pdf_image_command: null
+    latexmk_command: latexmk
+    ghostscript_command: gs
+  media:
+    video_command: null
+  browser:
+    authenticated_profile: null
+    public_profile: isolated
+    serialize_authenticated_sessions: true
+  presentation:
+    quarto_command: quarto
+    node_command: node
+    assets_path: presentation-tooling
+  manuscript:
+    project_roots: []
+    overleaf_sync_roots: []
+  compute:
+    platform: null
+    scheduler: null
+    remote_alias: null
+  notifications:
+    completion_channel: null

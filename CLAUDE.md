@@ -53,6 +53,11 @@ runtime context. Update `_status.md` at each stage exit. Append to
 card for every material factual claim, data source, design choice, diagnostic,
 and result.
 
+Resolve optional tools and machine-specific paths from `runtime-profile.yaml`,
+or from `runtime-profile.example.yaml` until a project profile exists. Durable
+writing, execution, method-choice, and code-review rules live in the focused
+references routed by the skill; do not duplicate them in this adapter.
+
 ## Cross-runtime handoff
 
 1. Finish the current atomic task and update its durable artifacts.

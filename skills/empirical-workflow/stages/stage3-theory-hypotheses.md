@@ -19,6 +19,12 @@
   challenge, and map evidence and diagnostics that could support or fail it.
 - Define hypotheses before estimates: claim, expected sign, boundary condition,
   sample, specification, coefficient, and expected output.
+- For confirmatory work, initialize
+  `templates/preregistration-template.yaml` before the focal outcome is
+  inspected. Bind each hypothesis to a claim revision, locked estimator,
+  sample, clustering rule, acceptance-gate identifiers, and a falsification
+  rule. Route registry-specific drafting through the companion `preregister`
+  skill.
 - Run a null-interest test: state why the question and contribution matter if
   the primary estimate is null. Name at least two competing explanations and
   a discriminating empirical implication for each.
@@ -38,6 +44,8 @@
   section-purpose matrix.
 - `docs/checkpoints/checkpoint_a.md`: complete Checkpoint A record with
   evidence and a pass, revise, or pause outcome.
+- A preregistration or pre-analysis record for confirmatory work, or an
+  explicit exploratory designation. Retrospective registration is prohibited.
 - Evidence cards for material theory and design claims, decision-log entries
   for commitments or deviations, and an updated `_status.md`.
 

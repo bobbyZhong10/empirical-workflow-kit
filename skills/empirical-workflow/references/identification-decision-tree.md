@@ -28,6 +28,24 @@ identification memo and its Evidence card.
 
 ## Tree 1: design from source of variation
 
+Once the design is locked, load exactly one focused pack:
+
+| Design decision | Focused method prompt |
+|---|---|
+| No defensible design selected yet | `methods/causal-design/prompt.md` |
+| Plain within-unit panel comparison | `methods/fixed-effects/prompt.md` |
+| Conditional exchangeability on measured covariates | `methods/selection-on-observables/prompt.md` |
+| Difference-in-differences, event study, or DDD | `methods/did/prompt.md` |
+| Instrumental variables | `methods/iv/prompt.md` |
+| Regression discontinuity | `methods/rdd/prompt.md` |
+| One or a few treated aggregate units | `methods/synthetic-control/prompt.md` |
+| Randomized field intervention | `methods/field-experiment/prompt.md` |
+| Conjoint or randomized profile experiment | `methods/conjoint/prompt.md` |
+
+The router chooses the pack; the pack supplies the mature method prompt, read canon, detailed
+edge cases, and reference R implementation. Do not load multiple method prompts to shop among
+estimators after seeing results.
+
 ### Q1. What creates variation in the treatment?
 
 | Source of variation | Design |

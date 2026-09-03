@@ -1,0 +1,29 @@
+preregistration:
+  preregistration_id: PR-001
+  status: draft
+  registry: osf
+  created_at: "2026-08-15T00:00:00Z"
+  source_specification: docs/design/research_design.md
+  outcome_seen: false
+  focal_analysis_run: false
+  existing_data_disclosure: "No realized focal outcome has been inspected."
+  hypotheses:
+    - claim_key: H1_effect
+      claim_revision_id: H1_effect.r1
+      directional_statement: "The treatment increases the locked outcome."
+      outcome: outcome_name
+      estimator: "fixest::feols"
+      sample_rule: locked_sample_rule
+      clustering: treatment_assignment_unit
+      exclusion_rule: locked_exclusion_rule
+      falsification:
+        adverse_pattern: "The confidence interval excludes the smallest effect of interest in the opposite direction."
+        gate_ids: [G-001]
+  sample_plan:
+    target_n: 1000
+    effect_basis: smallest_effect_of_interest
+    alpha: 0.05
+    power: 0.8
+    stopping_rule: fixed_n
+  exploratory_analyses: []
+  unresolved_required_fields: []

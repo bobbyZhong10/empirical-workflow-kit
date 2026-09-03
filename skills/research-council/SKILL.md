@@ -1,0 +1,184 @@
+---
+name: research-council
+description: Five independent critic subagents in parallel on an idea, plan, design, R&R strategy, grant, or SKILL.md, then a synthesis pass that ranks findings by how much of the argument rests on them, never by vote count. TRIGGER on "council", "spawn critics", "parallel critique", "kitchen cabinet", "panel review", "stress-test this", "poke holes in this", "what would five experts say". A complete manuscript goes to manuscript-review.
+---
+
+# council
+
+Adapted from `ericluo04/claude-academic-workflow` at commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
+
+Five independent critics, one synthesizer, no majority voting. Single round. Adapted from Chris
+Blattman's [claudeblattman](https://github.com/chrisblattman/claudeblattman), including the rule
+that the synthesizer ranks by how much of the argument rests on a finding and never by how many critics raised it.
+
+## When to use
+
+- Stuck between two framings of a paper, R&R, or grant, and you want adversarial pressure on both.
+- A plan, design, or skill draft is almost right and needs failure-mode pressure before it ships.
+- The target is heterogeneous (idea plus design plus venue choice, or a strategy memo) so a
+  manuscript-shaped review does not fit.
+
+Not for a complete manuscript you want line-edited and refereed against a journal bar: that is
+`manuscript-review`. Not for numeric or reproducibility audits. This skill produces a checklist and
+never edits the target.
+
+## Inputs
+
+| Argument | Default | Meaning |
+|---|---|---|
+| target | required | file path, or an inline paragraph describing the idea, plan, or decision |
+| `--chef-skill` | off | swap in the skill-design roster |
+| `--critics=a,b,c` | default roster | explicit roster; unknown names become free-form role prompts |
+| `--n=K` | 5 | number of critics, hard cap 5 |
+
+A file target may be `.tex`, `.md`, `.qmd`, `.txt`, `.pdf`, `.R`, `.py`, or a `SKILL.md`. Read it
+once in the main thread before dispatching, and pass the contents inline to the critics so five
+subagents do not each re-read it. This setup assumes the Read tool cannot open a `.pdf` (no
+poppler; adjust to your machine), so extract
+it with `$EWF_PDF_HELPER text <file.pdf>` and pass that text inline. Do not call
+`pdftotext`.
+
+If the user asks for more than five critics, refuse: "Hard cap is 5. Pick a tighter panel."
+
+Parallel workers are an execution option, not part of the evidence contract. If the runtime or user
+policy does not authorize subagents, run the same lenses sequentially in isolated review records,
+then perform synthesis only after all records exist. Preserve lens independence and never turn the
+sequence into a majority vote.
+
+## Default roster (quantitative marketing)
+
+Spawned as `general-purpose` subagents with inline role-string prefixes. No persona files.
+
+1. Skeptic. "Challenge the core claim. What would have to be true for this to be wrong? Where is
+   the key assumption the author has not stress-tested? Name the specific assumption in
+   this target, not the genre-typical one."
+2. Pre-mortem. "It is twelve months from now and this paper, plan, or grant has failed. What is
+   the most likely failure mode? Walk back from the failure and name the decision point today at
+   which it could have been avoided."
+3. Methodologist. "Challenge identification, measurement, and design. Quant-marketing tuned: DiD,
+   IV, RD, RCT, discrete choice experiment, eye-tracking, vignette, field experiment, scraped
+   panel, and embedding methods. Are the exclusion restrictions defensible? Is the unit of analysis
+   consistent with the unit of treatment? Is the clustering level defensible? For ML or GenAI
+   components, is train/test/holdout discipline intact, and does anything leak?"
+4. Academic editor. "Venue fit, narrative tightness, contribution framing. Default targets
+   Marketing Science, JMR, JCR, Management Science; recalibrate if the user signals
+   general-science (PNAS, Nature Human Behaviour) or economics. Does the contribution fit that
+   audience? Is the framing tight enough for a non-specialist editor? What gets cut, what gets
+   expanded?"
+5. Harsh referee. "You are the most likely Reviewer 2. Produce the rejection arguments a sharp
+   referee at the target venue would write. Do not be balanced. Name the specific objection
+   (overclaiming, identification, sample, mechanism, novelty, scope) and write the sentence you
+   would put in the report."
+
+Each critic ends with `VERDICT: APPROVE | REVISE | REJECT` plus a one-line rationale.
+
+## `--chef-skill` roster (skill and tool design)
+
+For a `SKILL.md` the user wants stress-tested before installing.
+
+1. Skill engineer. "Will this work, will it last, does the abstraction earn its keep? Invocation
+   discoverability (do the trigger phrases match how this user actually talks?), prompt-budget
+   discipline, failure recovery, and duplicated coverage against skills already installed."
+2. Trigger-overlap critic. "Inspect the configured runtime skill roots and read the frontmatter
+   descriptions of every installed skill, plus the `hpc:*` plugin skills and the built-in slash
+   commands. Where would the user say one phrase and fire the wrong skill? Name the collision and
+   the disambiguating phrase that fixes it."
+3. Edge-case critic. "What breaks this skill? Empty input, file not found, ambiguous target, a
+   PDF with no text layer, an MCP that is not authenticated, a path containing spaces (Overleaf
+   project directories all have them), a Dropbox conflicted copy shadowing the real file, a
+   project the skill was not tuned for. List the top five and what the skill should do in each."
+4. Tooling fit. "Compare every named command, connector, browser, and helper with
+   `runtime-profile.yaml` and the live tool inventory. Check paths, authentication assumptions,
+   serialization limits, operating-system assumptions, dependency availability, and fallbacks.
+   Flag any undeclared tool and any place the skill ignores a declared capability."
+5. Cold-start tester. "You are this user three weeks from now, having forgotten the skill exists.
+   Read only the frontmatter description. Will you know when to invoke it? Does it tell you what
+   to type? Are the failure modes intelligible? If not, name the exact missing phrase."
+
+Each ends with `VERDICT: SHIP | REVISE | REJECT` plus a one-line rationale.
+
+## Workflow
+
+Phase 0, prep. Parse the target and flags. With `--chef-skill`, lock the roster and skip
+target-type inference. Read a file target once here; use inline text as-is. Resolve the roster,
+truncating to `--n`. Truncation keeps the first K critics in list order, so `--n=3` on the
+default roster drops the academic editor and the harsh referee. Create a scratch directory `$EWF_CACHE_DIR/research-council_<YYYYMMDD>_<run_id>/`
+for raw critic output.
+
+Phase 1, parallel dispatch. This is the key step. Send ONE message containing N subagent
+calls, one per critic, so they run concurrently. Never serialize them. Each call uses
+`subagent_type: general-purpose`, a three-to-five word description, and a prompt made of the
+critic's role string, the target content, and: "Produce raw critique in this role's voice. Be
+specific to this target, not to the genre. Quote the target where you object to it. End with
+VERDICT plus a one-line rationale. Write your output to
+`$EWF_CACHE_DIR/research-council_<YYYYMMDD>_<run_id>/critic_<role>.md` and also return it as your final
+message."
+
+Do not synthesize inline. Do not summarize across critics in the main thread. Collect.
+
+Phase 2, synthesis, a separate call after all critics return. One more `general-purpose` subagent
+gets the raw critic outputs, the original target, the report shape below, and this instruction
+spelled out verbatim:
+
+> You are not summarizing votes. A single critic raising a key concern outweighs four
+> critics who did not notice it. Decide which concerns are key, meaning they would kill
+> the paper, plan, or skill if true, and put those first. A minority concern that is key
+> dominates. A majority concern that is cosmetic goes to the bottom.
+
+Phase 3, emit. Print the synthesis to the conversation with the raw critic outputs in a
+`<details>` block underneath.
+
+## Why the non-majority rule matters
+
+Multi-critic systems drift toward majority voting because counting is the easy aggregation, and
+that defeats the point of running specialized lenses. If the methodologist names an identification
+problem nobody else noticed, it goes at the top, not at the bottom for lack of seconds. The
+synthesizer reasons about which concerns have the most resting on them, never frequency. Re-read its output before emitting:
+if it ranked by how many critics agreed, re-spawn it with a sharper instruction.
+
+## Report shape
+
+```markdown
+# Council review: <target>
+
+Date: YYYY-MM-DD | Mode: <default | chef-skill> | Critics: <N> (<roster>)
+Synthesizer verdict: <SHIP | REVISE-MINOR | REVISE-MAJOR | REJECT-AND-REFRAME>
+
+## Key concerns (action required)
+1. [lens] <concern>. Why it matters, one sentence. Recommended fix.
+
+## Second-tier concerns
+- [lens] <concern>. Recommended fix.
+
+## Polish (optional)
+
+## Per-critic verdicts
+| Critic | Verdict | Rationale |
+
+## Contradictions between critics
+<If two critics disagree, for example the editor wants the contribution framing expanded and the
+referee calls the same passage overclaiming, surface it and recommend a reconciliation. Never
+silently average them.>
+
+<details><summary>Raw critic outputs</summary>
+<each critic's raw output, headed by lens>
+</details>
+```
+
+## Failure modes
+
+Target unreadable (path wrong, PDF has no text layer, `.tex` with unresolved `\input`s): surface
+the error and ask for a clean version. Do not dispatch critics on empty content.
+
+A critic returns empty or off-topic: mark it DEGRADED in the synthesis and continue. Re-spawn it
+once at most; never block the report on one critic.
+
+Every critic approves: report it honestly with a SHIP verdict. Do not manufacture concerns to
+justify the run.
+
+`--chef-skill` on a non-skill target: say so and ask whether to switch to the default roster.
+
+## Out of scope
+
+Round-two critic calls, because multi-round debate drifts toward conformity. Auto-applying fixes.
+Model-invented personas: the roster is default, `--chef-skill`, or explicit `--critics=`.

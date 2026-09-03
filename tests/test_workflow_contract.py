@@ -425,7 +425,18 @@ def test_example_config_values():
         "research_domain": "platform_and_firm_panel_causal",
         "observation_unit": "firm_quarter",
         "analysis_languages": {"etl": "python", "estimation": "r"},
-        "allowed_designs": ["fixed_effects", "did", "event_study", "ddd", "iv", "rdd"],
+        "allowed_designs": [
+            "fixed_effects",
+            "selection_on_observables",
+            "did",
+            "event_study",
+            "ddd",
+            "iv",
+            "rdd",
+            "synthetic_control",
+            "field_experiment",
+            "conjoint",
+        ],
         "autonomy_mode": "complete_with_red_lines",
         "current_stage": "stage_1_data_infrastructure",
         "primary_data_format": "parquet",
@@ -664,3 +675,266 @@ def test_readme_cross_runtime_quickstart():
         "tests/smoke/run_smoke.sh",
     ):
         assert phrase in body
+
+
+def test_absorbed_global_instructions_are_portably_routed():
+    required = (
+        "skills/empirical-workflow/references/research-writing.md",
+        "skills/empirical-workflow/references/execution-discipline.md",
+        "skills/empirical-workflow/references/method-governance.md",
+        "skills/empirical-workflow/references/code-review.md",
+        "skills/empirical-workflow/templates/handoff-template.md",
+        "runtime-profile.example.yaml",
+        "THIRD_PARTY_NOTICES.md",
+    )
+    for path in required:
+        assert (ROOT / path).is_file(), path
+
+    protocol = read("RESEARCH_PROTOCOL.md")
+    router = read("skills/empirical-workflow/SKILL.md")
+    for phrase in (
+        "Research judgment and verification",
+        "Research writing and source use",
+        "Publication, confidentiality, and release",
+    ):
+        assert phrase in protocol
+    for path in required[:4]:
+        assert path.removeprefix("skills/empirical-workflow/") in router
+
+    profile = yaml.safe_load(read("runtime-profile.example.yaml"))
+    assert profile["runtime_profile"]["scholarly_sources"]["cache_dir"]
+    assert profile["runtime_profile"]["presentation"]["assets_path"]
+    assert profile["runtime_profile"]["browser"]["public_profile"]
+    for name in (
+        "EWF_CACHE_DIR",
+        "EWF_STATE_DIR",
+        "EWF_PDF_HELPER",
+        "EWF_PRESENTATION_ASSETS",
+        "EWF_COURSE_ROOT",
+    ):
+        assert name in profile["runtime_profile"]["environment_bindings"]
+
+    for adapter in ("CLAUDE.md", "AGENTS.md"):
+        body = read(adapter)
+        assert len(body.splitlines()) < 140
+        assert "runtime-profile" in body
+
+
+def test_claim_governance_and_preregistration_are_routed():
+    required = (
+        "skills/empirical-workflow/templates/governance-registry-template.yaml",
+        "skills/empirical-workflow/templates/preregistration-template.yaml",
+        "skills/empirical-workflow/scripts/validate_governance.py",
+        "skills/preregister/SKILL.md",
+    )
+    for path in required:
+        assert (ROOT / path).is_file(), path
+
+    stage3 = read("skills/empirical-workflow/stages/stage3-theory-hypotheses.md")
+    stage5 = read("skills/empirical-workflow/stages/stage5-measurement.md")
+    prereg = read("skills/preregister/SKILL.md")
+    assert "preregistration-template.yaml" in stage3
+    assert "acceptance-gate" in stage5.lower()
+    for phrase in (
+        "focal outcome",
+        "focal analysis",
+        "refuse",
+        "falsification",
+        "retrospective",
+    ):
+        assert phrase in prereg.lower()
+
+    registry = yaml.safe_load(read(required[0]))
+    prereg_template = yaml.safe_load(read(required[1]))
+    assert registry["registry_version"]
+    assert prereg_template["preregistration"]["outcome_seen"] is False
+    assert prereg_template["preregistration"]["focal_analysis_run"] is False
+
+
+def test_research_source_skills_are_routed_and_honest_about_coverage():
+    required = (
+        "skills/research-sources/SKILL.md",
+        "skills/research-sources/REFERENCE.md",
+        "skills/research-sources/scripts/paper.py",
+        "skills/literature-review/SKILL.md",
+        "skills/bibliography-audit/SKILL.md",
+    )
+    for path in required:
+        assert (ROOT / path).is_file(), path
+
+    source_skill = read(required[0]).lower()
+    literature_skill = read(required[3]).lower()
+    bibliography_skill = read(required[4]).lower()
+    stage2 = read("skills/empirical-workflow/stages/stage2-lit-map.md")
+    stage7 = read("skills/empirical-workflow/stages/stage7-writing.md")
+
+    for phrase in ("version_read", "source_rung", "abstract only", "coverage"):
+        assert phrase in source_skill
+    assert "source coverage" in literature_skill
+    assert "never overwrites" in bibliography_skill
+    assert "metadata" in bibliography_skill and "claim support" in bibliography_skill
+    assert "literature-review" in stage2 and "bibliography-audit" in stage2
+    assert "bibliography-audit" in stage7
+
+    portable_files = required + (
+        "skills/empirical-workflow/stages/stage2-lit-map.md",
+        "skills/empirical-workflow/stages/stage7-writing.md",
+    )
+    for path in portable_files:
+        assert "~/.claude" not in read(path)
+
+
+def test_method_specific_causal_packs_are_selectively_routed():
+    methods_root = ROOT / "skills/empirical-workflow/methods"
+    expected = (
+        "causal-design",
+        "fixed-effects",
+        "selection-on-observables",
+        "did",
+        "iv",
+        "rdd",
+        "synthetic-control",
+        "field-experiment",
+        "conjoint",
+    )
+    for method in expected:
+        pack = methods_root / method
+        for name in ("prompt.md", "canon.md", "details.md", "template.R"):
+            assert (pack / name).is_file(), f"{method} lacks {name}"
+        prompt = (pack / "prompt.md").read_text(encoding="utf-8")
+        canon = (pack / "canon.md").read_text(encoding="utf-8")
+        assert "8958cc246e65cdf7c36604f397a1c1719b7e2c14" in prompt
+        for phrase in (
+            "Current as of",
+            "Verified through",
+            "Role:",
+            "Settles:",
+            "Binds when:",
+            "Implement:",
+            "Scope limits:",
+            "Named disagreements:",
+            "Excluded:",
+        ):
+            assert phrase in canon, f"{method} canon lacks {phrase}"
+
+    config = yaml.safe_load(read("research.example.yaml"))
+    for design in (
+        "selection_on_observables",
+        "synthetic_control",
+        "field_experiment",
+        "conjoint",
+    ):
+        assert design in config["allowed_designs"]
+
+    stage = read("skills/empirical-workflow/stages/stage6a-reduced-form.md")
+    tree = read("skills/empirical-workflow/references/identification-decision-tree.md")
+    assert "methods/<selected-method>/prompt.md" in stage
+    assert "Load only the selected method pack" in stage
+    for method in expected:
+        assert f"methods/{method}/prompt.md" in tree
+
+
+def test_review_response_and_replication_release_are_governed():
+    skills = (
+        "skills/research-council/SKILL.md",
+        "skills/manuscript-review/SKILL.md",
+        "skills/referee-response/SKILL.md",
+        "skills/replication-release/SKILL.md",
+    )
+    templates = (
+        "skills/empirical-workflow/templates/review-finding-template.yaml",
+        "skills/empirical-workflow/templates/response-matrix-template.yaml",
+        "skills/empirical-workflow/templates/replication-checklist-template.md",
+    )
+    scanners = tuple(
+        f"skills/replication-release/scripts/{name}.py"
+        for name in ("scan_headers", "scan_values", "scan_qsf", "sample_open_text")
+    )
+    for path in skills + templates + scanners:
+        assert (ROOT / path).is_file(), path
+
+    council = read(skills[0]).lower()
+    response = read(skills[2]).lower()
+    release = read(skills[3]).lower()
+    stage7 = read("skills/empirical-workflow/stages/stage7-writing.md")
+    assert "never by vote count" in council
+    assert "verify every pin" in response
+    assert "confidential" in release
+    assert "policy" in release and "current" in release
+    assert "staging" in release and "never" in release and "source" in release
+    for name in ("research-council", "manuscript-review", "referee-response", "replication-release"):
+        assert name in stage7
+
+    finding = yaml.safe_load(read(templates[0]))
+    response_matrix = yaml.safe_load(read(templates[1]))
+    assert finding["finding"]["severity"]
+    assert response_matrix["comments"][0]["pin_verification"]["verified"] is False
+
+
+def test_latex_and_presentation_production_are_portable():
+    skill_roots = (
+        "skills/latex-production",
+        "skills/research-talk",
+        "skills/teaching-lecture",
+        "skills/slide-review",
+        "skills/course-site",
+    )
+    for root in skill_roots:
+        body = read(f"{root}/SKILL.md")
+        assert "8958cc246e65cdf7c36604f397a1c1719b7e2c14" in body
+        assert "runtime-profile.yaml" in body
+    required = (
+        "agents/tikz-reviewer.md",
+        "presentation-tooling/README.md",
+        "presentation-tooling/_extensions/starter/_extension.yml",
+        "presentation-tooling/_extensions/starter/stage-slide.lua",
+        "presentation-tooling/_extensions/starter/starter-theme.scss",
+        "presentation-tooling/deck-check.mjs",
+        "presentation-tooling/stage-check.mjs",
+        "presentation-tooling/check-offline.py",
+        "skills/slide-review/scripts/probe.js",
+        "skills/slide-review/scripts/figure-ground.js",
+    )
+    for path in required:
+        assert (ROOT / path).is_file(), path
+
+    text_suffixes = {".md", ".py", ".js", ".mjs", ".lua", ".qmd", ".scss", ".yml"}
+    roots = [ROOT / path for path in skill_roots] + [ROOT / "presentation-tooling", ROOT / "agents"]
+    for root in roots:
+        for path in root.rglob("*"):
+            if path.is_file() and path.suffix in text_suffixes:
+                body = path.read_text(encoding="utf-8", errors="replace")
+                assert "~/.claude" not in body, path
+                assert "/Users/" not in body, path
+
+
+def test_documentation_maps_full_absorbed_workflow():
+    bodies = [read("README.md"), read("docs/v2-migration-guide.md")]
+    combined = "\n".join(bodies)
+    for name in (
+        "research-sources",
+        "literature-review",
+        "bibliography-audit",
+        "preregister",
+        "research-council",
+        "manuscript-review",
+        "referee-response",
+        "replication-release",
+        "latex-production",
+        "research-talk",
+        "teaching-lecture",
+        "slide-review",
+        "course-site",
+    ):
+        assert name in combined
+    for phrase in (
+        "runtime-profile.yaml",
+        "THIRD_PARTY_NOTICES.md",
+        "governance registry",
+        "method pack",
+        "policy verification",
+        "confidentiality",
+    ):
+        assert phrase in combined
+    assert "research-sources → literature-review → preregister" in combined
+    assert "manuscript-review → referee-response → replication-release" in combined
