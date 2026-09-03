@@ -87,6 +87,10 @@ location; the same capability is represented through `runtime-profile.yaml` and 
 discovery. Generated example sites are excluded because they add no research rule and would create
 a second copy of the vendored presentation assets.
 
+Because Claude Code gives a same-named personal skill priority over a project skill, the parity
+tool also audits optional user-level views. It reports a regular copy as a duplicate implementation
+and the installer refuses to replace an unowned collision.
+
 These changes preserve the mature prompts and method content while removing Claude-only storage,
 personal paths, duplicate implementations, and generated demonstration output from the portable
 contract.

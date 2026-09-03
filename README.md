@@ -177,6 +177,14 @@ the installer again with `--replace-managed` after moving the checkout. The
 installer changes only names listed in `workflow.manifest.yaml` and refuses to
 replace another package that happens to use the same skill name.
 
+Claude Code gives a personal skill priority over a project skill with the same
+name. A pre-existing regular directory under `~/.claude/skills` can therefore
+hide this repository's project view. Run the user-level parity check when a
+runtime appears to use old instructions. If the installer reports `UNMANAGED`,
+archive or rename that third-party skill only after confirming its ownership;
+the installer will not make that decision for you. See the
+[Claude Code skill-scope documentation](https://code.claude.com/docs/en/slash-commands#where-skills-live).
+
 Do not install by copying `skills/*` separately into `~/.claude/skills` and
 `~/.agents/skills`. Independent copies are the split-brain condition this
 repository prevents.
