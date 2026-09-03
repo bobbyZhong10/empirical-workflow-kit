@@ -1,2 +1,5 @@
 pytest
 PyYAML
+httpx
+lxml
+pypdf

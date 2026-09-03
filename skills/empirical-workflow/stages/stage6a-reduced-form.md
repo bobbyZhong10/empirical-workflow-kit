@@ -14,6 +14,9 @@ Read `references/identification-decision-tree.md` before choosing an estimator
 and `references/robustness-checklists.md` before planning diagnostics. Read
 `references/data-contract.md` and `references/r-standards.md` before consuming
 analysis data or running R validation, construction, diagnostics, or estimation.
+After the design is recorded and confirmed to be in `research.yaml:allowed_designs`, read
+`methods/<selected-method>/prompt.md`, then that pack's `canon.md`, `details.md`, and `template.R`
+as needed. Load only the selected method pack; do not combine defaults from several packs.
 
 ## Automatic actions
 
@@ -23,6 +26,8 @@ analysis data or running R validation, construction, diagnostics, or estimation.
   entry/exit and selection risks, assignment-consistent aggregation, source of
   variation, one-sentence assumption, estimator, comparison group, clustering,
   diagnostics, and backtracking trigger.
+- Record the selected method-pack path, its canon date, the binding canon authority, and any
+  justified departure from the pack's default before the first formal batch.
 - Execute only the locked baseline and pre-committed diagnostic plan. For
   staggered adoption, use a heterogeneity-robust estimator as the main result;
   label TWFE reference-only and run the mandatory negative-weight diagnostic.

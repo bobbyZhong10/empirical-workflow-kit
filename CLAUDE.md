@@ -12,6 +12,11 @@ router, and read only the stage file needed for the current stage. Claude keeps
 its reasoning in the conversation; durable decisions, evidence, and status
 belong in the repository templates referenced by the protocol.
 
+Resolve optional tools and machine-specific paths from `runtime-profile.yaml`,
+or from `runtime-profile.example.yaml` until a project profile exists. Durable
+writing, execution, method-choice, and code-review rules live in the focused
+references routed by the skill; do not duplicate them in this adapter.
+
 ## Cross-runtime handoff
 
 1. Finish the current atomic task and update its durable artifacts.

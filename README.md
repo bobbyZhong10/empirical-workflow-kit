@@ -15,8 +15,15 @@ AGENTS.md                                Codex adapter
 skills/empirical-workflow/
 ├── SKILL.md                             stage router, checkpoints, backtracking
 ├── stages/                              one file per stage, loaded on demand
+├── methods/                             focused causal method packs
 ├── references/                          decision trees, checklists, standards
-└── templates/status-template.md         the status log
+├── scripts/validate_governance.py       publication-eligibility validator
+└── templates/                           status, evidence, governance, review records
+skills/*/SKILL.md                        focused research operations
+runtime-profile.example.yaml            portable local-tool configuration
+presentation-tooling/                    shared Quarto theme and deterministic gates
+agents/tikz-reviewer.md                  rendered-figure review contract
+THIRD_PARTY_NOTICES.md                   imported-source attribution and licenses
 ```
 
 ## Architecture
@@ -36,6 +43,33 @@ The protocol contains the research rules. The runtime adapters only route
 Claude Code or Codex into those rules. Durable artifacts—not a chat
 conversation—are the project source of truth.
 
+The stage router loads only the active stage and selected method pack. Focused companion skills
+handle source retrieval, literature review, bibliography audits, preregistration, adversarial
+review, referee responses, replication release, LaTeX, and presentation production. Their outputs
+enter the same evidence, decision, and governance registry rather than creating a parallel state.
+
+## Capability map
+
+| Research operation | Focused skill or location |
+|---|---|
+| Known paper, DOI, or author | `research-sources` |
+| Topic-level synthesis | `literature-review` |
+| Existing BibTeX verification | `bibliography-audit` |
+| Prospective commitment | `preregister` |
+| Causal design and estimation | `empirical-workflow/methods/<selected-method>/` |
+| Independent adversarial panel | `research-council` |
+| Full draft review | `manuscript-review` |
+| Decision-letter response | `referee-response` |
+| Staged reproducibility archive | `replication-release` |
+| LaTeX diagnostics and figures | `latex-production` |
+| Research and teaching decks | `research-talk`, `teaching-lecture` |
+| Rendered slide audit | `slide-review` |
+| Course website | `course-site` |
+
+A common project sequence is `research-sources → literature-review → preregister → method pack`.
+Near release, use `manuscript-review → referee-response → replication-release`. These are routing
+defaults, not permission to skip stage exits or mandatory pauses.
+
 ## Install
 
 At the project level, copy the portable protocol, one or both adapters,
@@ -49,16 +83,18 @@ cp RESEARCH_PROTOCOL.md /path/to/project/RESEARCH_PROTOCOL.md
 cp research.example.yaml /path/to/project/research.yaml
 cp CLAUDE.md /path/to/project/CLAUDE.md  # Claude Code adapter
 cp AGENTS.md /path/to/project/AGENTS.md  # Codex adapter
+cp runtime-profile.example.yaml /path/to/project/runtime-profile.yaml
 mkdir -p /path/to/project/.claude/skills /path/to/project/.agents/skills
-cp -r skills/empirical-workflow /path/to/project/.claude/skills/
-cp -r skills/empirical-workflow /path/to/project/.agents/skills/
+cp -r skills/* /path/to/project/.claude/skills/
+cp -r skills/* /path/to/project/.agents/skills/
+cp -r presentation-tooling agents /path/to/project/
 ```
 
 User level, available in every project:
 
 ```
-cp -r skills/empirical-workflow ~/.claude/skills/
-cp -r skills/empirical-workflow ~/.agents/skills/
+cp -r skills/* ~/.claude/skills/
+cp -r skills/* ~/.agents/skills/
 ```
 
 `CLAUDE.md` is loaded on every turn, so it is kept short deliberately. The stage
@@ -73,6 +109,10 @@ above, then start Codex from the project root. `AGENTS.md` instructs Codex to
 load the `empirical-workflow` skill; the discovered skill's router selects the
 current stage. Claude Code uses the corresponding `.claude/skills/` copy.
 
+Fill `runtime-profile.yaml` with local cache, PDF helper, browser, manuscript-root, and
+presentation-asset paths. Do not put those paths into `CLAUDE.md`, `AGENTS.md`, method prompts, or
+the protocol. Preserve `THIRD_PARTY_NOTICES.md` when redistributing adapted prompts or tooling.
+
 ## Bootstrap and handoff
 
 1. Fill out `research.yaml`, including the locked `analysis_input_contract`
@@ -85,6 +125,12 @@ current stage. Claude Code uses the corresponding `.claude/skills/` copy.
 4. Before a new runtime continues the work, it reads `RESEARCH_PROTOCOL.md`,
    `research.yaml`, `_status.md`, the most relevant/current evidence card, and
    the tail of `decision-log.md`, in that order.
+
+The governance registry is the machine-readable release view of pipelines, claims, figures,
+acceptance gates, applicability, and reconciliation. Validate it before circulation. For a
+replication archive, packaging follows a successful reproduction attempt; complete current
+official policy verification and a confidentiality/redistribution check before writing the final
+archive.
 
 See [the v2 migration guide](docs/v2-migration-guide.md) for moving an existing
 project and converting a v1 `_status.md` record.

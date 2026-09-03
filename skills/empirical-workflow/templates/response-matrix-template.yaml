@@ -1,0 +1,19 @@
+response_round: R1
+manuscript_revision: "[FILL IN: immutable commit or archive id]"
+decision_letter_source: "[FILL IN]"
+comments:
+  - id: R1.1
+    role: Reviewer 1
+    verbatim_comment: "[FILL IN]"
+    strategy: needs_user_input
+    response_status: draft
+    claimed_change: null
+    pin_verification:
+      verified: false
+      manuscript_path: null
+      section_or_anchor: null
+      line: null
+      verified_against_revision: null
+      verified_at: null
+    evidence_card: null
+    unresolved_todo: "[FILL IN]"

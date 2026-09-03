@@ -1,0 +1,61 @@
+registry_version: "1.0"
+project_name: example_platform_adoption
+pipelines:
+  - pipeline_id: p01
+    status: authoritative
+    first_formal_batch_at: "2026-08-15T00:00:00Z"
+    producing_scripts: [code/py/04_export.py, code/r/03_main.R]
+    output_roots: [data/analysis, results]
+claims:
+  - claim_key: H1_effect
+    claim_revision_id: H1_effect.r1
+    availability: current
+    assessment: supported
+    pipeline_id: p01
+    supersedes: null
+    revision_reason: initial
+    statement: "The locked H1 statement goes here."
+    supporting_evidence: [E-001]
+    adjacent_disclosures: []
+reported_figures:
+  - figure_id: F-001
+    pipeline_id: p01
+    source_artifact: results/estimates/main.json
+    source_locator: H1.main
+    value: 0.0
+    derived_from: []
+    transform: identity
+gate_definitions:
+  - gate_id: G-001
+    applies_to: [{kind: claim_key, id: H1_effect}]
+    metric: precommitted_metric
+    allowed_band: documented_range
+    failure_policy: STOP
+    declared_at: "2026-08-14T00:00:00Z"
+    declared_by: decision_authority
+    frozen: true
+    compensation:
+      action: "Document and resolve the gate failure."
+      required_artifact: evidence/gates/G-001.md
+gate_evaluations:
+  - gate_id: G-001
+    pipeline_id: p01
+    evaluated_against: {kind: claim_key, id: H1_effect}
+    status: passed
+    coverage:
+      declared_scope: full_locked_sample
+      evaluated_scope: full_locked_sample
+      complete: true
+    evidence_card: evidence/gates/G-001.md
+applicability_records:
+  - requirement_id: stage1.merge_audit
+    status: completed
+outputs:
+  - output_id: paper
+    path: paper/main.tex
+    pipeline_ids: [p01]
+    claim_revisions: [H1_effect.r1]
+    reported_figures: [F-001]
+publication:
+  output_id: paper
+revalidations: []
