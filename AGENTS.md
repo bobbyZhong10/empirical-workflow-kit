@@ -2,7 +2,7 @@
 
 <!-- shared-contract: generated, identical in CLAUDE.md and AGENTS.md -->
 
-**Workflow version: 2.4.** Every project records `kit_version` in its
+**Workflow version: 2.5.** Every project records `kit_version` in its
 registry, and `tools/validate_registry.py` blocks at Checkpoint C when the two
 disagree. Check with `tools/validate_registry --version`.
 
@@ -11,7 +11,9 @@ portable research contract. Before acting, read it and the active
 `research.yaml` (or [research.example.yaml](research.example.yaml) until a
 project configuration exists).
 
-Speak with the user in Chinese. Write all repository artifacts in English.
+Communicate with the user in the primary language used in their first
+substantive request. Keep that language unless the user explicitly asks to
+switch. Write all repository artifacts in English.
 
 ## What makes the two runtimes the same workflow
 

@@ -53,8 +53,10 @@ an untrusted source.
 - Treat Overleaf, Zotero, remote compute, and notifications as optional
   capabilities. Their absence degrades that operation; it does not authorize a
   hard-coded personal path.
-- Keep repository artifacts in English. Conversation language comes from
-  `research.yaml` and does not change the artifact contract.
+- Keep repository artifacts in English. At conversation start, resolve the
+  user's primary language from the first substantive request and record or
+  apply that policy through `research.yaml`. Switch only on an explicit user
+  request; conversation language never changes the artifact contract.
 - Run `doctor --strict` in a machine image or CI job that promises every
   optional capability.
 

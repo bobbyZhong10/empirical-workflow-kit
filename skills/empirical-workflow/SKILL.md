@@ -9,8 +9,9 @@ This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
 
 This skill runs empirical research as a chain of documented contracts. The
-repository, not the conversation, is the source of truth. Write user-facing
-conversation in Chinese and durable repository artifacts in English.
+repository, not the conversation, is the source of truth. Communicate in the
+primary language used in the user's first substantive request, unless the user
+explicitly asks to switch, and write durable repository artifacts in English.
 
 ## Router
 

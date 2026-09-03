@@ -325,7 +325,8 @@ certificate, and local possession of data is not redistribution authority.
 
 ## Language and portability rules
 
-- Speak with the user in the language selected by the project configuration.
+- Communicate in the primary language used in the user's first substantive
+  request, unless the user explicitly asks to switch.
 - Keep repository artifacts in English.
 - Keep raw data read-only and write derived data separately.
 - Keep secrets outside the repository.

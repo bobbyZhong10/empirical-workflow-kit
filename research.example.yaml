@@ -10,7 +10,7 @@ allowed_designs: [fixed_effects, selection_on_observables, did, event_study, ddd
 autonomy_mode: complete_with_red_lines
 current_stage: stage_1_data_infrastructure
 primary_data_format: parquet
-conversation_language: Chinese
+conversation_language: initial_user_primary_language
 artifact_language: English
 analysis_input_contract:
   data_version: firm_quarter_v2026_08_15

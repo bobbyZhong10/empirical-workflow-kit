@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Talk to users in Chinese; write repository artifacts and code comments in English.
+- Communicate in the user's initial primary language; write repository artifacts and code comments in English.
 - Target firm, platform, and market panel causal research. MS, ISR, and MISQ are targets; UTD 24, FT50, top economics journals, JAIS, and IJRM are reference pools.
 - Keep CLAUDE.md and AGENTS.md thin. Put portable research rules only in RESEARCH_PROTOCOL.md.
 - Use numbered, direct Python and R research scripts. Do not introduce research-code packages, classes, or deep abstraction.
@@ -110,7 +110,7 @@ allowed_designs: [fixed_effects, did, event_study, ddd, iv, rdd]
 autonomy_mode: complete_with_red_lines
 current_stage: stage_1_data_infrastructure
 primary_data_format: parquet
-conversation_language: Chinese
+conversation_language: initial_user_primary_language
 artifact_language: English
 ~~~
 
@@ -173,7 +173,7 @@ Expected: FAIL because AGENTS.md and the records are absent.
 
 - [ ] **Step 3: Write the adapters**
 
-Rewrite CLAUDE.md and create AGENTS.md. Both state Chinese conversation, English artifacts, mandatory reading of RESEARCH_PROTOCOL.md and research.yaml, and the cross-runtime handoff order. CLAUDE.md keeps only Claude-specific routing. AGENTS.md keeps only Codex-specific constraints. Neither repeats checkpoint or estimator details.
+Rewrite CLAUDE.md and create AGENTS.md. Both state initial-user-language conversation, English artifacts, mandatory reading of RESEARCH_PROTOCOL.md and research.yaml, and the cross-runtime handoff order. CLAUDE.md keeps only Claude-specific routing. AGENTS.md keeps only Codex-specific constraints. Neither repeats checkpoint or estimator details.
 
 - [ ] **Step 4: Create record templates**
 
@@ -490,4 +490,3 @@ Add a table in docs/v2-migration-guide.md mapping every heading in the approved 
 Run: test "$(git rev-parse --show-toplevel)" = "$PWD"
 
 Expected currently: FAIL. If safe after repository repair, commit with message: docs: publish empirical workflow v2.
-

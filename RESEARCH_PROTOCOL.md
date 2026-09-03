@@ -95,6 +95,14 @@ the count.
 
 ## Language
 
+Communicate with the user in the primary language they use at the start of the
+conversation. Infer it from the first substantive request rather than a greeting
+or quoted material, keep using it when later messages mix languages, and switch
+only when the user explicitly asks. If the opening request has no clear primary
+language, use the language in which the user states the task. Write all durable
+repository artifacts, including prose, metadata, code comments, and handoffs,
+in English.
+
 **R is the default language for a project's empirical work**, end to end:
 panel construction, estimation, inference, tables, and figures. A project that
 uses something else is making a choice, and the choice has to be recorded and

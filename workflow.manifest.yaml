@@ -9,7 +9,7 @@
 # tests/test_runtime_views.py and scripts/verify_runtime_parity.py both check.
 
 schema_version: 1
-workflow_version: "2.4"
+workflow_version: "2.5"
 
 canonical_source:
   protocol: RESEARCH_PROTOCOL.md

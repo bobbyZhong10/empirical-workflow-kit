@@ -72,8 +72,20 @@ def test_portable_research_contract():
         "clustering level",
         "identifying strategy",
         "recorded decision before execution",
+        "primary language they use at the start of the conversation",
+        "first substantive request",
+        "switch only when the user explicitly asks",
+        "Write all durable repository artifacts",
     ):
         assert phrase in normalized_body
+
+
+def test_repository_has_an_mit_license():
+    body = read("LICENSE")
+    assert body.startswith("MIT License\n")
+    assert "Copyright (c) 2026 Bobby Zhong" in body
+    assert "Permission is hereby granted, free of charge" in body
+    assert 'THE SOFTWARE IS PROVIDED "AS IS"' in body
 
 
 def test_v21_spec_has_per_evaluation_post_hoc_and_figure_revalidation():
@@ -440,7 +452,7 @@ def test_example_config_values():
         "autonomy_mode": "complete_with_red_lines",
         "current_stage": "stage_1_data_infrastructure",
         "primary_data_format": "parquet",
-        "conversation_language": "Chinese",
+        "conversation_language": "initial_user_primary_language",
         "artifact_language": "English",
         "analysis_input_contract": {
             "data_version": "firm_quarter_v2026_08_15",
@@ -490,7 +502,7 @@ def test_canonical_validator_uses_the_bootstrapped_interpreter(tmp_path):
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    assert completed.stdout.strip() == "empirical-workflow 2.4"
+    assert completed.stdout.strip() == "empirical-workflow 2.5"
 
     canonical = "tools/validate_registry"
     for path in ("AGENTS.md", "CLAUDE.md", "RESEARCH_PROTOCOL.md", "README.md"):

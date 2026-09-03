@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- Speak with the user in Chinese and write repository artifacts in English.
+- Communicate in the user's initial primary language and write repository artifacts in English.
 - Preserve `RESEARCH_PROTOCOL.md` as the portable source of governance truth.
 - Keep `CLAUDE.md` and `AGENTS.md` under 140 lines and free of duplicated method rules.
 - Never overwrite raw data, a source bibliography, a manuscript, or a third-party source tree.

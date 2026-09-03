@@ -439,6 +439,7 @@ def test_adapters_route_both_runtimes_to_the_manifest_and_canonical_skills():
     for adapter, view in (("CLAUDE.md", ".claude/skills"), ("AGENTS.md", ".agents/skills")):
         body = (ROOT / adapter).read_text(encoding="utf-8")
         assert len(body.splitlines()) < 140, adapter
+        normalized = " ".join(body.split())
         for phrase in (
             "source of truth",
             "workflow.manifest.yaml",
@@ -446,10 +447,11 @@ def test_adapters_route_both_runtimes_to_the_manifest_and_canonical_skills():
             "skills/empirical-workflow/SKILL.md",
             "runtime-profile.yaml",
             "stale",
-            "Speak with the user in Chinese. Write all repository artifacts in English.",
+            "primary language used in their first substantive request",
+            "Write all repository artifacts in English.",
             view,
         ):
-            assert phrase in body, (adapter, phrase)
+            assert phrase in normalized, (adapter, phrase)
         assert "canonical" in body.lower()
 
 
