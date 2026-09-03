@@ -5,6 +5,9 @@ description: Compile a .tex with latexmk and report ranked errors with file:line
 
 # latex-production
 
+This file is the canonical Empirical Workflow Kit implementation. Runtime views
+defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
 Adapted from `ericluo04/claude-academic-workflow` at commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`. Read `runtime-profile.yaml` for local tool, state, PDF helper, and presentation-asset paths before running commands.
 
 Compile a `.tex`, parse the log into a ranked report with correct `file:line`

@@ -5,6 +5,9 @@ description: Draft a registry-ready preregistration or preanalysis plan for AsPr
 
 # Preregistration
 
+This file is the canonical Empirical Workflow Kit implementation. Runtime views
+defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
 Adapted from Lan E. Luo's `claude-academic-workflow` preregistration skill at
 commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`. See
 `THIRD_PARTY_NOTICES.md`.

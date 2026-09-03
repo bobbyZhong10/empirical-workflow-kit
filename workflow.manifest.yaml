@@ -1,0 +1,64 @@
+# Empirical Workflow Kit: canonical-source manifest.
+#
+# Both runtimes (Claude Code and Codex) read this file to learn which workflow
+# version they are running and where the canonical files live. Every path is
+# relative to the repository root or, for user views, to the user's home
+# directory. Never write a machine-specific absolute path here.
+#
+# `workflow_version` must equal KIT_VERSION in tools/validate_registry.py;
+# tests/test_runtime_views.py and scripts/verify_runtime_parity.py both check.
+
+schema_version: 1
+workflow_version: "2.3"
+
+canonical_source:
+  protocol: RESEARCH_PROTOCOL.md
+  skills_root: skills
+  presentation_tooling: presentation-tooling
+  agents_root: agents
+
+# Skills the kit owns. Only these names are ever created, checked, backed up,
+# or replaced by the runtime-view tooling; any other entry in a view directory
+# belongs to someone else and is left alone.
+managed_skills:
+  - bibliography-audit
+  - course-site
+  - empirical-workflow
+  - latex-production
+  - literature-review
+  - manuscript-review
+  - preregister
+  - referee-response
+  - replication-release
+  - research-council
+  - research-sources
+  - research-talk
+  - slide-review
+  - teaching-lecture
+
+managed_agents:
+  - tikz-reviewer
+
+# Project-level views: committed relative symlinks into the canonical tree.
+runtime_views:
+  claude:
+    skills: .claude/skills
+    agents: .claude/agents
+  codex:
+    skills: .agents/skills
+
+# Optional user-level views: absolute symlinks into one canonical checkout,
+# created by scripts/install_runtime_views.py --user. A regular-file copy of a
+# managed skill at user level is a stale install and fails parity.
+user_views:
+  claude:
+    skills: ~/.claude/skills
+  codex:
+    skills: ~/.agents/skills
+
+upstream:
+  repository: https://github.com/ericluo04/claude-academic-workflow
+  baseline_commit: "8958cc246e65cdf7c36604f397a1c1719b7e2c14"
+  inspected_commit: "8958cc246e65cdf7c36604f397a1c1719b7e2c14"
+  inspected_at: "2026-09-02"
+  audit: docs/upstream-absorption-audit.md

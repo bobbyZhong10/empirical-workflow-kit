@@ -5,6 +5,9 @@ description: Five independent critic subagents in parallel on an idea, plan, des
 
 # council
 
+This file is the canonical Empirical Workflow Kit implementation. Runtime views
+defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
 Adapted from `ericluo04/claude-academic-workflow` at commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
 
 Five independent critics, one synthesizer, no majority voting. Single round. Adapted from Chris

@@ -30,6 +30,14 @@ tools/validate_registry <registry> --checkpoint C   # submission
 A stage is not complete until its checkpoint returns zero blocking findings.
 Report the count, not an impression of it.
 
+The canonical `skills/` tree is the workflow source of truth; its inventory and
+runtime views are declared by `workflow.manifest.yaml`. Claude Code and Codex
+discover the same files through committed relative links under `.claude/skills`
+and `.agents/skills`. Never edit those views or maintain a runtime-specific copy. Run
+`scripts/verify_runtime_parity.py --project --all` before a handoff. If it
+reports a stale user-level install, use `scripts/install_runtime_views.py`
+rather than copying files by hand.
+
 ## Required reading, in order
 
 1. `RESEARCH_PROTOCOL.md` for the contract, the language rule, and the delivery
@@ -73,7 +81,7 @@ references routed by the skill; do not duplicate them in this adapter.
 
 ## Runtime notes
 
-Codex has no skill mechanism. Read `skills/empirical-workflow/SKILL.md` and the
-stage files as ordinary repository files, by path. Keep project state in
-repository artifacts rather than in task context, and preserve unrelated
-working-tree changes while implementing the assigned task.
+Codex discovers `.agents/skills/empirical-workflow`, which resolves to the
+canonical `skills/empirical-workflow/` tree, and routes through its stage file.
+Keep project state in repository artifacts rather than in task context, and
+preserve unrelated working-tree changes while implementing the assigned task.

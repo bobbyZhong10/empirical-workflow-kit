@@ -5,6 +5,9 @@ description: Read one known paper the user points at: a link, DOI, title, author
 
 # Research sources
 
+This file is the canonical Empirical Workflow Kit implementation. Runtime views
+defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
 Adapted from `research-sources` in `ericluo04/claude-academic-workflow` at commit
 `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
 

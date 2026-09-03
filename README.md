@@ -1,220 +1,304 @@
 # Empirical Workflow Kit
 
-A portable, staged workflow for panel-data empirical research in information
-systems economics. It supports reduced-form and structural work targeting ISR,
-MISQ, and Management Science, and can move cleanly between Claude Code and
-Codex.
+Empirical Workflow Kit is a portable research operating system for Claude Code
+and Codex. It turns an empirical project into a staged chain of contracts,
+evidence, decisions, diagnostics, and release gates. Both runtimes discover the
+same canonical skills and apply the same validator, so switching tools does not
+fork the research method or the project record.
 
-## Contents
+The kit is designed for panel-data, causal-inference, experimental, and
+structural research in information systems, economics, and quantitative
+marketing. Its conventions transfer to other empirical fields.
 
-```
-RESEARCH_PROTOCOL.md                     portable execution rules and red lines
-research.example.yaml                    project start card; rename to research.yaml
-CLAUDE.md                                Claude Code adapter, always loaded
-AGENTS.md                                Codex adapter
-skills/empirical-workflow/
-├── SKILL.md                             stage router, checkpoints, backtracking
-├── stages/                              one file per stage, loaded on demand
-├── methods/                             focused causal method packs
-├── references/                          decision trees, checklists, standards
-├── scripts/validate_governance.py       publication-eligibility validator
-└── templates/                           status, evidence, governance, review records
-skills/*/SKILL.md                        focused research operations
-runtime-profile.example.yaml            portable local-tool configuration
-presentation-tooling/                    shared Quarto theme and deterministic gates
-agents/tikz-reviewer.md                  rendered-figure review contract
-THIRD_PARTY_NOTICES.md                   imported-source attribution and licenses
-```
+## One workflow, two runtimes
 
-## Architecture
+There is exactly one editable implementation:
 
 ```text
-Claude Code adapter (CLAUDE.md) ─┐
-                                 ├─> RESEARCH_PROTOCOL.md ─> stage contracts
-Codex adapter (AGENTS.md) ───────┘              │                   │
-                                                v                   v
-                         research.yaml, _status.md, decision-log.md, evidence cards
-                                                │
-                                                v
-                              Python ETL ─ Parquet + contract ─ R estimation
+skills/                                      canonical skill source
+├── empirical-workflow/                     staged research workflow
+└── <focused-operation>/                    literature, review, release, slides
+       │
+       ├── .claude/skills/<name>            committed relative symlink
+       └── .agents/skills/<name>            committed relative symlink
 ```
 
-The protocol contains the research rules. The runtime adapters only route
-Claude Code or Codex into those rules. Durable artifacts—not a chat
-conversation—are the project source of truth.
+`workflow.manifest.yaml` inventories every managed skill, records the workflow
+version, names the upstream commit that was inspected, and declares all runtime
+views. The files under `.claude/skills/` and `.agents/skills/` are discovery
+views only. Never edit them. A change to `skills/` is immediately visible to
+both runtimes.
 
-The stage router loads only the active stage and selected method pack. Focused companion skills
-handle source retrieval, literature review, bibliography audits, preregistration, adversarial
-review, referee responses, replication release, LaTeX, and presentation production. Their outputs
-enter the same evidence, decision, and governance registry rather than creating a parallel state.
+Verify this invariant at any time:
 
-## Capability map
+```bash
+python3 scripts/verify_runtime_parity.py --project --all --repo .
+```
 
-| Research operation | Focused skill or location |
+The command fails on missing links, wrong targets, broken links, copied
+implementations, stale managed entries, and version mismatches.
+
+## Repository map
+
+```text
+RESEARCH_PROTOCOL.md                 portable research contract and red lines
+workflow.manifest.yaml               canonical-source and runtime-view manifest
+research.example.yaml                project configuration template
+runtime-profile.example.yaml         machine-specific tool and path template
+CLAUDE.md                            thin Claude Code runtime adapter
+AGENTS.md                            thin Codex runtime adapter
+skills/empirical-workflow/
+├── SKILL.md                         stage and operation router
+├── stages/                          stage input/output contracts
+├── methods/                         identification-specific prompt packs
+├── references/                      shared standards and decision rules
+├── scripts/                         governance checks
+└── templates/                       durable project records
+skills/*/                            focused operations outside the stage core
+agents/tikz-reviewer.md              rendered-figure review contract
+presentation-tooling/                Quarto theme, staging, and visual gates
+tools/validate_registry.py           shared checkpoint validator
+scripts/                             runtime-view installation and verification
+tests/                               contracts, validators, scanners, and smoke test
+THIRD_PARTY_NOTICES.md               licenses and imported-source notices
+docs/upstream-absorption-audit.md    upstream-to-canonical absorption record
+```
+
+The repository is the source of truth for project state. Conversation history
+is not a research record.
+
+## Research lifecycle
+
+The router in `skills/empirical-workflow/SKILL.md` selects one stage file at a
+time.
+
+| Stage | Purpose | Representative outputs |
+|---|---|---|
+| 1. Dataset infrastructure | Establish source identity, keys, coverage, and lineage | inventories, merge audits, panel dimensions, versioned exports |
+| 2. Literature map | Build a verified map of constructs, theories, methods, and open questions | source records, synthesis, evidence cards |
+| 3. Theory and hypotheses | Define the mechanism, alternatives, and prospective tests | theory map, hypotheses, preregistration inputs |
+| 4. Variables map | Bind constructs to fields, transformations, and samples | variable registry, sample rules, analysis contract |
+| 5. Measurement and validity | Test construct quality and lock the main specification | validity evidence, attrition record, Checkpoint B inputs |
+| 6a. Reduced form | Select and execute one causal or associational design | estimates, diagnostics, robustness matrix, blindspot audit |
+| 6b. Structural | Define primitives, identification, estimation, and fit checks | model contract, targeted moments, counterfactual limits |
+| 7. Writing and review | Trace every claim to evidence and prepare release | manuscript, review findings, response matrix, release record |
+
+Three checkpoints prevent stage completion by assertion alone:
+
+- Checkpoint A asks whether the design is answerable.
+- Checkpoint B asks whether construction and measurement are defensible.
+- Checkpoint C asks whether the results and release claims are defensible.
+
+Material changes to the identifying strategy, main specification, estimation
+sample, clustering level, or post-result interpretation trigger a mandatory
+pause and a recorded decision.
+
+## Method packs
+
+Stage 6a selects exactly one pack under
+`skills/empirical-workflow/methods/`. Each mature pack separates four kinds of
+material:
+
+- `prompt.md`: the operational procedure and questions the runtime follows.
+- `canon.md`: what the cited methodological literature settles.
+- `details.md`: implementation details, diagnostics, and package behavior.
+- `template.R`: an executable reference implementation.
+
+Available packs cover causal-design triage, selection on observables, fixed
+effects, difference-in-differences, instrumental variables, regression
+discontinuity, synthetic control, field experiments, and conjoint experiments.
+The shared method-governance rules require current literature, maintained
+implementations, explicit judgment when the literature does not settle a
+choice, and a recorded reason for every non-obvious default.
+
+## Focused operations
+
+| Need | Canonical skill |
 |---|---|
-| Known paper, DOI, or author | `research-sources` |
-| Topic-level synthesis | `literature-review` |
-| Existing BibTeX verification | `bibliography-audit` |
-| Prospective commitment | `preregister` |
-| Causal design and estimation | `empirical-workflow/methods/<selected-method>/` |
-| Independent adversarial panel | `research-council` |
-| Full draft review | `manuscript-review` |
-| Decision-letter response | `referee-response` |
-| Staged reproducibility archive | `replication-release` |
-| LaTeX diagnostics and figures | `latex-production` |
-| Research and teaching decks | `research-talk`, `teaching-lecture` |
-| Rendered slide audit | `slide-review` |
-| Course website | `course-site` |
+| Read one known paper, DOI, title, or author | `research-sources` |
+| Search and synthesize a topic | `literature-review` |
+| Audit an existing BibTeX database | `bibliography-audit` |
+| Draft a prospective preregistration | `preregister` |
+| Convene independent critics | `research-council` |
+| Simulate a full manuscript review | `manuscript-review` |
+| Verify and draft a referee response | `referee-response` |
+| Build a sanitized replication release | `replication-release` |
+| Compile LaTeX and inspect TikZ figures | `latex-production` |
+| Build a research talk | `research-talk` |
+| Build a teaching lecture | `teaching-lecture` |
+| Audit rendered slides | `slide-review` |
+| Build a Quarto course site | `course-site` |
 
-A common project sequence is `research-sources → literature-review → preregister → method pack`.
-Near release, use `manuscript-review → referee-response → replication-release`. These are routing
-defaults, not permission to skip stage exits or mandatory pauses.
+Focused operations write into the same evidence, decision, status, and
+governance records. They cannot bypass a checkpoint or mandatory pause.
 
-## Install
+## Install for a project
 
-At the project level, copy the portable protocol, one or both adapters,
-`research.example.yaml` renamed to `research.yaml`, and the skill directory.
-Choose `CLAUDE.md` for Claude Code, `AGENTS.md` for Codex, or both for a
-cross-runtime project. Retain the protocol, configuration, decision records,
-and skills when changing runtimes.
+Clone the repository and keep its canonical tree intact:
 
-```
-cp RESEARCH_PROTOCOL.md /path/to/project/RESEARCH_PROTOCOL.md
-cp research.example.yaml /path/to/project/research.yaml
-cp CLAUDE.md /path/to/project/CLAUDE.md  # Claude Code adapter
-cp AGENTS.md /path/to/project/AGENTS.md  # Codex adapter
-cp runtime-profile.example.yaml /path/to/project/runtime-profile.yaml
-mkdir -p /path/to/project/.claude/skills /path/to/project/.agents/skills
-cp -r skills/* /path/to/project/.claude/skills/
-cp -r skills/* /path/to/project/.agents/skills/
-cp -r presentation-tooling agents /path/to/project/
+```bash
+git clone https://github.com/bobbyZhong10/empirical-workflow-kit.git
+cd empirical-workflow-kit
+python3 scripts/install_runtime_views.py --project --all --repo .
+python3 scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
-User level, available in every project:
+The committed project views normally make the installation command a no-op.
+It is useful after an archive tool or file transfer has stripped symlinks.
+Claude Code discovers `.claude/skills/empirical-workflow`; Codex discovers
+`.agents/skills/empirical-workflow`. Both paths resolve to the same canonical
+directory.
 
+To repair only one runtime:
+
+```bash
+python3 scripts/install_runtime_views.py --project --claude --repo .
+python3 scripts/install_runtime_views.py --project --codex --repo .
 ```
-cp -r skills/* ~/.claude/skills/
-cp -r skills/* ~/.agents/skills/
+
+The installer does not overwrite a regular file or directory. If a previous
+Empirical Workflow Kit copy must be replaced, use `--replace-managed`; the
+installer first moves it to a timestamped sibling backup. A directory that
+does not carry this kit's ownership markers is reported as `UNMANAGED` and is
+left untouched.
+
+## Optional user-level discovery
+
+Project-level discovery is the recommended setup because it pins each project
+to its checkout. To expose this checkout in every project on the machine:
+
+```bash
+python3 scripts/install_runtime_views.py --user --all --repo .
+python3 scripts/verify_runtime_parity.py --user --all --repo .
 ```
 
-`CLAUDE.md` is loaded on every turn, so it is kept short deliberately. The stage
-files are loaded only when the stage runs. This is the reason the kit is split
-rather than written as one large instruction file: a long always loaded file
-dilutes attention across the whole session and pays a context cost on every
-turn.
+User-level links are absolute links to the selected canonical checkout. Run
+the installer again with `--replace-managed` after moving the checkout. The
+installer changes only names listed in `workflow.manifest.yaml` and refuses to
+replace another package that happens to use the same skill name.
 
-For Codex, install the repository skill at
-`.agents/skills/empirical-workflow/SKILL.md` using the second copy command
-above, then start Codex from the project root. `AGENTS.md` instructs Codex to
-load the `empirical-workflow` skill; the discovered skill's router selects the
-current stage. Claude Code uses the corresponding `.claude/skills/` copy.
+Do not install by copying `skills/*` separately into `~/.claude/skills` and
+`~/.agents/skills`. Independent copies are the split-brain condition this
+repository prevents.
 
-Fill `runtime-profile.yaml` with local cache, PDF helper, browser, manuscript-root, and
-presentation-asset paths. Do not put those paths into `CLAUDE.md`, `AGENTS.md`, method prompts, or
-the protocol. Preserve `THIRD_PARTY_NOTICES.md` when redistributing adapted prompts or tooling.
+## Start a research project
 
-## Bootstrap and handoff
+1. Copy `research.example.yaml` to `research.yaml` and fill in the observation
+   unit, designs, authority, languages, and analysis-input contract.
+2. Copy `runtime-profile.example.yaml` to `runtime-profile.yaml` and enter
+   machine-specific paths and optional tool availability. Never embed personal
+   paths in a skill, prompt, adapter, or protocol.
+3. Create `_status.md`, `decision-log.md`, and the first evidence records from
+   the templates routed by `empirical-workflow`.
+4. Start Claude Code or Codex at the repository root. The runtime adapter reads
+   the same protocol, manifest, router, and project state.
 
-1. Fill out `research.yaml`, including the locked `analysis_input_contract`
-   before a Python export is consumed by R, then create `_status.md` and
-   `decision-log.md` from the supplied templates.
-2. Start the appropriate staged workflow and complete its required artifacts.
-3. Create an evidence card for every material source, decision, diagnostic, and
-   result. Each card links a claim to its source artifact and states its method,
-   limitation, and unresolved uncertainty.
-4. Before a new runtime continues the work, it reads `RESEARCH_PROTOCOL.md`,
-   `research.yaml`, `_status.md`, the most relevant/current evidence card, and
-   the tail of `decision-log.md`, in that order.
+At every cross-runtime handoff, the receiver reads, in order:
 
-The governance registry is the machine-readable release view of pipelines, claims, figures,
-acceptance gates, applicability, and reconciliation. Validate it before circulation. For a
-replication archive, packaging follows a successful reproduction attempt; complete current
-official policy verification and a confidentiality/redistribution check before writing the final
-archive.
+1. `RESEARCH_PROTOCOL.md`
+2. `research.yaml`
+3. `_status.md`
+4. the most relevant current evidence card
+5. the tail of `decision-log.md`
 
-See [the v2 migration guide](docs/v2-migration-guide.md) for moving an existing
-project and converting a v1 `_status.md` record.
+The sender records the completed stage, changed artifacts, checks run, open
+risks, next action, and unresolved pause.
 
-## Development
+## Python-to-R contract
 
-Create the complete repository-local test environment before running checks:
+Python is the default producer for ingestion, cleaning, joins, and portable
+analysis data. R is the default estimation consumer when the chosen method
+uses its econometric implementation. Their boundary is a versioned Parquet
+file plus a contract that records project identity, data version, producing
+script, row count, schema, primary key, and merge audit.
+
+The smoke test exercises this boundary end to end. It creates a deterministic
+96-row staggered-treatment panel in Python, validates identity and row-count
+failures, reads the Parquet artifact in R, estimates a fixed-effects event
+study, writes a simulated-results table, tests mandatory-pause behavior after
+a failed identifying diagnostic, and reconstructs a handoff from durable
+state.
+
+## Development environment
+
+Prerequisites:
+
+- Python 3
+- R 4.1 or newer
+- network access during dependency bootstrap
+- Node 22 or newer for presentation gates
+- Quarto 1.10 or newer for deck rendering
+- TeX Live or MacTeX with `latexmk` for LaTeX production
+
+Create the repository-local test environment:
 
 ```bash
 bash tests/bootstrap_test_environment.sh
 ```
 
-The bootstrap creates `.venv`, installs the Python test dependencies (including
-PyArrow), and installs the smoke-test R packages (`arrow`, `yaml`, `fixest`, and
-`modelsummary`) into `.r-lib`. It requires Python 3, R, and network access to
-CRAN. The smoke runner only uses `.venv/bin/python`; it never falls back to the
-system Python and never installs dependencies implicitly.
+The bootstrap creates `.venv`, installs pinned Python dependencies, and
+installs `arrow`, `yaml`, `fixest`, and `modelsummary` into `.r-lib`. The test
+runner never silently falls back to a system Python or installs packages during
+a workflow test.
 
-Run either formal checkpoint through the same repository-local environment:
-
-```bash
-tools/validate_registry <registry> --checkpoint B
-tools/validate_registry <registry> --checkpoint C
-```
-
-The wrapper reports the bootstrap command if `.venv` is absent.
-
-Run the workflow contract tests with the project-local command:
+Run the complete automated suite:
 
 ```bash
+.venv/bin/python -m pytest -q
 bash tests/run_contract_tests.sh
+bash tests/smoke/run_smoke.sh
+python3 scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
-### Python-R smoke test
+The smoke runner intentionally invokes several failing cases. Those cases pass
+only when the workflow blocks them with the documented errors.
 
-The cross-runtime smoke test uses the repository-local `.venv` and `.r-lib`
-prepared above. It generates a
-deterministic 96-row staggered-treatment panel, validates its Python-to-R
-contract (including its versioned merge audit), estimates a fixed-effects
-event-study model, and writes a simulated-results table. It also recovers a
-cross-runtime handoff from durable state in the required read order and proves
-that a failed identifying diagnostic writes a mandatory-pause record and blocks
-formal estimation.
+## Release validation
+
+`tools/validate_registry.py` is shared by both runtimes:
 
 ```bash
-bash tests/smoke/run_smoke.sh
+tools/validate_registry <registry.yaml> --checkpoint B
+tools/validate_registry <registry.yaml> --checkpoint C
 ```
 
-The runner starts from the repository root and prepends `.r-lib/` to `R_LIBS`
-when that repository-local library exists.
-Before generating data or invoking the workflow verifier, it confirms the local
-Python dependencies and checks each R package in a separate R process. If the
-environment is absent, incomplete, or a package cannot load safely, it stops
-with the bootstrap command instead of treating an R package failure as a
-workflow failure.
+The registry ties pipelines, claims, evidence, figures, acceptance gates,
+applicability decisions, and reconciliation records to the running kit version.
+A stage or release is complete only when the required checkpoint exits with
+zero blocking findings. Packaging a directory is not a reproduction
+certificate, and local possession of data is not redistribution authority.
 
-The command intentionally invokes the R verifier with a failed identifying
-diagnostic, an invalid row count, and a mismatched project identity. Those
-invocations must stop with their documented errors; the shell runner treats
-the expected failures as passing mandatory-stop checks.
+## Language and portability rules
 
-## Design decisions worth knowing before editing
+- Speak with the user in the language selected by the project configuration.
+- Keep repository artifacts in English.
+- Keep raw data read-only and write derived data separately.
+- Keep secrets outside the repository.
+- Resolve optional tools and personal paths through `runtime-profile.yaml`.
+- Verify time-sensitive journal, registry, and release policies against current
+  official sources before external circulation.
 
-1. **Checkpoints are gates, not summaries.** Their value comes entirely from
-   refusing to proceed. Softening them into progress reports removes the point.
-2. **The main specification is locked before estimation.** The Specification
-   discipline section of `RESEARCH_PROTOCOL.md` and section 4 of the status
-   template make specification drift visible without prohibiting labeled
-   exploration.
-3. **Staggered adoption gets its own branch in the decision tree.** Without it
-   the default output is two way fixed effects, which is the wrong main
-   specification for most staggered settings.
-4. **The blindspot audit is run by the same model that did the analysis** and
-   therefore shares its blind spots. Cross model review is a separate step, and
-   the identification section is the part that most needs it.
-5. **The writing order is a control, not a style preference.** Writing the
-   introduction last is what keeps the contribution claim tied to the results.
+## Upstream lineage
 
-## What to customize first
+The focused operations, method prompts, causal canon, and presentation tooling
+were adapted from Lan E. Luo's
+[`ericluo04/claude-academic-workflow`](https://github.com/ericluo04/claude-academic-workflow).
+The import was decomposed into the canonical stage, method, reference,
+operation, runtime-profile, and tooling locations instead of copying its global
+`CLAUDE.md` into either adapter. `docs/upstream-absorption-audit.md` records the
+inspected commit and the disposition of every upstream source family.
 
-- `references/r-standards.md`: package choices and the project layout.
-- `stages/stage2-lit-map.md`: the literature search tools available to you.
-- `references/robustness-checklists.md`: add the checks your target outlets and
-  your advisors actually demand.
-- `stages/stage6b-structural.md`: language and solver for structural work.
-- `RESEARCH_PROTOCOL.md` Authority levels and Mandatory pause sections: add
-  project-specific decision boundaries without duplicating them in an adapter.
+See `THIRD_PARTY_NOTICES.md` and `docs/upstream-attribution.md` for licenses and
+detailed lineage. Retain those files when redistributing the adapted material.
+
+## Design principles
+
+- Checkpoints are executable gates, not narrative summaries.
+- Main specifications are locked before result interpretation.
+- Claims contract when diagnostics fail; caveats do not convert a failed gate
+  into a pass.
+- Every material claim points to evidence, a result, a citation, or an explicit
+  argument.
+- Limitations appear beside the choice or result they constrain.
+- Status, evidence, and decisions survive a runtime switch because they live in
+  files, not chat history.

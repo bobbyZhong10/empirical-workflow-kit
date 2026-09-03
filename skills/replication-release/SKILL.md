@@ -5,6 +5,9 @@ description: Assemble a journal-ready replication archive for a quantitative-mar
 
 # Replication package
 
+This file is the canonical Empirical Workflow Kit implementation. Runtime views
+defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
+
 Adapted from `ericluo04/claude-academic-workflow` at commit `8958cc246e65cdf7c36604f397a1c1719b7e2c14`; see `THIRD_PARTY_NOTICES.md`.
 
 Build one sanitized zip a data editor can accept without follow-up. The archive is assembled from files that already exist. Nothing here re-runs the analysis or verifies that the numbers in the paper match the code; if that is what the user wants, say so and stop.

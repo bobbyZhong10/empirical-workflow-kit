@@ -1,238 +1,238 @@
-# Empirical Workflow Kit v2 — 问题清单（与具体项目无关的一般化描述）
+# Empirical Workflow Kit v2 -- Issue List (generalized description, independent of any specific project)
 
-来源：一次完整试跑（Stage 1–3 回填 + Stage 4/6b 前瞻）。本文件已剥离所有项目细节，
-每条只描述工具本身的问题、后果、以及什么样的项目会踩到它。
+Source: one complete trial run (Stage 1-3 backfill + Stage 4/6b look-ahead). This file has had all project details stripped;
+each item describes only the problem with the tool itself, its consequences, and what kind of project will hit it.
 
-分级：**A** = 结构性缺陷，工具做不到它声称要做的事。
-**B** = 能用但成本高于收益。**C** = 值得补，不紧急。
-
----
-
-## 根因：三句话
-
-1. **工具给 artifact 做了版本管理，没给 claim 做版本管理。** 它知道一份数据是什么时候、
-   由哪个脚本产生的；它不知道一个"数字"是否已被取代、是否允许和另一个数字放进同一张表、
-   是否建立在一条已废弃的流水线上。
-2. **工具能表达"发生了什么"，不能表达"当初说好不会发生什么"。** 预先承诺（pre-commitment）
-   在工具里没有载体，因此"承诺被推翻"这件事在系统内不可见。
-3. **工具把可选前提写成了必备前提。** 多个阶段契约假设了一类项目的形态（有合并、有持久
-   观测单位、论证是假设清单形状），不满足这些假设的项目会得到一批空产物，而空产物与
-   "漏做"在外观上无法区分。
+Grading: **A** = structural defect, the tool cannot do what it claims to do.
+**B** = usable, but the cost exceeds the benefit. **C** = worth adding, not urgent.
 
 ---
 
-# A 级
+## Root cause: three sentences
 
-## A-1. 没有"结果代次"（pipeline / vintage）的概念
-
-**问题**
-一个项目在生命周期里通常会重建两到三次分析流水线。重建后，同一批系数会有多个版本，
-数值可能差到符号相反。工具的 data contract 有 `data_version`，那是**数据集**的版本；
-它没有任何字段表达"这一组结果属于哪一代流水线"，也没有"哪一代当前有效"的登记。
-
-**后果**
-- 无法回答"论文里这个数字来自哪条流水线"。
-- 无法阻止一张表、一张图或一句话混用两代结果——这是论文级别的致命错误，而且极难事后发现，
-  因为混用后的表面结构完全正常。
-- 旧代次的产物不会自动失效，随时可能被下游引用。
-
-**什么样的项目会踩到**
-任何做过一次以上流水线重建的项目。也就是几乎所有真实项目。
-
-**方向**
-在 `research.yaml` 增加 `pipelines:` 登记块，每条带 `status: authoritative | superseded |
-deprecated | scaffolding`、`superseded_by`、路径、产出日期；增加一条 `mixing_rule`；
-在 claim-to-evidence 审计表里加 `pipeline_id` 列。
+1. **The tool version-controls artifacts, not claims.** It knows when, and by which
+   script, a dataset was produced; it does not know whether a "number" has been superseded, whether it may be placed in the same table as another number,
+   or whether it rests on a pipeline that has been retired.
+2. **The tool can express "what happened," but not "what we agreed in advance would not happen."** Pre-commitment
+   has no carrier in the tool, so "a commitment was overturned" is invisible within the system.
+3. **The tool writes optional premises as mandatory premises.** Several stage contracts assume one shape of project (there is a merge, there is a persistent
+   observation unit, the argument has the shape of an assumption list); projects that do not meet these assumptions get a batch of empty artifacts, and empty artifacts
+   are indistinguishable in appearance from "work not done."
 
 ---
 
-## A-2. Evidence card 没有取代关系
+# Grade A
 
-**问题**
-卡片模板有 18 个字段，没有一个能表达"这张卡记录的结果已经被新的一版顶掉了"。
+## A-1. No concept of a "result generation" (pipeline / vintage)
 
-**后果**
-证据卡片制度的目的是让每个论断可追溯到一份产物。但如果卡片本身不能标注失效，
-那么当结果被重算后，旧卡片仍然是一份格式完整、看起来权威的记录。
-**这套制度会精确地复现它本来要防的那个错误。**
+**Problem**
+A project typically rebuilds its analysis pipeline two or three times over its lifetime. After a rebuild, the same set of coefficients exists in multiple versions,
+and the values can differ to the point of opposite signs. The tool's data contract has `data_version`, which is the version of the **dataset**;
+it has no field expressing "which generation of the pipeline this set of results belongs to," nor any registration of "which generation is currently valid."
 
-**方向**
-增加 `status: current | superseded`、`supersedes`、`superseded_by` 三个字段，
-并在 Checkpoint C 增加一条检查：所有被引用的卡片必须是 `current`。
+**Consequences**
+- Cannot answer "which pipeline did this number in the paper come from."
+- Cannot prevent a table, a figure, or a sentence from mixing results of two generations -- this is a paper-level fatal error, and it is extremely hard to discover after the fact,
+  because the surface structure after mixing looks completely normal.
+- Artifacts of old generations are not automatically invalidated and can be referenced downstream at any time.
 
----
+**What kind of project will hit this**
+Any project that has rebuilt its pipeline more than once. That is, almost every real project.
 
-## A-3. 预先承诺的验收标准（acceptance gate）在工具里不存在
-
-**问题**
-成熟项目会在估计之前写下一组数值验收标准，形如"若指标 X 超出区间 [a,b]，则停止并重新配置"。
-工具里：
-- 没有地方**声明**这些标准；
-- 因此没有地方记录某条标准**被跨过**；
-- 因此也无法在收尾时检查"当初为跨过它而答应的补救动作，做了没有"。
-
-工具确有 Mandatory pause 路由，覆盖"识别性诊断失败"。但 pause 是一个**事件类型**，
-gate 是一份**事先写下的清单**。前者靠当事人当场识别，后者不依赖任何人的判断力。
-
-**后果**（按严重性递增）
-1. 标准是否存在，取决于项目自觉；工具不要求。
-2. 标准被跨过时，记录格式不受约束——实践中会退化成一个严重性标签（"软标记"），
-   而标签不含决策人、日期、和"这是看到结果之前还是之后做的决定"。
-3. **最严重**：跨过标准时常常附带一个补偿承诺（"我们降级处理，但会补做 X"）。
-   工具没有任何机制把这个承诺挂起来。承诺不兑现是完全静默的，几个月后没有人会发现。
-
-**方向**
-- Checkpoint B 增加 `acceptance_gates[]` 声明块：`{name, metric, band, on_failure:
-  warn | investigate | STOP}`。
-- 增加硬规则：推翻一条已声明的 gate 必须写 decision-log 条目，且必须包含触发内容、
-  候选方案、授权人、日期、**结果前/结果后标记**、补偿动作。
-- Checkpoint C 增加闭环检查：任何被推翻的 gate，其补偿动作必须已交付，否则阻断。
-
-这一条是整个清单里投入产出比最高的。
+**Direction**
+Add a `pipelines:` registration block to `research.yaml`, each entry carrying `status: authoritative | superseded |
+deprecated | scaffolding`, `superseded_by`, path, and production date; add a `mixing_rule`;
+add a `pipeline_id` column to the claim-to-evidence audit table.
 
 ---
 
-## A-4. Data contract 只描述数据形态，不描述数据语义和生成过程
+## A-2. Evidence cards have no supersession relation
 
-**问题**
-现有 contract 记录的是：路径、哈希、行列数、键、类型、缺失率、取值范围、合并率。
-这些描述"数据长什么样"。真正决定一个数字**是什么意思**的东西，全都没有位置：
+**Problem**
+The card template has 18 fields, and none of them can express "the result recorded on this card has been displaced by a newer version."
 
-| 缺失的东西 | 说明 |
+**Consequences**
+The purpose of the evidence card system is to make every claim traceable to an artifact. But if the card itself cannot be marked as invalid,
+then after a result is recomputed, the old card remains a fully formatted, authoritative-looking record.
+**This system will precisely reproduce the very error it was meant to prevent.**
+
+**Direction**
+Add three fields, `status: current | superseded`, `supersedes`, and `superseded_by`,
+and add a check at Checkpoint C: every referenced card must be `current`.
+
+---
+
+## A-3. Pre-committed acceptance criteria (acceptance gate) do not exist in the tool
+
+**Problem**
+Mature projects write down a set of numeric acceptance criteria before estimation, of the form "if metric X falls outside the interval [a,b], stop and reconfigure."
+In the tool:
+- there is no place to **declare** these criteria;
+- therefore there is no place to record that a criterion **was crossed**;
+- therefore there is also no way to check at wrap-up whether "the remedial action promised in exchange for crossing it was actually done."
+
+The tool does have a Mandatory pause route, covering "identification diagnostic failed." But a pause is an **event type**,
+whereas a gate is a **list written down in advance**. The former relies on the person involved recognizing it on the spot; the latter depends on no one's judgment.
+
+**Consequences** (in increasing order of severity)
+1. Whether the criteria exist at all depends on the project's own discipline; the tool does not require them.
+2. When a criterion is crossed, the record format is unconstrained -- in practice it degrades into a severity label (a "soft flag"),
+   and a label carries no decision-maker, no date, and no "was this decision made before or after seeing the results."
+3. **Most severe**: crossing a criterion usually comes with a compensating commitment ("we downgrade, but we will do X later").
+   The tool has no mechanism to hold this commitment open. Failure to honor it is completely silent; months later no one will notice.
+
+**Direction**
+- Add an `acceptance_gates[]` declaration block at Checkpoint B: `{name, metric, band, on_failure:
+  warn | investigate | STOP}`.
+- Add a hard rule: overturning a declared gate must produce a decision-log entry, which must include the trigger,
+  candidate options, authorizer, date, a **pre-result / post-result marker**, and the compensating action.
+- Add a closed-loop check at Checkpoint C: for any overturned gate, its compensating action must have been delivered, otherwise block.
+
+This item has the highest return on investment of the entire list.
+
+---
+
+## A-4. The data contract describes only the shape of the data, not its semantics or its generation process
+
+**Problem**
+The current contract records: path, hash, row and column counts, keys, types, missing rates, value ranges, merge rates.
+These describe "what the data looks like." The things that actually determine **what a number means** have no place at all:
+
+| What is missing | Explanation |
 |---|---|
-| 字段语义及其来源 | 字段的权威定义原文、来自哪份文档、文档日期 |
-| **否定性来源** | "这批字段的权威定义文档不存在"——这是一个必须被记录的事实，而不是一个空白 |
-| 字段可信度分级 | 有原文出处 / 由测试推断 / 来源不明，是三种不同的状态，不是布尔值 |
-| 派生变量公式 | 每个构造变量的公式原文、输入、代码行 |
-| 已知缺陷 | 一份数据可以通过全部形态检查，同时携带一个已知的公式错误 |
-| 过滤阶梯 | 有序的过滤步骤，每步的条件原文和前后行数。现有 contract 只有一个总行数标量 |
-| 单位与量纲 | 类型是 `double` 不等于知道它的单位；跨数据源的单位冲突是典型静默 bug |
-| 时间窗口规格 | 处理日期、窗口端点开闭约定、日历排除、名义期数 vs 有效期数 |
-| 处理分配查找表 | 决定谁被处理的那份清单本身、它的计数断言、它在代码里被复制了几份 |
-| 按版本变化的 schema | 某字段在早期数据里不存在，被静默填充——填充这件事本身在成品里不可见 |
-| 分布性事实 | 众数质量、分组条件分布。`value_ranges` 只有上下界，表达不了这些 |
+| Field semantics and their source | The authoritative definition text of the field, which document it comes from, the date of that document |
+| **Negative provenance** | "No authoritative definition document exists for this batch of fields" -- this is a fact that must be recorded, not a blank |
+| Field credibility grading | Has source text / inferred from testing / source unknown are three distinct states, not a boolean |
+| Derived variable formulas | The formula text, inputs, and code line of every constructed variable |
+| Known defects | A dataset can pass every shape check while carrying a known formula error |
+| Filter ladder | Ordered filter steps, with the condition text and before/after row counts of each step. The current contract has only a single total row-count scalar |
+| Units and dimensions | A type of `double` is not the same as knowing its unit; unit conflicts across data sources are a classic silent bug |
+| Time window specification | Treatment date, open/closed convention for window endpoints, calendar exclusions, nominal vs effective number of periods |
+| Treatment assignment lookup table | The list itself that determines who is treated, its count assertions, how many copies of it exist in the code |
+| Schema that changes by vintage | A field does not exist in early data and is silently filled in -- the filling itself is invisible in the finished product |
+| Distributional facts | Mode mass, conditional distributions by group. `value_ranges` has only upper and lower bounds and cannot express these |
 
-**后果**
-contract 通过 ≠ 数据可用。它能证明数据的形状符合预期，不能证明数字的含义符合预期。
+**Consequences**
+Contract passed != data usable. It can prove that the shape of the data matches expectations; it cannot prove that the meaning of the numbers matches expectations.
 
-**方向**
-增加 `field_semantics`、`derived_fields`、`filter_ladder`、`window_spec`、
-`treatment_assignment`、`schema_by_vintage`、`known_defects` 七个块。
+**Direction**
+Add seven blocks: `field_semantics`, `derived_fields`, `filter_ladder`, `window_spec`,
+`treatment_assignment`, `schema_by_vintage`, `known_defects`.
 
 ---
 
-## A-5. 条件性缺失：把可选前提写成了必备前提
+## A-5. Conditional absence: optional premises written as mandatory premises
 
-**问题**
-多个阶段契约内嵌了对项目形态的假设，且不满足时没有合法的表达方式：
+**Problem**
+Several stage contracts embed assumptions about the project's shape, with no legitimate way to express that they are not met:
 
-| 位置 | 内嵌假设 | 不满足时 |
+| Location | Embedded assumption | When not met |
 |---|---|---|
-| Stage 1 | 项目会合并多个数据源 | 要求的"双向合并率、未匹配记录刻画"产物内容为空 |
-| Stage 1 | 观测单位是可跨期追踪的持久实体 | "单位数""平衡性""每单位观测数""进入退出"全部失效 |
-| Stage 5 | 已存在可执行的 data contract | 要求的"契约校验结果"产物无对象可写 |
-| Stage 3 | 论证形状是"假设清单 + 竞争解释" | 见 B-3 |
+| Stage 1 | The project merges multiple data sources | The required "bidirectional merge rates, characterization of unmatched records" artifact has empty content |
+| Stage 1 | The observation unit is a persistent entity trackable across periods | "Number of units," "balance," "observations per unit," "entry and exit" all break down |
+| Stage 5 | An executable data contract already exists | The required "contract validation results" artifact has nothing to write about |
+| Stage 3 | The argument has the shape "assumption list + competing explanations" | See B-3 |
 
-**后果**
-- 必备产物缺失 = 漏做工作，还是 = 不适用？**外观上无法区分。** 这会同时产生两种坏结果：
-  漏做被当成不适用，和不适用被当成漏做。
-- 更隐蔽的一种：契约管住了不该管的，同时放过了真正该管的。例如两份数据源从不合并、
-  但要在论文里对比——工具能表达"合并质量"，不能表达"两份从不合并的数据的**构造一致性**"，
-  而后者才是对比结论成立的前提。
+**Consequences**
+- Missing required artifact = work not done, or = not applicable? **Indistinguishable in appearance.** This produces two bad outcomes at once:
+  work not done is taken as not applicable, and not applicable is taken as work not done.
+- A more hidden variant: the contract governs what it should not, while letting through what it really should govern. For example, two data sources are never merged
+  but are compared in the paper -- the tool can express "merge quality," but not the **construction consistency** of two never-merged datasets,
+  and the latter is the precondition for the comparison's conclusion to hold.
 
-**方向**
-- 允许必备产物标记为 `N/A` 并**强制填写理由**，理由本身可被审计。
-- 合并证据改为"存在合并时必备"。
-- 观测单位不是持久实体时，允许 Stage 1 声明一个 `design_grid`（结构维度的笛卡尔积），
-  它才是分位处理、诊断和验收的真实单位。
-- 增加 `sibling_parity` 产物：用于对比但不合并的数据源之间的构造一致性。
-
----
-
-# B 级
-
-## B-1. 记录冗余
-
-`_status.md`（9 节）、`decision-log.md`、evidence card 三者重复同一批事实：数据版本、
-样本规则、聚类、产出路径。一次性回填时不痛，持续维护时会痛，而痛的表现形式是**有人开始跳过**。
-一旦跳过，"仓库是唯一真相"就名存实亡。
-
-**方向**：让 evidence card 成为分析事实的唯一来源，`_status.md` 只引用当前卡片，不复述。
-
-## B-2. Stage 3 只支持一种论证形状
-
-Stage 3 要求"识别假设一句话 + 至少两个竞争解释"。这是**假设清单**形状的论证。
-另一种在经济学里同样常见、且更强的形状是**基准拒斥阶梯**：
-提出一个零模型 → 导出若干可证伪预测 → 数据拒斥 → 证明若干自然的修补在数学上无效 →
-得出唯一剩下的方向。
-
-这种论证最有价值的产物是"**已被排除的解释类**"——一份说明哪一整类替代解释不可能产生
-观测模式的记录。工具既不索取也不记录它。
-
-**方向**：在 Stage 3 增加一个具名可选模式，附一张"已排除类"表（类别 / 排除方式 /
-是解析排除还是数值排除 / 排除的边界条件）。
-
-## B-3. 必备产物没有"暂缺"状态
-
-与 A-5 相关但可独立修。产物只有"存在"和"不存在"两态，没有"已知需要、尚未产出、
-阻塞原因是 X"。这使得阶段退出条件只能全有全无地判断。
-
-## B-4. 观测单位词汇不足
-
-见 A-5。补充一点：当结构维度（如"平台 × 方向 × 期 × 前后"）才是分位处理、
-异常诊断和验收判定的真实单位时，工具全程不知道这个网格的存在，
-因此也无法检查"网格里有哪些格子是空的"——空格子会让某些稳健性检查静默地不存在。
+**Direction**
+- Allow required artifacts to be marked `N/A` with a **mandatory reason**, where the reason itself is auditable.
+- Change merge evidence to "required when a merge exists."
+- When the observation unit is not a persistent entity, allow Stage 1 to declare a `design_grid` (the Cartesian product of structural dimensions),
+  which is the true unit for quantile processing, diagnostics, and acceptance.
+- Add a `sibling_parity` artifact: construction consistency between data sources that are compared but not merged.
 
 ---
 
-# C 级
+# Grade B
 
-## C-1. 没有审稿应答库的持久产物
-成熟项目会维护一份"可能被问的问题 + 准备好的答案"。这实际上是预先写好的审稿意见回复。
-Stage 7 有 referee simulation，但没有承载答案库的产物。补起来便宜。
+## B-1. Record redundancy
 
-## C-2. 稳健性清单只说"跑什么"，不说"结果不一致时怎么办"
-清单列出每种设计欠读者的检查。它没有规则处理这种情况：
-**一项关键敏感性分析在部分子组通过、在另一部分失败。**
+`_status.md` (9 sections), `decision-log.md`, and evidence cards repeat the same set of facts: data version,
+sample rules, clustering, output paths. This does not hurt in a one-time backfill; it hurts under continuous maintenance, and the pain manifests as **someone starting to skip**.
+Once skipping begins, "the repository is the single source of truth" exists in name only.
 
-建议加入一条规则：此时主张收缩到通过的子组，其余作为次要结果报告并写明失败内容。
-这是"收紧"而非"放宽"，方向上安全，且是好项目会自发做的事——值得写成规则，让它不依赖自觉。
+**Direction**: make evidence cards the sole source of analysis facts; `_status.md` only references current cards and does not restate them.
 
-## C-3. 识别树缺少若干常见设计
-现有树覆盖 DID、交错 DID、DDD、IV、RDD。缺：
-- **多重差分**（三重以上，例如加一层年度同期对比来吸收季节性）；
-- DDD 那条"只陈述一个关于差分之差的识别假设，而不是三句平行趋势口号"的规则，
-  应当推广到任意重数并明确写出。
+## B-2. Stage 3 supports only one argument shape
 
-## C-4. 推断方法的选择不在清单里
-簇数较少时自助法变体的选择（受限 vs 非受限）会实质影响置信区间，
-但没有任何清单条目会提醒做这个选择。类似的还有：簇层级与处理分配层级不一致时的处理。
+Stage 3 requires "identifying assumption in one sentence + at least two competing explanations." This is the **assumption list** shape of argument.
+Another shape, equally common in economics and stronger, is the **baseline rejection ladder**:
+propose a null model -> derive several falsifiable predictions -> the data reject them -> show that several natural patches are mathematically ineffective ->
+arrive at the only remaining direction.
 
-## C-5. `research.yaml` 不能把角色绑定到实际主体
-协议定义了 Executor / Copilot / Quality auditor 三个角色，配置文件没有字段说明谁来担任。
-真实项目需要区分：唯一决策权人、只在设计节点被咨询的顾问、多个执行运行时、
-以及"识别性复核必须来自独立运行时"这类要求。
+The most valuable artifact of this kind of argument is the "**excluded explanation classes**" -- a record stating which entire classes of alternative explanations cannot produce
+the observed pattern. The tool neither asks for it nor records it.
 
-## C-6. `autonomy_mode` 是死字段
-试跑确认：该字段被填写后，全仓库没有任何文件读取它，也没有任何文件定义它的取值域。
-要么把它做成真的分档，要么删掉——留着是误导。
+**Direction**: add a named optional mode to Stage 3, with an "excluded classes" table (class / method of exclusion /
+analytic or numerical exclusion / boundary conditions of the exclusion).
 
-## C-7. `data_hash` 是硬要求，但没有降级路径
-历史项目通常拿不到哈希。contract 没有办法表达"流程可复现、身份不可验证"这一真实状态，
-只能留空——而留空看起来像是忘了填。
+## B-3. Required artifacts have no "pending" state
+
+Related to A-5 but fixable independently. Artifacts have only two states, "exists" and "does not exist," with no "known to be needed, not yet produced,
+blocked because of X." This means stage exit conditions can only be judged all-or-nothing.
+
+## B-4. Insufficient vocabulary for observation units
+
+See A-5. One addition: when structural dimensions (such as "platform x direction x period x before/after") are the true unit for quantile processing,
+anomaly diagnostics, and acceptance decisions, the tool is unaware of this grid throughout,
+and therefore cannot check "which cells in the grid are empty" -- empty cells cause certain robustness checks to silently not exist.
 
 ---
 
-# 修改建议的优先级
+# Grade C
 
-**第一批（A-1 / A-2 / A-3）**：这三条是同一个底层缺陷的三件外衣——工具不给 claim 做版本、
-不给承诺做载体。它们互相咬合：pipeline 登记让"这个数字来自哪一代"可查，
-卡片取代关系让"这个数字还算不算数"可查，gate 声明与闭环检查让"当初答应的事做了没有"可查。
-三条一起改，收益远大于分开改。
+## C-1. No persistent artifact for a referee response bank
+Mature projects maintain a list of "questions that might be asked + prepared answers." This is in effect a pre-written response to referee comments.
+Stage 7 has a referee simulation, but no artifact to hold the answer bank. Cheap to add.
 
-**第二批（A-4 / A-5）**：contract 扩容和条件性产物。工作量大于第一批，但改法直接。
+## C-2. The robustness checklist only says "what to run," not "what to do when results disagree"
+The checklist lists the checks each design owes the reader. It has no rule for this situation:
+**a key sensitivity analysis passes in some subgroups and fails in others.**
 
-**第三批（B / C）**：随手补，不阻塞。
+Suggested rule: in this case the claim contracts to the subgroups that pass, and the rest are reported as secondary results with the failure stated explicitly.
+This is "tightening" rather than "loosening," safe in direction, and something good projects do on their own -- worth writing down as a rule so that it does not depend on discipline.
 
-**建议先不动的**：阶段划分、检查点位置、mandatory pause 的触发条件。
-试跑中这三样的表现是对的——工具的"停"停在了正确的地方，且停下来的都是决策问题而非计算问题。
+## C-3. The identification tree lacks several common designs
+The current tree covers DID, staggered DID, DDD, IV, RDD. Missing:
+- **Multiple differencing** (triple and higher, e.g., adding a layer of year-over-year same-period comparison to absorb seasonality);
+- The DDD rule "state a single identifying assumption about the difference of differences, rather than three parallel-trends slogans"
+  should be generalized to any order of differencing and written out explicitly.
+
+## C-4. The choice of inference method is not in the checklist
+With few clusters, the choice of bootstrap variant (restricted vs unrestricted) materially affects confidence intervals,
+but no checklist item prompts this choice. Similarly: what to do when the clustering level does not match the treatment assignment level.
+
+## C-5. `research.yaml` cannot bind roles to actual actors
+The protocol defines three roles, Executor / Copilot / Quality auditor; the configuration file has no field stating who fills them.
+Real projects need to distinguish: the sole decision authority, advisors consulted only at design nodes, multiple executing runtimes,
+and requirements such as "identification review must come from an independent runtime."
+
+## C-6. `autonomy_mode` is a dead field
+The trial run confirmed: after the field is filled in, no file in the entire repository reads it, and no file defines its value domain.
+Either make it a real set of tiers or delete it -- leaving it in is misleading.
+
+## C-7. `data_hash` is a hard requirement with no fallback path
+Historical projects usually cannot obtain a hash. The contract has no way to express the real state "process reproducible, identity unverifiable";
+it can only be left blank -- and a blank looks like it was forgotten.
+
+---
+
+# Priority of the proposed changes
+
+**First batch (A-1 / A-2 / A-3)**: these three are three guises of the same underlying defect -- the tool does not version claims
+and gives commitments no carrier. They interlock: pipeline registration makes "which generation this number came from" queryable,
+card supersession makes "whether this number still counts" queryable, and gate declaration plus closed-loop checks make "whether what was promised was done" queryable.
+Changing all three together yields far more than changing them separately.
+
+**Second batch (A-4 / A-5)**: contract expansion and conditional artifacts. More work than the first batch, but the fix is straightforward.
+
+**Third batch (B / C)**: fill in along the way, non-blocking.
+
+**Suggested to leave alone for now**: the stage division, checkpoint positions, and the trigger conditions of the mandatory pause.
+In the trial run all three behaved correctly -- the tool's "stops" landed in the right places, and everything it stopped on was a decision problem rather than a computation problem.

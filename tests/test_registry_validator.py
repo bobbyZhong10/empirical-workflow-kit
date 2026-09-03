@@ -4332,10 +4332,10 @@ def test_both_runtimes_are_given_the_same_contract():
     ):
         assert required in claude, required
 
-    # And they must differ where the runtimes genuinely differ.
-    assert "Codex has no skill mechanism" in (
-        Path(__file__).resolve().parent.parent / "AGENTS.md"
-    ).read_text(encoding="utf-8")
+    # Discovery paths differ, while both resolve to the canonical skill tree.
+    root = Path(__file__).resolve().parent.parent
+    assert ".claude/skills/empirical-workflow" in (root / "CLAUDE.md").read_text(encoding="utf-8")
+    assert ".agents/skills/empirical-workflow" in (root / "AGENTS.md").read_text(encoding="utf-8")
 
 
 def test_a_registry_names_the_workflow_version_that_judged_it(tmp_path):

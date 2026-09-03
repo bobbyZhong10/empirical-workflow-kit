@@ -1,200 +1,214 @@
-# 措辞强度模型 v2 —— 经 14 篇 IS 顶刊语料校准
+# Writing-Strength Model v2 -- Calibrated on a Corpus of 14 Top-Tier IS Papers
 
-语料：14 篇（MISQ / MS / ISR，2012–2026），覆盖 DID、交错 DID、RDD、RDiT、IV/2SLS、
-生存模型、结构估计、随机实验。抽取 278 条断言句、约 110 处降档实例。
+Corpus: 14 papers (MISQ / MS / ISR, 2012-2026), covering DID, staggered DID, RDD, RDiT, IV/2SLS,
+survival models, structural estimation, and randomized experiments. 278 assertion sentences and
+about 110 downgrade instances were extracted.
 
 ---
 
-## 一、原设计错在哪
+## 1. Where the Original Design Went Wrong
 
-我先验地设了单轴五档（T0 无限定因果 → T4 纯描述）。语料显示它在**核心区间**
-（简约式因果句 + 观测数据）工作良好，但在四个方向系统性失效：
+I set up a single-axis, five-tier scale a priori (T0 unqualified causal -> T4 pure description).
+The corpus shows it works well in the **core range** (reduced-form causal sentences + observational
+data) but fails systematically in four directions:
 
-| 失效方向 | 语料证据 |
+| Failure direction | Corpus evidence |
 |---|---|
-| **否定式/排除性断言** | "does not come at the expense of"、"cannot be explained by"、"we rule out"。举证结构是反的——依赖**功效**而非识别。同一句话在 n=10 万的设计和 n=57 的实验里含义完全不同，档位却相同。语料里 12 处 |
-| **方法论断言** | "Estimating a static demand model would give biased elasticities"。语法上是标准 T0，但真值由推导而非数据决定，无经验承诺可证伪。结构论文把最无保留的因果语言用在**否定别人的方法**上，对自己的结论一律降到 T3 |
-| **判别性论证** | "It is difficult to envision a selection process that would…"、"if this were the case, any observed effects would not be limited to…"。说服力来自**模式的选择性**，不来自动词。按字面判是 T3/T4，但它们承担全文最重的识别工作——**档位与论证权重恰好反向** |
-| **模型内断言** | 模拟输出与有标准误的估计语法同构。"the total net gain would be 164.29 million dollars" 与 "reduces the probability by 21.60%" 在五档里无法区分 |
+| **Negative/exclusionary assertions** | "does not come at the expense of", "cannot be explained by", "we rule out". The burden-of-proof structure is inverted -- it rests on **power**, not identification. The same sentence means something entirely different in a design with n=100,000 and in an experiment with n=57, yet the tier is the same. 12 instances in the corpus |
+| **Methodological assertions** | "Estimating a static demand model would give biased elasticities". Grammatically a standard T0, but its truth value is settled by derivation rather than by data; there is no empirical commitment that could be falsified. Structural papers reserve their most unreserved causal language for **rejecting other people's methods**, while their own conclusions are uniformly lowered to T3 |
+| **Discriminating arguments** | "It is difficult to envision a selection process that would...", "if this were the case, any observed effects would not be limited to...". The persuasive force comes from the **selectivity of the pattern**, not from the verb. Read literally they are T3/T4, yet they carry the heaviest identification work in the paper -- **tier and argumentative weight run in exactly opposite directions** |
+| **Model-internal assertions** | Simulation output is grammatically isomorphic to an estimate with a standard error. "the total net gain would be 164.29 million dollars" and "reduces the probability by 21.60%" cannot be distinguished on the five-tier scale |
 
-还有三处执行层面的崩塌：
+There are also three breakdowns at the execution level:
 
-- **"同句"规则由标点决定档位。**同一实质承诺写成两句是 T0，写成一句是 T1。语料里限定的
-  实际作用域有四级：同句 / 段落级（"our findings are conditional on them"，覆盖此后全部结论）/
-  章节级（"Even though the counterfactuals are 'partial'"，覆盖三个实验）/ 跨节前指（"we assess
-  this in Appendix A"）。
-- **T2 是三个现象的合并同类项**：同一主张的稳健性失败、平行构念上的零结果、假设方向被反转。
-  第二类根本不是反证。因此"T2 密度"不可用于跨篇比较。
-- **假设陈述（Hypothesis）语法上是 T0**。照单打档会把"提出待检验命题"记成"作无限定因果断言"。
+- **The "same sentence" rule lets punctuation decide the tier.** The same substantive commitment
+  is T0 when written as two sentences and T1 when written as one. In the corpus, the actual scope
+  of a qualifier has four levels: same sentence / paragraph level ("our findings are conditional
+  on them", covering every conclusion that follows) / section level ("Even though the
+  counterfactuals are 'partial'", covering three experiments) / cross-section forward reference
+  ("we assess this in Appendix A").
+- **T2 lumps three phenomena together**: a robustness failure of the same claim, a null result on
+  a parallel construct, and a hypothesized direction that is reversed. The second kind is not
+  counterevidence at all. "T2 density" therefore cannot be used for cross-paper comparison.
+- **Hypothesis statements are grammatically T0.** Tiering them by the book would record "stating
+  a proposition to be tested" as "making an unqualified causal assertion".
 
 ---
 
-## 二、修正后的模型
+## 2. The Revised Model
 
-### 2.1 先分类型，再打档
+### 2.1 Classify the type first, then assign the tier
 
-档位只对 `world` 类型有意义。其余类型走各自的规则。
+Tiers are meaningful only for the `world` type. The other types follow their own rules.
 
-| 断言类型 | 判别 | 治理方式 |
+| Assertion type | Test | Governance |
 |---|---|---|
-| `world` | 关于研究对象的因果或关联断言 | 打 T0–T4 |
-| `negative` | 排除性/否定式断言 | **不打档**。必须携带 `power_basis`：支撑该排除的检验、其样本量与最小可检测效应。缺 `power_basis` 一律降为 T3 措辞（"does not appear to be the primary driver"），禁止 "we rule out" |
-| `methodological` | 断言对象是估计量或方法而非世界 | 不打档，但必须标类型，避免被计入实证强度统计 |
-| `discriminating` | 论证形式为"若替代解释成立则应观察到 X" | 不打档，但**必须登记它排除的具体替代解释**。这类句子的低档位是正常的，检查器不得据此判定"证据弱" |
-| `model_internal` | 无抽样不确定性的模型输出 | 必须携带 `as-modeled` 标记（语料里 `as we model` / `Given the model structure` 是最干净的分界词）。禁止使用 "significant" |
-| `hypothesis` | 待检验命题 | 不打档 |
+| `world` | Causal or associational assertion about the object of study | Assign T0--T4 |
+| `negative` | Exclusionary/negative assertion | **Not tiered**. Must carry `power_basis`: the test supporting the exclusion, its sample size, and its minimum detectable effect. Without `power_basis`, always lowered to T3 wording ("does not appear to be the primary driver"); "we rule out" is forbidden |
+| `methodological` | The object of the assertion is an estimator or method rather than the world | Not tiered, but the type must be tagged so that it is not counted in empirical-strength statistics |
+| `discriminating` | Argument of the form "if the alternative explanation held, X should be observed" | Not tiered, but **the specific alternative explanation it rules out must be registered**. A low tier is normal for such sentences; the checker must not conclude "weak evidence" from it |
+| `model_internal` | Model output with no sampling uncertainty | Must carry the `as-modeled` marker (in the corpus, `as we model` / `Given the model structure` are the cleanest boundary phrases). "significant" is forbidden |
+| `hypothesis` | Proposition awaiting a test | Not tiered |
 
-### 2.2 档位（仅 `world`），去掉"同句"约束
+### 2.2 Tiers (`world` only), with the "same sentence" constraint removed
 
-T0 无限定 / T1 有范围限定 / T2 因果断言 + 披露反证 / T3 关联或一致性 / T4 描述。
+T0 unqualified / T1 scope-qualified / T2 causal assertion + disclosed counterevidence / T3 association or consistency / T4 description.
 
-"同句"改为独立字段：
+"Same sentence" becomes a separate field:
 
 ```
 qualifier_scope: sentence | paragraph | section | cross_reference
 ```
 
-`section` 与 `cross_reference` 级别的限定**允许**，但要求：限定语句本身必须被登记为一个
-`scope_declaration`，且其覆盖范围显式声明。这样 P13 那种"一句 'partial' 覆盖三个实验、
-但摘要里消失"的情形可被检出。
+Qualifiers at the `section` and `cross_reference` levels are **allowed**, but with a requirement:
+the qualifying sentence itself must be registered as a `scope_declaration`, and its coverage must
+be declared explicitly. This makes the P13 situation -- one 'partial' covering three experiments
+but vanishing from the abstract -- detectable.
 
-### 2.3 三个新维度——它们才是判别诚实与回避的变量
+### 2.3 Three new dimensions -- these are the variables that actually separate honesty from evasion
 
-**（1）`counterevidence_prominence`：反证的显著度**
+**(1) `counterevidence_prominence`: the prominence of the counterevidence**
 
-语料里同一份反证可以出现在五个位置，档位相同、实际约束力差一个数量级：
+In the corpus the same piece of counterevidence can appear in five positions; the tier is the same,
+but the actual constraining force differs by an order of magnitude:
 
-| 位置 | 例 |
+| Position | Example |
 |---|---|
-| 括号内 | "attenuates the negative effects of language and cultural **(but not time zone)** differences" |
-| 句尾并列，无转折词 | "a positive and significant impact on Reservations, **albeit with a relatively small coefficient, and no significant effect on Booked Days**" |
-| 独立转折句 | "**However**, the coefficient of weitaonum is insignificant." |
-| 脚注/尾注 | "it is **nearly impossible** to tease out the informational effect and reward effect separately."（全篇最重的机制局限） |
-| 附录 | "**although the pre-treatment trends are not strictly parallel**…"（核心识别假设的部分失败，正文完全未提） |
+| In parentheses | "attenuates the negative effects of language and cultural **(but not time zone)** differences" |
+| Sentence-final coordination, no contrastive connective | "a positive and significant impact on Reservations, **albeit with a relatively small coefficient, and no significant effect on Booked Days**" |
+| Standalone contrastive sentence | "**However**, the coefficient of weitaonum is insignificant." |
+| Footnote/endnote | "it is **nearly impossible** to tease out the informational effect and reward effect separately." (the heaviest mechanism limitation in the whole paper) |
+| Appendix | "**although the pre-treatment trends are not strictly parallel**..." (a partial failure of the core identification assumption, never mentioned in the main text) |
 
-**统计事实：14 篇中 8 篇，其单条最具威胁性的披露位于脚注、尾注或附录，而非正文。**
+**Statistical fact: in 8 of the 14 papers, the single most threatening disclosure sits in a footnote, endnote, or appendix rather than in the main text.**
 
-因此 T2 的"相邻披露"必须细化为可查的显著度等级，且规定：**当反证针对的是识别假设本身时，
-prominence 必须达到"独立转折句 + 正文"级别**。
+T2's "adjacent disclosure" must therefore be refined into checkable prominence levels, with the
+rule: **when the counterevidence targets the identification assumption itself, prominence must
+reach the "standalone contrastive sentence + main text" level**.
 
-**（2）`underlying_precision`：该句依赖的估计的精度**
+**(2) `underlying_precision`: the precision of the estimate the sentence relies on**
 
-语料里最尖锐的三例：不显著的系数被赋予实质解释（"insignificantly different from zero and
-slightly positive … implying that…"）；p<0.10 的系数在摘要里升为无标记因果动词（正文
-"suggesting that…（10% 显著）" → 摘要 "generate"）；t=1.8 的横截面差异在摘要里写成既定事实。
+The three sharpest cases in the corpus: an insignificant coefficient given a substantive
+interpretation ("insignificantly different from zero and slightly positive ... implying that...");
+a p<0.10 coefficient promoted in the abstract to an unmarked causal verb (main text
+"suggesting that..." (significant at 10%) -> abstract "generate"); a cross-sectional difference
+with t=1.8 written up in the abstract as established fact.
 
-这三句的**档位都很克制**，读起来毫无问题。五档量的是语法承诺，不是措辞与证据的匹配度。
+All three sentences are **restrained in tier** and read as perfectly fine. The five-tier scale
+measures grammatical commitment, not the match between wording and evidence.
 
-**（3）由前两者导出的真正指标：残差**
+**(3) The real metric, derived from the first two: the residual**
 
 ```
-overclaim_residual = 措辞档位强度 − 证据强度
+overclaim_residual = wording tier strength - evidence strength
 ```
 
-其中证据强度由 claim 登记表已有的字段算出（assessment、是否收缩过、gate 状态、
-支撑卡片 provenance）再叠加 `underlying_precision`。
+where evidence strength is computed from fields the claim registry already has (assessment,
+whether the claim has been narrowed, gate status, provenance of the supporting cards), with
+`underlying_precision` layered on top.
 
-- 残差为正 → **过度声称**，阻断
-- 残差为负 → **浪费证据**，报告
-- 这正是我原设计里"过强阻断、过弱报告"的正确形式化
+- Positive residual -> **overclaim**, block
+- Negative residual -> **wasted evidence**, report
+- This is exactly the correct formalization of "block when too strong, report when too weak" from my original design
 
 ---
 
-## 三、降档动作库（12 类）与"诚实 vs 回避"的四条判据
+## 3. The Downgrade Move Library (12 Classes) and the Four Criteria for "Honest vs Evasive"
 
-判据（逐条可机器化）：
+Criteria (each machine-checkable):
 
-- **(a) 可定位性**：收缩是否绑定到具体规格/列号/变量/子样本
-- **(b) 传导性**：收缩是否改变了下游文本（摘要/结论/标题）的措辞。**不传导 = 回避**
-- **(c) 方向性**：是否说明偏误方向或后果，还是仅"应谨慎解读"
-- **(d) 即时回收**：让步后是否在同句或下一句被 `However / Nevertheless / Overall / Encouragingly` 抵消
+- **(a) Locatability**: whether the narrowing is bound to a specific specification/column number/variable/subsample
+- **(b) Propagation**: whether the narrowing changed the wording of the downstream text (abstract/conclusion/title). **No propagation = evasion**
+- **(c) Directionality**: whether the direction or consequence of the bias is stated, or merely "should be interpreted with caution"
+- **(d) Immediate recovery**: whether, after the concession, it is cancelled in the same or the next sentence by `However / Nevertheless / Overall / Encouragingly`
 
-| # | 动作 | 触发 | 落点 | 判定 |
+| # | Move | Trigger | Lands at | Verdict |
 |---|---|---|---|---|
-| 1 | **范围收缩** | 子样本失败 | T1 | 看传导。"our earlier reported effects **are driven by IT-using industries**"——摘要不带此限定 = 回避 |
-| 2 | **机制降级为解释** | 机制不可识别 | T3 | **诚实**。14 篇中 13 篇都有。标记词：`We interpret … as reflecting` / `as a plausible explanation` / `We propose some potential mechanisms` |
-| 3 | **零结果重述为排除性证据** | 机制/平衡检验为零 | T2/T3 | 分裂。判据是**是否承认"证据缺失 ≠ 缺失的证据"**：诚实者紧接着写 "an absence of evidence does not constitute evidence…" |
-| 4 | **失败重述为方法缺陷** | 稳健性失败 | T2，主张不降 | **回避**。"not significant, **perhaps because of the limited power** … However, the direction and magnitude are consistent with our expectations." 只给一半解释 |
-| 5 | **前置声明式收缩** | 设计上无法回答 | 主张撤回 | **最诚实**。"we are not taking a strong position that…"、"we are unable to draw meaningful inferences about…"。全篇因此没有一句 T0 |
-| 6 | **偏误方向声明** | 测量误差/SUTVA | T1/T3 | 看方向对谁有利。声明的偏误方向若恰好使自己结论被高估且不回补 = 诚实；包装成"我们低估了"再接"因此真实效应更大" = 回避 |
-| 7 | **让步—回收** | 平衡检验部分失败 | 净 T4，主张不降 | **回避**。模板：`Although [不利事实], [量级/引文]` + 下一句 `However/Overall/Encouragingly` 复位。**14 篇全部有此模板** |
-| 8 | **位移与埋藏** | 不利事实与主张冲突 | 正文档位不变 | **回避**。8/14 篇的最重威胁性披露在脚注/附录 |
-| 9 | **条件式安抚** | 无法检验的假设 | 表面 T3，无实质收缩 | **回避**。"**If** the share of gift purchases is small, the potential bias should be negligible."——条件本身从不被检验 |
-| 10 | **研究议程化** | 任何限制 | 不降档 | **回避**。局限段 5 条中 3–4 条属此类是常态 |
-| 11 | **对象替换** | 目标构念不可测 | T1 | **诚实**。"**rather than examining** the implications for SAP behavior, **we instead examine** their implications for ISV partnership decisions."——限制被兑换成一个能被数据支持的、较小的主张。全语料最干净的一类 |
-| 12 | **自陈不可检验** | 机制设计上不可分 | 主张撤回/T3 | **最诚实**。"we **admittedly have no way of testing** this conjecture."——承认后不给补救 |
+| 1 | **Scope narrowing** | Subsample failure | T1 | Depends on propagation. "our earlier reported effects **are driven by IT-using industries**" -- the abstract does not carry this qualifier = evasion |
+| 2 | **Mechanism demoted to interpretation** | Mechanism not identifiable | T3 | **Honest**. Present in 13 of the 14 papers. Marker phrases: `We interpret ... as reflecting` / `as a plausible explanation` / `We propose some potential mechanisms` |
+| 3 | **Null result restated as exclusionary evidence** | Mechanism/balance test comes out null | T2/T3 | Split. The criterion is **whether it acknowledges that "absence of evidence is not evidence of absence"**: the honest ones immediately write "an absence of evidence does not constitute evidence..." |
+| 4 | **Failure restated as a methodological deficiency** | Robustness failure | T2, claim not lowered | **Evasive**. "not significant, **perhaps because of the limited power** ... However, the direction and magnitude are consistent with our expectations." Gives only half the explanation |
+| 5 | **Up-front declared narrowing** | Cannot be answered by design | Claim withdrawn | **Most honest**. "we are not taking a strong position that...", "we are unable to draw meaningful inferences about...". The paper consequently contains not a single T0 sentence |
+| 6 | **Bias-direction statement** | Measurement error/SUTVA | T1/T3 | Depends on whom the direction favors. If the stated bias direction happens to make one's own conclusion overstated, and nothing is recovered afterwards = honest; packaging it as "we underestimate" followed by "so the true effect is even larger" = evasive |
+| 7 | **Concession-recovery** | Partial balance-test failure | Net T4, claim not lowered | **Evasive**. Template: `Although [unfavorable fact], [magnitude/citation]` + next sentence `However/Overall/Encouragingly` resets. **All 14 papers use this template** |
+| 8 | **Displacement and burial** | Unfavorable fact conflicts with the claim | Main-text tier unchanged | **Evasive**. In 8/14 papers the most threatening disclosure is in a footnote/appendix |
+| 9 | **Conditional reassurance** | Untestable assumption | Surface T3, no substantive narrowing | **Evasive**. "**If** the share of gift purchases is small, the potential bias should be negligible." -- the condition itself is never tested |
+| 10 | **Deferral to the research agenda** | Any limitation | No downgrade | **Evasive**. It is the norm for 3-4 of the 5 items in a limitations paragraph to fall into this class |
+| 11 | **Target substitution** | Target construct not measurable | T1 | **Honest**. "**rather than examining** the implications for SAP behavior, **we instead examine** their implications for ISV partnership decisions." -- the limitation is exchanged for a smaller claim that the data can support. The cleanest class in the entire corpus |
+| 12 | **Self-declared untestability** | Mechanisms inseparable by design | Claim withdrawn/T3 | **Most honest**. "we **admittedly have no way of testing** this conjecture." -- admits it and offers no remedy |
 
 ---
 
-## 四、改变写作建议（不只是检查器）的四个统计事实
+## 4. Four Statistical Facts That Change the Writing Guidance (Not Just the Checker)
 
-**1. 摘要强于正文是行业惯例，不是个别失误。**
-45 组可比配对中：摘要更强 **30**、相同 9、更弱 4、保护性省略 2。**13/14 篇**至少有一处。
+**1. An abstract stronger than the main text is an industry convention, not an isolated slip.**
+Of 45 comparable pairs: abstract stronger **30**, same 9, weaker 4, protective omission 2. **13/14 papers** have at least one instance.
 
-含义：规则不能写成"禁止摘要强于正文"，那会被全体违反从而失效。正确的规则是
-**升档必须留痕**——摘要档位高于结果节时，记录升了几档、靠什么支撑。
-四种升档手法（按频次）：删除同段反证 / 抹去基线或量级 / 换掉自我标注
-（正文 "back-of-the-envelope estimation" → 摘要 "Our further analysis indicates"）/ 换动词。
+Implication: the rule cannot be written as "the abstract must not be stronger than the main text";
+everyone would violate it and it would become dead. The correct rule is
+**an upgrade must leave a trace** -- when the abstract's tier is above the results section's, record how many tiers it rose and what supports it.
+The four upgrade techniques (by frequency): deleting the counterevidence in the same paragraph / erasing the baseline or magnitude / swapping the self-label
+(main text "back-of-the-envelope estimation" -> abstract "Our further analysis indicates") / swapping the verb.
 
-**2. 强度峰值不总在摘要。**三种模式各有实例：引言 > 摘要；结论 > 摘要 > 结果（同一主张
-T3 → T1 → T0 单调升级）；**标题 > 摘要 > 正文**（标题 "Optimizing"，正文明写
-"we do not attempt to manipulate the policies to achieve optimality"）。
-所以一致性检查必须覆盖标题。
+**2. The strength peak is not always in the abstract.** All three patterns have instances: introduction > abstract; conclusion > abstract > results (the same claim
+upgraded monotonically T3 -> T1 -> T0); **title > abstract > main text** (title "Optimizing", main text explicitly stating
+"we do not attempt to manipulate the policies to achieve optimality").
+Consistency checks must therefore cover the title.
 
-**3. 局限性段落不是降档发生的地方。**降档发生在结果节内部（与失败同句或紧邻）和方法节。
-两套话语互不引用——最脆弱的证据只在它首次出现的位置存在一次。
-9 篇有独立局限小节的论文中，**3 篇的局限段完全不提正文已披露的任何失败**。
+**3. The limitations paragraph is not where downgrades happen.** Downgrades happen inside the results section (in the same sentence as the failure, or right next to it) and in the methods section.
+The two discourses never reference each other -- the most fragile evidence exists exactly once, at the place where it first appears.
+Of the 9 papers with a standalone limitations subsection, **3 have limitations paragraphs that mention none of the failures already disclosed in the main text**.
 
-**4. 最反直觉、也最有用的一条：取消独立局限性小节，反而更诚实。**
+**4. The most counterintuitive, and most useful, finding: dropping the standalone limitations subsection makes papers more honest, not less.**
 
-清点 59 条局限性表述：真实约束 36、礼节性免责 16、半真实 6、执行失败 1。
+An inventory of 59 limitation statements: genuine constraints 36, ritual disclaimers 16, half-genuine 6, execution failure 1.
 
-- 有独立局限小节 = 9 篇，礼节性免责集中在其中三篇（5 条中 4 条 / 5 条中 3 条 / 5 条中 2 条）
-- **无独立局限小节 = 5 篇，其中 4 篇的局限性表述全部为真实约束**
+- With a standalone limitations subsection = 9 papers; the ritual disclaimers concentrate in three of them (4 of 5 / 3 of 5 / 2 of 5)
+- **Without a standalone limitations subsection = 5 papers, and in 4 of them every limitation statement is a genuine constraint**
 
-机制很清楚：**没有专门放局限的地方，局限就只能绑在它所影响的那条主张旁边**，于是必然带
-列号、变量名、子样本，也就必然满足判据 (a)。极端案例是七条限制分别落在导言、§3、§4.4、
-§4.4.3、§5.1.1（两条）、§5.2，每条都绑到具体列号，且至少两条承认失败后不给补救。
+The mechanism is clear: **with no dedicated place to put limitations, a limitation can only be attached next to the claim it affects**, so it necessarily comes with
+a column number, a variable name, a subsample, and therefore necessarily satisfies criterion (a). The extreme case has seven limitations landing in the introduction, §3, §4.4,
+§4.4.3, §5.1.1 (two), and §5.2, each bound to a specific column number, with at least two admitting a failure and offering no remedy.
 
-代价是读者要自己把散落的限制拼起来。
+The cost is that readers have to piece the scattered limitations together themselves.
 
 ---
 
-## 五、结构估计论文的特殊措辞（单列）
+## 5. The Special Wording of Structural Estimation Papers (Listed Separately)
 
-**identified vs calibrated 的语法分工极干净**：
-- identified 一律被动或 "only … can be identified"：`the discount factor is usually not identified, so I do not attempt to estimate it`
-- calibrated 一律第一人称主动设定 + 惯例背书：`I set all discount rates to be 0.996, which has been typically assumed for monthly data`；表格直接标 `0 (fixed)` / `1 (fixed)`
+**The grammatical division of labor between identified and calibrated is extremely clean**:
+- identified is always passive or "only ... can be identified": `the discount factor is usually not identified, so I do not attempt to estimate it`
+- calibrated is always first-person active setting + endorsement by convention: `I set all discount rates to be 0.996, which has been typically assumed for monthly data`; tables are labeled directly as `0 (fixed)` / `1 (fixed)`
 
-**一类五档看不见的实质降档：identified → simulated。**
-"the magnitude of indirect effects … **is difficult to identify separately by the estimated parameters** …
-**we apply simulations to explicitly quantify** the indirect effects"——该量从"有标准误的参数"
-变为"无标准误的模拟输出"，语法上与其他效应量无法区分。
+**A class of substantive downgrade the five-tier scale cannot see: identified -> simulated.**
+"the magnitude of indirect effects ... **is difficult to identify separately by the estimated parameters** ...
+**we apply simulations to explicitly quantify** the indirect effects" -- the quantity goes from "a parameter with a standard error"
+to "simulation output with no standard error", grammatically indistinguishable from the other effect sizes.
 
-**反事实限定的三种做法**：一次性总括 + 自嘲引号（`Even though the counterfactuals are "partial,"`，
-但该限定在摘要与结论中完全消失，而其实质后果很重——净收益数在三种设定下符号会翻转）；
-分散重复的条件限定（几乎每个政策模拟结论旁重复一次）；不限定，把反事实写成弹性事实。
+**Three ways of qualifying counterfactuals**: a one-time blanket qualifier + self-deprecating scare quotes (`Even though the counterfactuals are "partial,"`,
+but the qualifier vanishes entirely from the abstract and the conclusion, while its substantive consequence is heavy -- the net-gain figure flips sign across the three settings);
+dispersed, repeated conditional qualifiers (repeated next to almost every policy-simulation conclusion); no qualifier at all, with the counterfactuals written as elasticity facts.
 
-**最干净的分界标记：`as we model` / `Given the model structure`**——只出现在结构估计论文里，
-用来标注"这个结论由模型设定决定而非由数据支持"。有一处作者因此**主动放弃解释该结论**：
-"Given the model structure, the effect … should be consistent qualitatively. Therefore,
+**The cleanest boundary markers: `as we model` / `Given the model structure`** -- they appear only in structural estimation papers,
+and flag that "this conclusion is determined by the model specification rather than supported by the data". In one instance the authors consequently **decline to interpret the conclusion at all**:
+"Given the model structure, the effect ... should be consistent qualitatively. Therefore,
 **we omit the repeated qualitative interpretation**."
 
-**方法论断言的强度反常**：结构论文引言里最强的三句 T0 全都不是关于世界的，而是关于
-别人方法的偏误。对自己的结论一律降到 T3。
+**The strength anomaly of methodological assertions**: the three strongest T0 sentences in a structural paper's introduction are all not about the world, but about
+the bias of other people's methods. The authors' own conclusions are uniformly lowered to T3.
 
 ---
 
-## 六、对检查器的影响
+## 6. Implications for the Checker
 
-四条新的可机器化检查，全部来自上面的判据：
+Four new machine-checkable checks, all derived from the criteria above:
 
-| 检查 | 依据 | 输出级别 |
+| Check | Basis | Output level |
 |---|---|---|
-| **传导性**：某条 claim 在结果节收缩过（`revision_reason: bounded_by`），但摘要/结论/**标题**中同一 claim 的档位未跟随 | 判据 (b)；语料 30/45 组 | BLOCK |
-| **即时回收**：让步结构后 1 句内出现 `However / Overall / Nevertheless / Encouragingly` 且主张档位未降 | 判据 (d)；14/14 篇有此模板 | WARN |
-| **反证显著度**：针对识别假设的反证，其 prominence 低于"独立转折句 + 正文" | 8/14 篇把最重披露放在脚注/附录 | BLOCK |
-| **过度声称残差**：措辞档位 − 证据强度（含 `underlying_precision`） > 0 | 6.10 | BLOCK（>0）/ INFO（<0） |
+| **Propagation**: a claim was narrowed in the results section (`revision_reason: bounded_by`), but the tier of the same claim in the abstract/conclusion/**title** did not follow | Criterion (b); 30/45 pairs in the corpus | BLOCK |
+| **Immediate recovery**: `However / Overall / Nevertheless / Encouragingly` appears within 1 sentence after a concession structure and the claim's tier was not lowered | Criterion (d); 14/14 papers use this template | WARN |
+| **Counterevidence prominence**: counterevidence targeting an identification assumption whose prominence is below "standalone contrastive sentence + main text" | 8/14 papers put the heaviest disclosure in a footnote/appendix | BLOCK |
+| **Overclaim residual**: wording tier - evidence strength (including `underlying_precision`) > 0 | 6.10 | BLOCK (>0) / INFO (<0) |
 
-以及一条否定式断言的硬规则：**没有 `power_basis` 就不许写 "we rule out"**，只能写
-"does not appear to be the primary driver"。
+Plus one hard rule for negative assertions: **without `power_basis`, "we rule out" may not be written**; only
+"does not appear to be the primary driver" is allowed.
