@@ -39,6 +39,7 @@ def expected_manifest(source: dict) -> dict:
         "kit_root": ".workflow/kit",
         "protocol": "RESEARCH_PROTOCOL.md",
         "skills_root": ".workflow/kit/skills",
+        "start_prompts": ".workflow/kit/skills/empirical-workflow/references/start-prompts.md",
         "presentation_tooling": ".workflow/kit/presentation-tooling",
         "agents_root": ".workflow/kit/agents",
         "bootstrap_cli": ".workflow/kit/scripts/bootstrap_project.py",
@@ -92,8 +93,29 @@ def check_managed_file(path: Path, expected: str) -> None:
         raise BootstrapError(f"UNMANAGED {path}; refusing to overwrite a different file")
 
 
+def check_project_manifest(path: Path, expected_data: dict, expected_text: str) -> None:
+    if not path.exists() or path.read_text(encoding="utf-8") == expected_text:
+        return
+    try:
+        existing_data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    except yaml.YAMLError as exc:
+        raise BootstrapError(f"UNMANAGED {path}; refusing to overwrite a different file") from exc
+    prior_data = copy.deepcopy(expected_data)
+    prior_data["canonical_source"].pop("start_prompts", None)
+    if existing_data != prior_data:
+        raise BootstrapError(f"UNMANAGED {path}; refusing to overwrite a different file")
+
+
 def write_missing(path: Path, content: str, written: list[str], root: Path) -> None:
     if path.exists():
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(content, encoding="utf-8")
+    written.append(str(path.relative_to(root)))
+
+
+def write_changed(path: Path, content: str, written: list[str], root: Path) -> None:
+    if path.exists() and path.read_text(encoding="utf-8") == content:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
@@ -143,12 +165,15 @@ def bootstrap(target: Path, runtimes: list[str]) -> list[str]:
     source_paths = source_manifest["canonical_source"]
     kit_skills = KIT_ROOT / source_paths["skills_root"]
     kit_agents = KIT_ROOT / source_paths["agents_root"]
+    start_prompt_source = KIT_ROOT / source_paths["start_prompts"]
+    start_prompt_target = project_manifest["canonical_source"]["start_prompts"]
     manifest_text = yaml.safe_dump(project_manifest, sort_keys=False, allow_unicode=False)
     kit_link = target / ".workflow" / "kit"
     check_link(kit_link, KIT_ROOT, str(KIT_ROOT))
     check_managed_file(target / "RESEARCH_PROTOCOL.md", (KIT_ROOT / "RESEARCH_PROTOCOL.md").read_text(encoding="utf-8"))
     check_managed_file(target / "THIRD_PARTY_NOTICES.md", (KIT_ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8"))
-    check_managed_file(target / "workflow.manifest.yaml", manifest_text)
+    check_project_manifest(target / "workflow.manifest.yaml", project_manifest, manifest_text)
+    check_link(target / "WORKFLOW_START.md", start_prompt_source, start_prompt_target)
 
     view_paths = {
         "claude": target / project_manifest["runtime_views"]["claude"]["skills"],
@@ -206,7 +231,11 @@ exec "$kit_root/.venv/bin/python" "$kit_root/scripts/ewf.py" \\
     ensure_line(target / ".workflow" / ".gitignore", "kit", target, written)
     write_missing(target / "RESEARCH_PROTOCOL.md", (KIT_ROOT / "RESEARCH_PROTOCOL.md").read_text(encoding="utf-8"), written, target)
     write_missing(target / "THIRD_PARTY_NOTICES.md", (KIT_ROOT / "THIRD_PARTY_NOTICES.md").read_text(encoding="utf-8"), written, target)
-    write_missing(target / "workflow.manifest.yaml", manifest_text, written, target)
+    write_changed(target / "workflow.manifest.yaml", manifest_text, written, target)
+    start_prompt_link = target / "WORKFLOW_START.md"
+    if not start_prompt_link.is_symlink():
+        start_prompt_link.symlink_to(start_prompt_target)
+        written.append(start_prompt_link.name)
 
     templates = kit_skills / "empirical-workflow" / "templates"
     write_missing(target / "research.yaml", (templates / "research-template.yaml").read_text(encoding="utf-8"), written, target)

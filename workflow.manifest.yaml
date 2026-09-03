@@ -15,6 +15,7 @@ canonical_source:
   kit_root: .
   protocol: RESEARCH_PROTOCOL.md
   skills_root: skills
+  start_prompts: skills/empirical-workflow/references/start-prompts.md
   presentation_tooling: presentation-tooling
   agents_root: agents
   bootstrap_cli: scripts/bootstrap_project.py

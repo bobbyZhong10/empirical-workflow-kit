@@ -129,6 +129,7 @@ def test_manifest_names_the_canonical_source_and_the_views():
         "kit_root": ".",
         "protocol": "RESEARCH_PROTOCOL.md",
         "skills_root": "skills",
+        "start_prompts": "skills/empirical-workflow/references/start-prompts.md",
         "presentation_tooling": "presentation-tooling",
         "agents_root": "agents",
         "bootstrap_cli": "scripts/bootstrap_project.py",

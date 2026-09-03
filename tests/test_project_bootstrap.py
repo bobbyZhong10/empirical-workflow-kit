@@ -39,6 +39,14 @@ def test_bootstrap_existing_project_creates_portable_contract_and_runtime_views(
     )
     assert (target / ".workflow" / "kit").is_symlink()
     assert (target / ".workflow" / "kit").resolve() == ROOT
+    start_prompt = target / "WORKFLOW_START.md"
+    assert start_prompt.is_symlink()
+    assert os.readlink(start_prompt) == (
+        ".workflow/kit/skills/empirical-workflow/references/start-prompts.md"
+    )
+    assert start_prompt.resolve() == (
+        ROOT / "skills" / "empirical-workflow" / "references" / "start-prompts.md"
+    )
 
     for runtime_view in (target / ".claude" / "skills", target / ".agents" / "skills"):
         for skill in manifest["managed_skills"]:
@@ -161,3 +169,56 @@ def test_bootstrap_preserves_workflow_ignore_rules_and_refuses_wrapper_collision
     assert "UNMANAGED" in collided.stdout + collided.stderr
     assert wrapper.read_text(encoding="utf-8") == "#!/bin/sh\necho third-party\n"
     assert not (second_target / "RESEARCH_PROTOCOL.md").exists()
+
+
+def test_bootstrap_refuses_an_unmanaged_start_prompt_before_writing(tmp_path):
+    target = tmp_path / "research-project"
+    target.mkdir()
+    start_prompt = target / "WORKFLOW_START.md"
+    start_prompt.write_text("# Project-owned start instructions\n", encoding="utf-8")
+
+    result = run_bootstrap(target, "--all")
+
+    assert result.returncode != 0
+    assert "UNMANAGED" in result.stdout + result.stderr
+    assert start_prompt.read_text(encoding="utf-8") == "# Project-owned start instructions\n"
+    assert not (target / "RESEARCH_PROTOCOL.md").exists()
+
+
+def test_bootstrap_upgrades_its_prior_external_manifest_and_adds_start_prompt(tmp_path):
+    target = tmp_path / "research-project"
+    target.mkdir()
+    first = run_bootstrap(target, "--all")
+    assert first.returncode == 0, first.stdout + first.stderr
+
+    (target / "WORKFLOW_START.md").unlink()
+    manifest_path = target / "workflow.manifest.yaml"
+    prior_manifest = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    prior_manifest["canonical_source"].pop("start_prompts")
+    manifest_path.write_text(
+        yaml.safe_dump(prior_manifest, sort_keys=False, allow_unicode=False),
+        encoding="utf-8",
+    )
+
+    upgraded = run_bootstrap(target, "--all")
+
+    assert upgraded.returncode == 0, upgraded.stdout + upgraded.stderr
+    current = yaml.safe_load(manifest_path.read_text(encoding="utf-8"))
+    assert current["canonical_source"]["start_prompts"] == (
+        ".workflow/kit/skills/empirical-workflow/references/start-prompts.md"
+    )
+    assert (target / "WORKFLOW_START.md").is_symlink()
+
+
+def test_bootstrap_does_not_treat_a_project_owned_manifest_as_managed(tmp_path):
+    target = tmp_path / "research-project"
+    target.mkdir()
+    manifest_path = target / "workflow.manifest.yaml"
+    manifest_path.write_text("project_owned: true\n", encoding="utf-8")
+
+    result = run_bootstrap(target, "--codex")
+
+    assert result.returncode != 0
+    assert "UNMANAGED" in result.stdout + result.stderr
+    assert manifest_path.read_text(encoding="utf-8") == "project_owned: true\n"
+    assert not (target / "RESEARCH_PROTOCOL.md").exists()

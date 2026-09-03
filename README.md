@@ -243,6 +243,11 @@ cd /absolute/path/to/research-project
 .workflow/bin/ewf doctor
 ```
 
+The bootstrap also creates `WORKFLOW_START.md`, a relative link to the kit's
+canonical startup prompts. Commit the link with the project; it gives Claude
+Code and Codex the same entry instructions without copying a prompt into both
+runtime adapters.
+
 On another machine, check out the project's recorded kit version and rerun the
 same bootstrap command to recreate the ignored local binding. Commit the project
 records and runtime-view links, but never commit `.workflow/kit` itself.
@@ -269,6 +274,46 @@ records and runtime-view links, but never commit `.workflow/kit` itself.
    the templates routed by `empirical-workflow`.
 5. Start Claude Code or Codex at the repository root. The runtime adapter reads
    the same protocol, manifest, router, and project state.
+
+## Start or resume a workflow
+
+Open `WORKFLOW_START.md` in an attached external project. When working directly
+inside the kit checkout, open the manifest-named canonical file at
+`skills/empirical-workflow/references/start-prompts.md`. Copy one prompt, fill
+only its short project-specific header, and send it to Claude Code or Codex.
+
+### New project or automatic completion
+
+Use `AUTONOMOUS_WITH_RED_LINES` when starting a new project or asking the
+workflow to carry an existing project through all remaining stages. For an
+existing data project, set the priority explicitly, for example:
+
+```text
+Objective: Reproduce and verify the existing data work, then complete the
+literature review, theory development, analysis, manuscript, and internal review.
+Starting point: The project already contains substantially complete data work.
+Priority: Reproduce the data pipeline before relying on any existing result.
+Constraints: Preserve existing data, code, results, project instructions, and
+user-authored README content.
+```
+
+This is the highest-autonomy mode: routine reversible work continues without
+step-by-step approval, while mandatory pauses and external-action authority
+remain binding.
+
+### Take over work already in progress
+
+Use `TAKEOVER_AND_RESUME` after a Claude/Codex handoff, context compaction,
+interruption, or partial run. Point it at the latest handoff when one exists.
+The runtime reconstructs state from the protocol, project configuration,
+status, current evidence, and decision log, validates that record against the
+actual files, and resumes from the first unverified atomic task. It does not
+create a fresh project state or blindly rerun completed work.
+
+The two modes change only how work begins and resumes. They use the same stages,
+evidence records, checkpoints, language policy, R-first rule, and mandatory
+pauses. Switching between Claude Code and Codex therefore does not require a
+different prompt or a separate project version.
 
 Run configured commands through the logical tool runner so the profile affects
 execution rather than documentation alone:

@@ -96,6 +96,8 @@ Read a reference only when the selected stage calls for it:
   method, metric, measurement, sample, or inference choice.
 - `references/code-review.md`: concise research-code review taxonomy; read
   only when reviewing or simplifying code.
+- `references/start-prompts.md`: user-facing autonomous and takeover entry
+  prompts; read only when the user selects one of those startup modes.
 - `templates/status-template.md`: project status record.
 - `templates/handoff-template.md`: cross-runtime transfer record.
 
