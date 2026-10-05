@@ -41,6 +41,12 @@ supports it and the user or runtime policy authorizes parallel workers. Keep
 synthesis, coupled design choices, and tasks that share mutable state in one
 context. Browser sessions and other singleton resources remain serialized.
 
+Batch independent tool calls where supported; keep dependent choices and shared
+state changes sequential. For a long-running operation, use a resumable job or
+bounded waits so progress and new user input can be handled. Delegate only when
+isolation or independent work benefits the task and the runtime permits it;
+duration alone is not a reason to create another agent.
+
 An independent worker at a decision point returns options and a recommendation
 but does not exercise authority it was not granted. Resume a stalled worker
 with the established facts and a finish-only request before replacing it. All

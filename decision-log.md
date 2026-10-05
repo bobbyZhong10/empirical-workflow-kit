@@ -75,3 +75,34 @@ writing rules do not authorize unsupported methods or establish identification.
 Recorded verification: 448 tests passed; project and user parity reported zero
 errors. A routing check accepted a valid temporary method pack and rejected a
 removed shared-reference link. This verifies routing, not interpretation quality.
+
+## 2026-10-05: Scoped upstream writing and instruction update
+
+Review upstream changes through `fad84ebe0d0d83c8ce7d17d3cc5deff49b7d527e`.
+Adapt genre-sensitive technical explanation, purpose-first exposition, explicit
+plan objectives, simplification review, and responsive execution into existing
+shared references. Retain current evidence boundaries and authorization rules.
+Do not adopt phrase-position quality gates or blanket publication, installation,
+or delegation defaults. Record source attribution and disposition in
+`docs/upstream-absorption-audit.md`; retain the baseline lock for other families.
+
+Verification: 34 workflow contract tests passed. Project runtime parity and
+offline upstream mapping validation passed. Whitespace checks passed.
+
+## 2026-10-05: Econometric review and exhibit integration
+
+Adapt selected guidance from `pedrohcgs/claude-code-my-workflow` at
+`ae726177e23426b665e0a1eef5fb5bd83bd5b831`. Strengthen identification review by
+evidence strategy, code review of the data-to-estimate path, rendered exhibit
+inspection, and replication discrepancy diagnosis. Route these through existing
+stage contracts and references. Preserve current estimand, evidence, authority,
+and review-adjudication rules; add no separate state system or quality score.
+
+Unexpected results require investigation rather than automatic rejection.
+Numerical tolerances, random streams and display settings remain appropriate to
+the design and output. Attribution and deliberate exclusions are recorded in
+`docs/upstream-absorption-audit.md`.
+
+Verification: 34 workflow contract tests passed; project runtime parity reported
+zero errors; whitespace checks passed. This validates contract compatibility,
+not a new empirical implementation or the statistical claims of the source.

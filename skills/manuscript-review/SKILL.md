@@ -214,6 +214,12 @@ Terminology drift (term, how it varies, recommended standard); Minor inconsisten
 
 ### Agent 3, unsupported claims and identification integrity
 
+Read `../empirical-workflow/references/identification-decision-tree.md` for
+strategy-specific identification review; structural claims use Stage 6b.
+For each material concern, state what evidence or revision could resolve it,
+including claim withdrawal when the available data cannot resolve the issue.
+An unexpected sign is a reason to investigate, not a defect by itself.
+
 Skeptical econometrician enforcing claim discipline: a claim must never exceed what the
 identification allows. Review both the overall design and sentence-level
 inferences, diagnostic decision rules, shared counterfactuals, and estimand

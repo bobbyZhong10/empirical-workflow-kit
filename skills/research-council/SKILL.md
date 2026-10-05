@@ -33,6 +33,7 @@ never edits the target.
 | Argument | Default | Meaning |
 |---|---|---|
 | target | required | file path, or an inline paragraph describing the idea, plan, or decision |
+| `--goal` | project objective | the objective against which the target is reviewed; retain its stated wording |
 | `--chef-skill` | off | swap in the skill-design roster |
 | `--critics=a,b,c` | default roster | explicit roster; unknown names become free-form role prompts |
 | `--n=K` | 5 | number of critics, hard cap 5 |
@@ -117,10 +118,21 @@ truncating to `--n`. Truncation keeps the first K critics in list order, so `--n
 default roster drops the academic editor and the harsh referee. Create a scratch directory `$EWF_CACHE_DIR/research-council_<YYYYMMDD>_<run_id>/`
 for raw critic output.
 
+Bind the review to the stated goal or the current project objective. If neither
+is available, label the inferred goal and do not treat it as user authorization.
+For a work plan, adapt the selected lenses to its assumptions, likely failure
+points, unnecessary steps, feasible alternatives, and execution dependencies.
+Ask which parts can be removed or simplified while retaining the goal. An
+alternative needs a concrete advantage and its cost; do not initiate a broad
+method search merely to populate a review. Judge reader understanding and
+reproducibility as well as numerical consequences. A plan can need revision even
+when no reported coefficient changes. Keep the existing adjudication step before
+turning these critiques into required actions.
+
 Phase 1, independent critique. This is the key step. When authorized workers are available,
 dispatch one per critic concurrently. Otherwise run one isolated record per critic sequentially.
 Each review prompt uses a three-to-five word description and is made of the
-critic's role string, the target content, and: "Produce raw critique in this role's voice. Be
+critic's role string, the stated or explicitly inferred goal, the target content, and: "Produce raw critique in this role's voice. Be
 specific to this target, not to the genre. Quote the target where you object to it. End with
 VERDICT plus a one-line rationale. Write your output to
 `$EWF_CACHE_DIR/research-council_<YYYYMMDD>_<run_id>/critic_<role>.md` and also return it as your final

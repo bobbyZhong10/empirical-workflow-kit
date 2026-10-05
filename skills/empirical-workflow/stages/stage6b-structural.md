@@ -30,6 +30,9 @@ construction, diagnostics, or estimation.
   objective changes, including costs/transfers and distribution when relevant;
   fit, solver success, and parameter precision alone do not establish contribution.
 
+- Review material solver or simulation changes using `references/code-review.md`;
+  retain failed runs and verify uncertainty and random streams. Apply the figure
+  and saved-result rules in `references/r-standards.md` to reported exhibits.
 - Before a formal solver run, verify the data and objective on a small,
   deterministic case; where an inherited implementation exists, reproduce a
   known baseline before accepting extension results.

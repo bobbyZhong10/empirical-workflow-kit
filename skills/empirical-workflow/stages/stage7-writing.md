@@ -30,7 +30,9 @@
   Stage 3 paper story as the argument map; if
   final evidence narrows the claim, record a decision and propagate the
   narrowing before revising prose.
-- Make each main exhibit answer a stated reader question. Begin each paragraph
+- Make each main exhibit answer a stated reader question. Inspect rendered
+  exhibits under `references/r-standards.md` and reconcile every display of the
+  same result with its source, including presentation copies when in scope. Begin each paragraph
   with its proposition, advance only that proposition, and report the estimate
   before interpreting it.
 - Draft from the evidence and revise the introduction to match it. Arrange the

@@ -5,6 +5,29 @@ estimator appropriate for the outcome. Record both paths in the Stage 6a
 identification memo. The tree is a design screen, not an invitation to search
 until a favorable estimator appears.
 
+## Review the identifying argument before the implementation
+
+Match the review to the evidence strategy. For reduced-form claims, state the
+counterfactual comparison and the assignment or selection process that makes it
+credible. For descriptive work, review coverage, construction, and construct
+validity without requiring an invented causal design. Structural work routes to
+Stage 6b for parameter identification and model assumptions. An experiment still
+requires correct assignment, exposure, measurement, attrition, and interference
+handling; random assignment does not identify every downstream claim.
+
+For each central identifying assumption, name the most plausible alternative
+explanation, the evidence that could distinguish it, and the part that remains
+untestable. Check that the implemented sample, treatment definition, comparison,
+weights, and inferential unit match this argument. Keep the assessment in the
+existing identification memo and Evidence card.
+
+An unexpected sign or magnitude triggers a check of units, coding, specification,
+and the theory's implication. It is not a design failure merely because it
+contradicts the preferred theory. Retain contradictory evidence. A material
+review concern states the evidence or revision that would resolve it; if the
+necessary evidence is unavailable, consider narrowing or withdrawing the affected
+claim rather than demanding an impossible test.
+
 ## Tree 0: causal timing and support screen
 
 Complete this screen before choosing a policy, platform, market, or firm-panel

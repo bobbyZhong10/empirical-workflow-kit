@@ -27,6 +27,27 @@ extension. Record the source version, commands, comparison target, tolerance,
 and discrepancies. An extension result is not credible until the baseline has
 either matched or its deviation has been explained and authorized.
 
+## Localize replication discrepancies
+
+Match the original sample, transformations, estimand, estimator options, and
+inference procedure before extending a replicated analysis. Locate the first
+divergence through intermediate row counts, constructed variables, estimates,
+and uncertainty calculations. Review software defaults and finite-sample or
+resampling differences rather than assuming the newest output is correct.
+Both the manuscript and code can contain errors.
+
+Use target-specific tolerances based on display precision, numerical error, or
+simulation uncertainty; matching significance categories is not numerical
+replication. A named alternative specification explains a difference but does
+not make it a replication of the original target. Preserve both results and the
+reasoned disposition in existing records.
+
+Check both source-to-output consistency and agreement among displays of the same
+result in the paper, appendix, and presentation, allowing their stated rounding.
+A genuinely different target needs its own evidence link. Missing displays remain
+unverified; resolve conflicting displays against their source rather than copying
+whichever value looks right. No additional provenance registry is required.
+
 ## 3. Validate in increasing cost order
 
 1. Run a small, deterministic smoke case or fixture.
@@ -87,11 +108,19 @@ When a result, test, or validation fails:
 Do not weaken a gate, relabel a failure, or add post-result specifications just
 to make a run complete.
 
+Before a bulk transformation, inspect a dry-run diff and the affected-file count,
+including representative edge cases. After applying it, inspect resulting content
+and relevant checks; a successful editing command does not establish correctness.
+For generated job runners, resolve paths before changing directories, track a
+specific job/process identity, and distinguish completion, failure, and loss of
+contact. A silent log does not establish that a job is still running.
+
 ## 5. Close work with evidence
 
 Before calling implementation work complete, retain the commands or entry
 scripts, environment/version information, test or validation outputs, and
-remaining limitations. For material changes, obtain an independent review of
+remaining limitations. For material implementation changes, apply `code-review.md` and obtain an
+independent review of
 the changed assumption, code path, or identification implication. A claim of
 completion requires evidence from the relevant check, not an intention to run
 it later.

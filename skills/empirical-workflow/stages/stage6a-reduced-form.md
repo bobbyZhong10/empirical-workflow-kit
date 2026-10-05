@@ -53,6 +53,9 @@ as needed. Load only the selected method pack; do not combine defaults from seve
   effects, and locked full specification. Report coefficient, parenthesized
   standard error, N, clusters, fixed effects, dependent-variable mean, units,
   and substantive magnitude for each formal estimate.
+- Review material calculation changes using `references/code-review.md`,
+  prioritizing sample, estimand, and inference correctness over style. Apply the
+  figure and saved-result rules in `references/r-standards.md` to main exhibits.
 - Before interpretation, reconcile the target across the main estimate, main
   figure, dynamics, sensitivity analysis, and magnitude conversion using the
   estimand crosswalk in `references/robustness-checklists.md`.

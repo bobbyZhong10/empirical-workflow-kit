@@ -124,6 +124,52 @@ effects.
 Set a seed in `00_setup.R`. Record `sessionInfo()` into `results/logs/`. Freeze
 package versions with `renv` for any project that will be submitted.
 
+## Numerical and simulation discipline
+
+Use tolerances justified by numerical scale and the intended comparison for
+floating-point results; exact equality remains appropriate for exact counts or
+identifiers. State how missing values enter each summary and why observations
+are excluded. Guard undefined operations and inspect nonfinite output rather
+than silently replacing it. Respect each function's domain: clipping or replacing
+boundary values requires a numerical and substantive rationale, not a universal
+probability rule.
+
+For bootstrap and simulation work, define reproducible random streams, including
+parallel or nested repetitions. Do not reset the same seed inside each repetition
+and accidentally reproduce the same draw. Record attempted and failed runs,
+convergence criteria, and how failures affect the summary. Preallocate large
+loops when useful and release parallel resources on exit.
+
+## Figures and saved results
+
+Save reusable estimation objects and plot-ready data with source/specification
+references. Generate figures and tables from those results, without rerunning
+estimation during manuscript or slide rendering. RDS is suitable for R objects;
+use interoperable exports where required. Save objects needed for reproduction,
+not every temporary variable. A changed source requires regeneration of its
+consumers; changing a label or theme must not change estimates.
+
+Before plotting, identify the reader question and target quantity. Keep the
+estimand crosswalk consistent with the table and text. Label axes with units,
+transformations, and reference periods; distinguish observed values, fitted
+values, simulations, and uncertainty. For intervals, state the confidence level
+and whether coverage is pointwise or simultaneous. A zero reference line is not
+an estimated observation. Do not conceal missing periods, unsupported event-time
+cells, excluded units, or truncated intervals through graphical defaults.
+
+Choose scales and panel ranges for a meaningful comparison; disclose breaks or
+transformations. Use consistent group encodings, with line types or shapes when
+color alone would be ambiguous. Choose readable labels and a restrained theme
+for the final print or projection size. Export with explicit dimensions and
+appropriate vector/raster formats; retain the required PNG delivery copy.
+Transparency is a destination-specific choice, not a universal quality rule.
+
+Inspect the rendered figure at its intended size for clipping, overlap, legibility,
+legend meaning, and agreement with its caption and source data. A successful
+plot command is not visual verification. Correct a discrepancy at its source
+and regenerate all affected displays rather than typing a preferred value into
+one figure. Record the inspected artifact/version in the existing exhibit record.
+
 ## Tables for submission
 
 Three line tables. Times New Roman 12 point, double spacing in the manuscript.

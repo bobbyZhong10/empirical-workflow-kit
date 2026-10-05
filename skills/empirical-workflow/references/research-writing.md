@@ -168,6 +168,32 @@ its supported methods or replace a current method authority.
   Begin with the finding, decision, problem, or requested content.
 - Avoid mannered metaphors when a literal description is available.
 
+## Explain technical work for the intended reader
+
+Name the actor when it clarifies a sentence: the analyst chooses a sample, the
+script filters records, and the estimator targets a quantity. Keep the subject,
+verb, articles, and connective words needed to follow the argument. Concision
+removes unnecessary content; it does not turn prose into compressed notes.
+Define a technical term at first use and use the same name thereafter. Specify
+the relevant variable, file, quantity, or action when it is known rather than
+replacing it with vague words. Do not invent precision to make a sentence concrete.
+
+For an unfamiliar concept, explain its purpose before its notation or computation,
+then give an example relevant to the reader's question. If confusion persists,
+revisit that explanation rather than adding more implementation detail. A reader
+should be able to explain what the method or result is for after one reading.
+
+Instructions use ordered steps when sequence matters, with one action per step.
+Put a prerequisite before the action it governs. Explanations and technical notes
+usually benefit from short sentences; papers and referee responses retain longer
+sentences when needed for a connected argument, counterfactual, or qualification.
+Preserve disciplinary terms, tense, and uncertainty. Do not impose a word-count
+threshold, restricted vocabulary, or fixed number of hedges as a quality gate.
+
+Talk narration explains notation in speakable language. Slides may display formal
+symbols while speaker notes explain their meaning. Preserve exact notation in
+technical exhibits; do not confuse spoken simplification with weaker claims.
+
 ## Editing restraint
 
 Leave sound prose alone. Do not flag a formal term, a long sentence carrying

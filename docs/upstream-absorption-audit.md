@@ -1,6 +1,6 @@
 # Upstream absorption audit
 
-## Audit identity
+## Baseline audit identity
 
 - Upstream repository: `https://github.com/ericluo04/claude-academic-workflow`
 - Baseline commit: `8958cc246e65cdf7c36604f397a1c1719b7e2c14`
@@ -107,3 +107,57 @@ mapping without network access. The default online run clones the current upstre
 source objects as `UNCHANGED`, `CHANGED`, `SOURCE_MISSING`, or `LOCK_MISMATCH`; use
 `--fail-on-change` when any unreviewed upstream change must fail automation. The lock preserves the
 upstream mirror's genericization discipline while making future re-inspection incremental.
+
+## Writing and instruction update: 2026-10-05
+
+Compared the baseline with upstream commit
+[`fad84ebe0d0d83c8ce7d17d3cc5deff49b7d527e`](https://github.com/ericluo04/claude-academic-workflow/commit/fad84ebe0d0d83c8ce7d17d3cc5deff49b7d527e).
+This is a scoped review of writing and execution instructions, not a complete
+synchronization of the upstream repository. Baseline lock objects remain unchanged.
+
+| Upstream change | Disposition in this repository |
+|---|---|
+| Plain technical English in CLAUDE.md and the output style (`bd9dbbe`, `d721d38`) | Adapted in research-writing.md: explicit actors, complete sentences, stable terms, and genre-sensitive explanation. No lexical whitelist or sentence-length gate. |
+| Purpose-first explanations (`8643c8b`) | Adapted in research-writing.md: purpose, meaning, relevant example, then technical detail as needed. |
+| Goal-based plan review (`cf7ff52`) | Adapted in research-council: explicit goal, assumptions, simplification, alternatives, and execution dependencies within existing review records. |
+| Parallel tools and long-running commands | Adapted in execution-discipline.md through independent calls and resumable jobs. Agent use remains subject to runtime policy and task needs. |
+| Contribution-runway script in review-paper | Not adopted. Phrase position cannot establish contribution or reader comprehension. |
+| Automatic Git publication, mandatory delegation, package installation, browser-specific defaults | Not adopted as standing authority. Existing project permissions and runtime capability configuration govern these actions. |
+| Presentation tooling, connector changes, and other implementation updates | Outside this scoped update; existing baseline tracking remains in effect. |
+
+The shared contract applies to both runtimes. Upstream output-style instructions
+are not installed as a separate competing policy. Existing rules for evidence
+boundaries, reviewer adjudication, editorial restraint, and stopping remain in force.
+
+## Econometric workflow adaptation: 2026-10-05
+
+Source: [pedrohcgs/claude-code-my-workflow](https://github.com/pedrohcgs/claude-code-my-workflow),
+commit `ae726177e23426b665e0a1eef5fb5bd83bd5b831`. This targeted integration covers
+identification review, empirical figures, code review, and replication diagnosis.
+It does not replace the separately tracked baseline for the primary upstream.
+
+| Source path | Adaptation and canonical destination |
+|---|---|
+| `.claude/agents/methods-referee.md` | Evidence-strategy-specific review and resolvable concerns in identification-decision-tree.md and manuscript-review. The source credits Hugo Sant'Anna's clo-author for paper-type branching and the change-of-mind requirement. |
+| `.claude/skills/credible-claims/SKILL.md` | Question, completion boundaries and inspectable evidence already reside in module cards; retain those records without introducing a second brief or claim system. |
+| `.claude/agents/r-reviewer.md` | Expand code-review.md from simplification to sample, estimand, inference, numerical behavior and reproducibility, with concrete failing evidence. |
+| `.claude/rules/r-code-conventions.md` and `.claude/skills/data-analysis/SKILL.md` | Saved computation, plot-ready data, explicit export dimensions, and destination-aware visual review in r-standards.md. |
+| `.claude/rules/replication-protocol.md` | First-divergence diagnosis and source/display reconciliation in operational-quality-loop.md, reusing existing evidence links. |
+| `.claude/rules/agent-authored-code.md` | Dry-run review for bulk edits and explicit job terminal states in operational-quality-loop.md. |
+
+Stage 6a and 6b route material implementation changes to correctness review.
+Stage 7 routes exhibits to rendered inspection and source reconciliation.
+Pipeline maintenance reaches the same code-review contract through the quality
+loop. Existing method packs remain the source for estimator-specific details.
+
+Deliberate adaptations: an unexpected sign or size is investigated, not scored as
+incorrect merely for contradicting theory. Numerical tolerances depend on the
+target, not global cutoffs. Probability boundaries are handled according to each
+operation's domain, not blanket clipping. Background transparency and font choices
+depend on the output medium. Random-number streams must be reproducible without
+requiring a universal seed pattern. Named specification differences explain a
+replication gap but do not make different targets identical.
+
+Weighted quality scores, automatic publication rules, extra ledgers/passports,
+mandatory reviewer personas, and blanket formatting blockers were not adopted.
+No estimator implementation or method canon is certified by this integration.
