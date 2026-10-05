@@ -86,8 +86,19 @@ imposing numbering the user never received. Use internal ids like R1.3 for the c
 
 ## Step 2. Classify every comment
 
-Pick a strategy for each comment before drafting any prose. Doing this as its own pass catches
-misclassification while it is still cheap to fix.
+First adjudicate each material allegation under
+`../empirical-workflow/references/operational-quality-loop.md`: confirmed, partly
+confirmed, mistaken, or unverified pending evidence. Record the original output
+or manuscript version/location and affected claim in the existing response
+matrix (or link its review finding). Preserve both correct and incorrect parts;
+do not accept a premise merely because a referee or several roles repeated it.
+Then classify the underlying issue: calculation, design, unsupported inference,
+expression, or intrinsic data limitation. Select a remedy using
+`../empirical-workflow/references/operational-quality-loop.md`, then choose the
+reply strategy below. A request for more robustness or caveats does not itself
+establish that either fixes the problem. Verify the change and its effect on the
+claim; check for new repetition, unnecessary numbers, claim drift, and length.
+Do not claim a repair merely because text was added.
 
 | Strategy | When | Shape of the reply |
 |---|---|---|

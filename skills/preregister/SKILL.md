@@ -29,6 +29,11 @@ from `<skills_root>/empirical-workflow/templates/preregistration-template.yaml`.
 Registry-form prose is an export from that record. Claim revisions and gate
 identifiers must match the project governance registry.
 
+For research organization, economic meaning, contribution, and behavioral claims,
+read `../empirical-workflow/references/research-writing.md` before synthesis or
+drafting. Apply the relevant evidence-strategy boundary; do not turn the
+operation's output format into a mandatory manuscript structure.
+
 ## The refusal gate
 
 Check this before reading anything else, and check it again if new information arrives mid-draft.

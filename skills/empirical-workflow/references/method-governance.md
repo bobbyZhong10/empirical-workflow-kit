@@ -46,6 +46,16 @@ not depend on the parameter, choose a value, label it as judgment, and state
 the reason. Every sweep cell is a reported figure subject to review and
 pipeline lineage.
 
+## Interpretation and unsupported methods
+
+Every method pack and new method extension uses `research-writing.md` before
+interpretation or drafting. Its technical template cannot override the common
+question, economic-meaning, behavioral-inference, and contribution contract.
+State what can be learned even if the implementation works perfectly. A request
+for mediation, a new behavioral model, or another unsupported estimator requires
+a literature-grounded design and implementation assessment; general writing
+rules do not certify method coverage or authorize unreviewed analysis.
+
 ## Method-pack freshness
 
 Every selected method pack records `Verified through`, its principal sources,

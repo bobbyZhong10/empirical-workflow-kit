@@ -8,12 +8,27 @@
 - The current status, decision-log tail, relevant Evidence cards, and method
   authorities for estimation and inference.
 
-Read `references/data-contract.md` and `references/operational-quality-loop.md`
+Read `references/research-writing.md` for economic meaning, contribution, and
+behavioral inference. Read `references/data-contract.md` and `references/operational-quality-loop.md`
 before consuming analysis data. If the structural branch uses R, read
 `references/r-standards.md` before validation,
 construction, diagnostics, or estimation.
 
 ## Automatic actions
+
+- Use the router's question-evidence-inference contract before and after each
+  module. A conditional model exercise can be valuable without identified
+  parameters; state which assumptions, calibration, and observations discipline
+  it and which conclusions remain conditional. Apply solver/estimation checks
+  only when a solver/estimator is used, with a reason for inapplicable items.
+- Reconcile outcomes, samples, comparisons, windows, baselines, weights,
+  aggregation, and target quantities across exhibits and counterfactuals using
+  `references/robustness-checklists.md`. A formula payment scenario is not an
+  identified income or welfare loss; an inverted variable is not independent
+  mechanism evidence. Distinguish assumed preferences, beliefs, information, and
+  equilibrium behavior from evidence that discriminates among them. Explain whose
+  objective changes, including costs/transfers and distribution when relevant;
+  fit, solver success, and parameter precision alone do not establish contribution.
 
 - Before a formal solver run, verify the data and objective on a small,
   deterministic case; where an inherited implementation exists, reproduce a
@@ -25,7 +40,7 @@ construction, diagnostics, or estimation.
 - Create the parameter-identification table before estimation. Every parameter
   is either identified by data variation and a moment/likelihood component or
   explicitly labeled **calibrated** with its source and fixed value.
-- Keep `identified` and `calibrated` lexically distinct in structural records
+- Keep `identified` and `calibrated` substantively distinct in structural records
   and manuscript sites. State identification as a property delivered by data
   variation and a moment/likelihood component (including passive forms or
   "only X can be identified"); state calibration as an analyst-authored
@@ -45,10 +60,11 @@ construction, diagnostics, or estimation.
   `model_internal`, mark it `as_modeled: true`, and record
   `underlying_precision.has_sampling_distribution: false` unless a sampling
   distribution was actually constructed.
-- Register every qualifier governing multiple counterfactuals as a
+- Internally register every qualifier governing multiple counterfactuals as a
   `scope_declaration` with an explicit manuscript coverage range. A body
   declaration does not cover a title, abstract, or conclusion site outside
-  that range.
+  that range. State conditions naturally where needed for interpretation;
+  coverage metadata does not require repeating a label at every mention.
 
 ## Required artifacts
 
@@ -86,7 +102,9 @@ The structural analysis-readiness record shows that every parameter is identifie
 labeled calibrated and sourced; multiple starts and uncertainty are reported;
 targeted and untargeted fit, sensitivity, and reduced-form discipline are
 visible; and each counterfactual has a support boundary. Every planned claim
-traces to its Evidence card and output. This record authorizes drafting, not
+traces to its Evidence card and output. The module states what was learned,
+which alternatives remain unresolved, its economic meaning and contribution or
+background value, and why to continue, demote, narrow/delete, or stop. This record authorizes drafting, not
 circulation or submission.
 
 ## 6b operating sequence

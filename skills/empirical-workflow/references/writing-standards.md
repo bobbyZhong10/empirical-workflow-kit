@@ -1,14 +1,17 @@
 # Writing Standards
 
-Read this before drafting and again before the final pass. It governs prose in
+Read `research-writing.md` first for argument organization, economic meaning,
+and contribution across evidence strategies. Read this before drafting and again
+before the final pass. It governs prose in
 the manuscript. It does not govern the registry, the decision log, or code
 comments.
 
 The target is the register of a leading journal in economics or management
-science: formal, plain, and unadorned. Four of the rules below are mechanical
-and the validator checks them at Checkpoint C. The rest are the author's.
+science: formal, plain, and unadorned. Four rules below have advisory pattern
+checks at Checkpoint C. They are editorial preferences, not research blockers or
+proof of good prose. Reader understanding and evidence accuracy take priority.
 
-## Checked
+## Advisory pattern checks
 
 **No em dash.** Neither `---` nor a literal em dash. An em dash is almost
 always a comma, a colon, a semicolon, or a full stop that has not been chosen.
@@ -42,7 +45,7 @@ to point at matters enough to name in the sentence.
 
 Code `PROSE_PARENTHETICAL_REFERENCE`.
 
-## Not checked, and still required
+## Requires editorial judgment
 
 **Plain words.** Use the ordinary word. `use`, not `utilise`. `show`, not
 `elucidate`. `because`, not `owing to the fact that`. A reader should never

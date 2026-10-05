@@ -23,6 +23,11 @@ Turn a topic into a ranked, deduped, honestly-scoped reading list, with a one-pa
 per paper and a synthesis of what the cluster says. The output is what the user reads before
 deciding what to cite.
 
+For research organization, economic meaning, contribution, and behavioral claims,
+read `../empirical-workflow/references/research-writing.md` before synthesis or
+drafting. Apply the relevant evidence-strategy boundary; do not turn the
+operation's output format into a mandatory manuscript structure.
+
 ## Boundary with research-sources
 
 This skill starts from a question and ends with a set of papers. The `research-sources` skill starts

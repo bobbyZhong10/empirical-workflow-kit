@@ -2,11 +2,21 @@
 
 ## Work-value test
 
-Before adding work or acting on a mid-task finding, identify the registered
-claim, gate, reported figure, or reviewer objection it affects. If the work
-moves no reported figure, resolves no gate, supports no claim, and answers no
-credible objection, record it as an optional follow-up and do not expand the
-current task. A third iteration of a measurement triggers a step-back review of
+Before each module, briefly state its economic question and importance,
+competing explanations, observable data, what the design can distinguish, and
+the result that would change the current judgment. Reuse its Evidence card.
+Close with what was learned, what remains indistinguishable, and continue,
+demote to background, delete/narrow, or stop with a reason. Before estimation,
+ask whether success would only reproduce a formula or institutional rule. State
+what unresolved economic question that fact answers; useful background need not
+be promoted to the main contribution. Measurements, descriptive evidence,
+institutional accounting, and conditional models need a knowledge gain, not a
+causal label. A completed regression or registered prediction is not that gain.
+
+Before adding work or acting on a mid-task finding, name the judgment that the
+work could change and the evidence needed. Merely resolving a gate or adding a
+reported figure is insufficient. If no plausible result changes a judgment,
+do not expand the current task. A third iteration of a measurement triggers a step-back review of
 whether the measurement still belongs in the study.
 
 Read the plan of record at the start of each phase and after a material pivot.
@@ -61,3 +71,24 @@ search is reported; do not silently switch to a remembered near-synonym.
 Fresh verification precedes a claim that a build, test, analysis, stage,
 handoff, or release passed. The evidence includes the command or procedure,
 the inspected output, the time, and any omitted checks.
+
+## Stop and reopen
+
+After a repair, check for repeated qualifiers, unnecessary numbers, claim drift,
+and length inflation as well as the original defect. Stop homogeneous revisions
+once core issues are resolved and boundaries are accurately expressed. Do not
+reopen a withdrawn claim under new wording. Consult the current paper story and
+status for advisor requirements, settled variable interpretations, withdrawals,
+and open questions; decisions remain in decision-log.md.
+
+Each revision states which reader judgment it could change. Update narrative
+magnitudes when their direction, substantive scale, payment ranking, or position
+relative to a relevant threshold changes. Otherwise retain adequate rounded
+prose and correct exact exhibits and backend records where needed. This does not
+permit stale or misleading numbers. Do not repeat accurately stated conditions
+or reopen internal editing solely for another decimal or equivalent qualifier.
+
+An intrinsic data limit is a reason to narrow, delete, seek new data, or stop.
+Another test needs a stated possibility of changing a judgment. A reader who
+understands the argument but questions its interest supplies external feedback,
+not a request for another title or an automatic robustness battery.

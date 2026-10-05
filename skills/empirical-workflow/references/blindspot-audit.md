@@ -47,11 +47,16 @@ weaker than their data.
 
 ## Verdict
 
+Before assigning the verdict, adjudicate material allegations using
+`operational-quality-loop.md`. A plausible criticism is not a verified defect.
+Record the checked result/version and consequence for the affected claim; retain
+misjudgments and partial confirmations in the review history.
+
 | Verdict | Meaning | Action |
 |---|---|---|
 | CLEAR | No quadrant produced an item that threatens the main finding | Proceed |
 | CONDITIONAL | Items exist and are addressable | Proceed, record each flag in the status log, resolve before submission |
-| HOLD | At least one item threatens identification or the main result | Stop. Resolve before any further analysis or writing |
+| HOLD | At least one item threatens identification or the main result | Pause the affected claim pending adjudication or repair; unrelated work may proceed |
 
 Record the verdict, every item, and its disposition in `_status.md`. A
 CONDITIONAL verdict whose flags are never revisited is equivalent to no audit.

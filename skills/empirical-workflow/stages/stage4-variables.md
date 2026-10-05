@@ -7,8 +7,16 @@
 - Raw timing evidence, available source columns, and the approved observation
   unit, sample rules, fixed effects, and clustering authority.
 
+For non-causal work, use the question-to-evidence map and mark treatment-specific
+obligations inapplicable with a reason. Retain measurement, sample, aggregation,
+and provenance discipline; do not invent a causal contrast.
+
 ## Automatic actions
 
+- Distinguish observed columns, inverted quantities, identities, and model
+  inputs. Record settled meanings and forbidden interpretations in the current
+  paper story with decision-log links. A variable name cannot supply an
+  inferential bridge.
 - Map each construct to a variable, formula, source column, unit, and Stage 2
   precedent; identify measures requiring Stage 5 validity support.
 - Verify treatment timing against raw sources and produce an
@@ -37,8 +45,8 @@
 - Never infer treatment timing from a constructed panel when raw timing
   evidence is available, or ignore a treatment exit or reversal.
 - Do not condition the main sample or controls on a post-treatment variable;
-  flag the post-treatment-selection warning and move the choice to a mechanism
-  test or pause for a decision.
+  flag the selection issue and pause for a design decision. Calling the same
+  analysis a mechanism test does not resolve post-treatment bias.
 - Pause for a recorded decision before changing the estimation sample, primary
   treatment, clustering level, fixed effects, or identifying strategy.
 

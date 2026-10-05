@@ -20,7 +20,11 @@ When a method facade is selected:
 4. Read the facade's named canonical `prompt.md`. Then read that pack's
    `method.manifest.yaml` and the canon, details, or R template only as the
    prompt and current task require.
-5. Record the selected method, estimand, identifying assumption, canon review
+5. Read `references/research-writing.md` relative to the empirical-workflow
+   root before interpretation or drafting, including its selected-strategy
+   boundary. Close with the economic answer, contribution or background value,
+   unresolved alternatives, and next-work decision, not just a methods paragraph.
+6. Record the selected method, estimand, identifying assumption, canon review
    date, diagnostics, and outputs in the durable project artifacts required by
    Stage 6a. Failed identifying diagnostics trigger the protocol's backtrack or
    Mandatory-pause rule; they are not converted into caveats.

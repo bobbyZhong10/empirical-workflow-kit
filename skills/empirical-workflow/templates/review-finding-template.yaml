@@ -11,6 +11,10 @@ finding:
   why_it_matters: "[FILL IN]"
   required_resolution: "[FILL IN]"
   argument_dependency: "[FILL IN: what conclusion rests on this]"
+  adjudication:
+    verdict: unverified  # confirmed / partly_confirmed / mistaken after inspection
+    checked_version: null  # evidence above identifies the original artifact/location
+    rationale_and_claim_effect: null
   status: open
   resolved_by: null
   decision_log_ref: null

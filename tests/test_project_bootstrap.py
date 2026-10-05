@@ -32,7 +32,7 @@ def test_bootstrap_existing_project_creates_portable_contract_and_runtime_views(
     assert existing.read_text(encoding="utf-8") == "id,value\n1,2\n"
 
     manifest = yaml.safe_load((target / "workflow.manifest.yaml").read_text(encoding="utf-8"))
-    assert manifest["workflow_version"] == "2.7"
+    assert manifest["workflow_version"] == "2.8"
     assert manifest["canonical_source"]["skills_root"] == ".workflow/kit/skills"
     assert manifest["canonical_source"]["bootstrap_cli"] == (
         ".workflow/kit/scripts/bootstrap_project.py"
@@ -85,7 +85,7 @@ def test_bootstrap_existing_project_creates_portable_contract_and_runtime_views(
         check=False,
     )
     assert version.returncode == 0, version.stderr
-    assert version.stdout.strip() == "empirical-workflow 2.7"
+    assert version.stdout.strip() == "empirical-workflow 2.8"
 
     environment = subprocess.run(
         [str(target / ".workflow" / "bin" / "ewf"), "env", "--format", "json"],

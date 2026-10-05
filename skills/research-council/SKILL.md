@@ -136,6 +136,14 @@ outputs, the original target, the report shape below, and this instruction spell
 > the paper, plan, or skill if true, and put those first. A minority concern that is key
 > dominates. A majority concern that is cosmetic goes to the bottom.
 
+Before final priority, adjudicate material allegations under
+`../empirical-workflow/references/operational-quality-loop.md` against original
+evidence. Retain confirmed, partly confirmed, mistaken, and unverified findings
+with their inspected locations and claim consequences in the existing report.
+When originals are unavailable, describe conditional risks, not established
+defects. Distinguish method, domain, model, and editorial judgments; this panel
+does not supply a manuscript-only cold read.
+
 Phase 3, emit. Print the synthesis to the conversation with the raw critic outputs in a
 `<details>` block underneath.
 

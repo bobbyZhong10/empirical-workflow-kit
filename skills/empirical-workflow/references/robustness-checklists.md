@@ -1,18 +1,20 @@
 # Robustness Checklists and Evidence Matrix
 
 Derive checks from the identification strategy, not from attractive results.
-Run the applicable design block and the universal block. Do not vote checks up
+Select applicable checks from the design and universal blocks; state the
+threat and decision each addresses before adding computation. Do not vote checks up
 or down or report a robustness pass rate: checks address different threats and
 cannot be traded off against each other.
 
 ## Evidence matrix
 
 Create one row for every required, run, omitted, or exploratory check. This is
-the robustness record used at Checkpoint C and in the paper's table notes.
+the internal robustness record used at Checkpoint C. Select reader-relevant
+diagnostics for the paper; do not copy the whole matrix into table notes.
 
-| Check | Identifying threat | Status: pre-committed or exploratory | Result | Implication | Severity | Disposition |
-|---|---|---|---|---|---|---|
-| Example: placebo date | Differential pre-treatment trend | Pre-committed | Estimate, uncertainty, output link | Supports or challenges timing assumption | Low / medium / high | Retain, qualify, backtrack, or pause |
+| Check / target | Assumption or error | Prospective/exploratory rule and why it fits | Execution result and artifact | Interpretation: claim change and what is not excluded | Severity / disposition |
+|---|---|---|---|---|---|
+| Placebo date | Differential pre-treatment change | State statistic, reference distribution, threshold and timing rationale | Estimate, interval, sample, output | Timing evidence; does not rule out coincident shocks | Retain, narrow, backtrack, or pause |
 
 "Result" reports the estimate, uncertainty, sample, and output path where
 relevant, including null or failed checks. "Implication" says what the check
@@ -72,7 +74,9 @@ Complete the relevant DID block, plus:
 1. Coefficient stability across nested controls.
 2. Bounding exercise for selection on unobservables relative to observables.
 3. Alternative fixed-effect structures.
-4. Interpretation that remains explicitly non-causal.
+4. Interpretation matched to the defended identification argument. Adjustment
+   or fixed effects alone do not establish causality; without that argument,
+   report the conditional association. See the selected pack for assumptions.
 
 ## Universal
 
@@ -90,3 +94,59 @@ Complete the relevant DID block, plus:
 Use the Stage 6b parameter-identification table and structural evidence matrix:
 targeted and untargeted fit, sensitivity to moments and tractability
 assumptions, convergence from multiple starts, and counterfactual uncertainty.
+
+## Execution is not interpretation
+
+For each important diagnostic, review the assumption/error, the rule and its
+appropriateness for this design, how the result changes the claim, and what it
+cannot exclude. Record execution success separately from that substantive review.
+A wrong decision rule must be corrected transparently, retaining its prior result
+and timing; it is not evidence that the design necessarily failed.
+
+- Non-significance does not establish no effect. Use the interval and an
+  economically meaningful bound for an absence/equivalence claim; state the
+  relevant test, assumptions, and decision. An MDE describes detectability under
+  its design assumptions, not an observed-effect bound. If an MDE does not enter
+  the decision, omit it from the decision table rather than decorate that table.
+- A sensitivity breakdown value reports where a particular interval or conclusion
+  changes under the specified deviations. It neither estimates the actual
+  deviation nor separates causal validity from invalidity or effect from no effect.
+- Many correlated rows are not many independent policy experiments. Distinguish
+  observations, clusters, assignment units, and independent policy shocks; use
+  inference appropriate to the source of variation and acknowledge its limits.
+
+## Dependence between pieces of evidence
+
+In each diagnostic interpretation, state what changes relative to the main
+analysis and which inputs or counterfactual it shares. Reparameterizations,
+identity transformations, and estimates sharing the same identifying
+counterfactual are not independent corroboration of that assumption. Own-platform
+DiD and a platform-gap DDD can answer different questions while both relying on
+the same cross-year counterfactual. City-week covariance addresses dependence,
+not endogenous policy timing. Overlapping placebo dates are not independent
+policy experiments; interpret their reference distribution and timing assumptions.
+
+Do not confuse dependence with identical estimands: an early-period level and a
+late-minus-early change can be distinct tests, whereas a reparameterization of
+the same contrast adds no new test. Preserve supported change estimates while
+separately evaluating equivalence, mechanism, and causal attribution.
+
+## Estimand crosswalk
+
+Before interpreting or comparing results, add this crosswalk to the existing
+analysis memo or Evidence card. Link to it from exhibits instead of duplicating
+specifications in several records.
+
+| Analysis/exhibit | Outcome and units | Sample | Treatment and comparison | Window | Reference period | Weights | Aggregation | Target quantity |
+|---|---|---|---|---|---|---|---|---|
+| Main result | | | | | | | | |
+| Main figure | | | | | | | | |
+| Dynamics | | | | | | | | |
+| Sensitivity | | | | | | | | |
+| Magnitude conversion | | | | | | | | |
+
+Omit inapplicable rows with a reason. Differences may answer different questions;
+explain which element differs and what comparison or inference is no longer
+valid. A relative gap is not one group's absolute change. A sensitivity analysis
+for a related dynamic or aggregated target cannot validate the main target.
+Conversions retain denominators, units, weighting, and conditioning assumptions.

@@ -53,16 +53,31 @@ execution.
 Each stage consumes named upstream artifacts and produces named downstream
 artifacts. Before starting, confirm the required inputs and constraints in
 `research.yaml`; before completing, record outputs, validation performed,
-remaining risks, and the next stage. Do not treat a stage as complete merely
+remaining risks, and the next stage. Use question, evidence, and inference as the unit of progress. Before each
+analysis module, state the economic question and its importance, the competing
+explanations, what the data observe and the design can distinguish, and what
+result would change the current judgment. At its end, state what was learned,
+what remains indistinguishable, and whether further work could change a decision.
+Keep these short entries in the existing Evidence card, not a new register.
+Coefficients, standard errors, prediction counts, and gate verdicts alone cannot
+complete a module. Measurement, description, institutional accounting, and
+conditional models can answer valuable questions without being causal designs.
+Do not treat a stage as complete merely
 because code ran. Research scripts are numbered and direct: their filenames
 make execution order clear, and each script has one plainly stated purpose.
 
 ## Checkpoints
 
 Checkpoints are gates. They require the specified evidence, a status update,
-and a decision to proceed, revise, or pause. A failed checkpoint returns work
-to the relevant earlier stage rather than being converted into a caveat at the
-end of the workflow. Checkpoints A and B authorize their next analysis phases;
+and a decision to proceed, revise, or pause. A current unresolved failure returns work to the responsible stage. Classify
+its root cause before acting: repair computation, reconsider design, correct or
+withdraw an inference, improve exposition, or disclose an intrinsic data limit.
+A historical failure is retained with a reasoned, evidence-linked disposition:
+active against a current claim, resolved by repair, closed by claim withdrawal,
+or retained as a disclosed limitation. A disclosed limitation can close an issue
+only when the remaining claim is supported; disclosure cannot rescue a design
+that does not support that claim. Existing gate closure and authorization rules
+apply, and closure is never a retroactive pass. Checkpoints A and B authorize their next analysis phases;
 Checkpoint C is the final writing, delivery, and release-readiness gate.
 
 ## Specification discipline
@@ -91,8 +106,16 @@ check.
   Checkpoint C, so a project cannot be carried forward under rules it was never
   checked against, and a verdict always names the rules that produced it.
 
-A stage is complete when its checkpoint returns zero blocking findings. Report
-the count.
+A gated milestone requires zero mechanical blocking findings from its applicable
+checkpoint, but this is not a sufficient research completion criterion. Report
+the count with its scope. Separately assess data/code reproducibility, credibility
+of current claims, readiness for scholarly discussion, and submission delivery.
+A draft can be ready for discussion while submission requirements remain open;
+external circulation still requires the recorded authority decision. Automated
+validation does not certify source support, identification, contribution, or
+reader comprehension. Regexes and anchors check limited patterns and locations,
+not proposition meaning. Substantive review and editorial cold reading remain
+independent of the mechanical verdict.
 
 ## Language
 
@@ -175,10 +198,14 @@ Record findings and required follow-up in `decision-log.md`.
 
 ## Research judgment and verification
 
-Before adding work, state which registered claim it supports and what would
-change if the work were omitted. Do not add an analysis, metric, source, or
-iteration that moves no reported figure, resolves no gate, and answers no
-credible reviewer objection. Inspect the underlying object before classifying
+Before adding work, state which economic uncertainty or current judgment it
+could change. A registry slot, gate, or reviewer request is not itself a research
+reason. Stop homogeneous revision when core defects are repaired and evidence
+boundaries are accurate. Reopen only for new evidence, a specific unresolved
+error, or reader feedback that could change the argument. Data limits that
+cannot be resolved by available evidence do not justify endless checks or
+qualifiers. Seek external reader feedback on whether the contribution matters,
+subject to circulation authority. Inspect the underlying object before classifying
 or measuring it. A description of a file, figure, slide, table, log, or record
 is not evidence about that object.
 
@@ -199,6 +226,16 @@ resolves.
 
 ## Research writing and source use
 
+Across every supported method and evidence strategy, organize the paper around
+the question, evidence, economic meaning, and knowledge increment. The selected
+method determines technical obligations, not the paper's story. Use the shared
+`references/research-writing.md` contract before interpreting results as well as
+before writing. It distinguishes findings, behavioral explanations, contributions,
+and decision implications; apply it to measurement, description, experiments,
+observational designs, prediction/measurement components, and conditional models.
+Do not force theoretical novelty, strategic intent, or a policy prescription onto
+evidence that answers a different useful question.
+
 Every substantive claim must be supported by a citation, registered evidence,
 a reported figure, or an explicit argument. Effect statements give direction,
 magnitude, and a meaningful benchmark. Statistical significance never stands
@@ -206,9 +243,9 @@ in for substantive size.
 
 Put a limitation beside the choice or result it constrains. State whether the
 limitation comes from the data, design, method, or model and name its cost in
-power, identification, scope, or generalizability. Disclose a deviation from a
-preregistration or earlier plan where the deviation first affects the paper,
-with its reason and decision-log reference.
+power, identification, scope, or generalizability. Disclose material deviations affecting interpretation, with their reason and
+timing where they first matter. Keep the decision-log reference and complete
+history internally. The manuscript need not narrate routine revisions.
 
 Summarize sources in original language. Verbatim wording is quoted and tied to
 a page, section, table, or other stable locator. State which version was read.
@@ -230,3 +267,22 @@ project configuration and a recorded decision. A release package follows a
 successful reproduction check. Packaging, path sanitization, or manifest
 generation alone is not reproducibility certification. Check time-sensitive
 outlet rules against current official sources before the release decision.
+
+## Internal records and reader-facing claims
+
+Keep prediction identifiers, gate verdicts, registry and ledger vocabulary,
+unused-design defenses, and immaterial exploration or repair history in internal
+records. Traceability does not require printing every traceable number. The paper
+selects the numbers needed for its argument, magnitude, and uncertainty.
+
+Review each important proposition against its actual basis: observation,
+statistical estimate, identity, model derivation, or conditional scenario, plus
+the assumptions needed to reach its interpretation. Labels alone cannot enforce
+a boundary. Use precise wording and necessary conditions in prose, without
+repeating evidence labels or disclaimers in each paragraph.
+
+Preserve cross-version constraints in the current paper story and status, linked
+to decisions: advisor requirements, withdrawn propositions and reasons, settled
+variable meanings and forbidden inferences, current contribution, main result,
+and unresolved questions. Review these before revising. The decision log remains
+the sole append-only history; withdrawal must survive paraphrase.

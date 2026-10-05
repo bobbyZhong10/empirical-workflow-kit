@@ -16,6 +16,12 @@ diagnostics code, and a methods paragraph.
 Refresh path: run literature-review on the method since the canon date, then propose additions to
 canon.md as flagged addenda.
 
+Before interpreting results or drafting the methods paragraph, read
+`../../references/research-writing.md`. Its organization, economic-meaning,
+behavioral-inference, and contribution rules govern this pack's output; use the
+relevant evidence-strategy row. Paragraph templates below are adaptable technical
+scaffolds, not a required paper outline or a list to copy into the manuscript.
+
 ## Design shapes and the case that anchors each
 
 Each canonical case is a precedent a methods section can cite; details.md says what each teaches.
@@ -55,7 +61,8 @@ Cattaneo-Keele-Titiunik 2023):
    the imbalanced covariate plausibly drives the outcome (the balance battery's standard,
    below), otherwise a serious flag that demands an explanation before proceeding.
 
-When a design fails, say so and decline to report an effect; the guide's own verdict on its
+When the identification argument fails, retain the estimate and failed evidence
+in the research record but decline to report an identified causal effect; the guide's own verdict on its
 failed application ("the evidence does not support an RD analysis") is the template. Route the
 question back to causal-design for another identification strategy.
 
@@ -169,8 +176,10 @@ details.md.
    the density test says (Almond et al. 2010; Barreca et al. 2011, 2016).
 4. Covariate and placebo-outcome balance: the full RD machinery with each predetermined
    covariate as the outcome, a fresh MSE-optimal bandwidth per covariate, robust p-values. A
-   failure on a covariate that plausibly drives the outcome invalidates the design, and the
-   verdict is to walk away rather than to adjust.
+   discrepancy on a covariate that plausibly drives the outcome requires a pause
+   and assessment of the continuity/randomization argument, sample, and test. If
+   that argument is contradicted, withdraw the causal claim; adding controls
+   cannot by itself repair it. A p-value alone is not the design verdict.
 5. Placebo cutoffs, one side of the true cutoff at a time so treatment effects do not
    contaminate the placebo.
 6. Donut hole: drop the observations at and immediately adjacent to the cutoff, keep the
@@ -179,7 +188,9 @@ details.md.
 7. Bandwidth and window sensitivity: instability at or below the chosen bandwidth is the warning
    sign, failure far above it is expected by construction.
 
-When a null matters, report minimum detectable effects (rdpower), never ex-post power from the
+When a null matters, interpret its interval against an economically relevant bound.
+Use minimum detectable effects (rdpower) only for the detectability decision they
+inform, not as proof of absence; never use ex-post power from the
 observed effect.
 
 ## The live dispute, carried honestly

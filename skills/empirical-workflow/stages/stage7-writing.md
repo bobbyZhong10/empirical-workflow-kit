@@ -19,61 +19,75 @@
   the right remedy in a compensation record reads, in prose, like completed
   work; it is not. If the remedy is a sensitivity analysis, run a version of it
   and report the bounds, or say in the disposition field that it is outstanding.
-- Read `references/writing-standards.md` first. Six to eight sections; no em
-  dash, no contraction, no possessive on a named thing, no cross-reference
+- Read `references/research-writing.md` first for question-led organization,
+  economic meaning, contribution, and behavioral boundaries; then read
+  `references/writing-standards.md` for style. Its editorial defaults are six
+  to eight sections; no em dash, no contraction, no possessive on a named thing, no cross-reference
   parked in parentheses. Policy text, prices, dates, company statements and
   public datasets are footnotes with links, not reference-list entries.
-- Keep one central contribution visible in the abstract, introduction, section
-  openings, and conclusion. Use the Stage 3 paper story as the argument map; if
+- Develop one central contribution through the abstract, introduction, evidence,
+  and conclusion; do not repeat a contribution sentence in every section. Use the
+  Stage 3 paper story as the argument map; if
   final evidence narrows the claim, record a decision and propagate the
   narrowing before revising prose.
 - Make each main exhibit answer a stated reader question. Begin each paragraph
   with its proposition, advance only that proposition, and report the estimate
   before interpreting it.
-- Write in evidence-first order: theory, data, results, robustness, discussion
-  and limitations, then introduction and conclusion. The last-written
-  introduction summarizes observed results rather than constraining them.
+- Draft from the evidence and revise the introduction to match it. Arrange the
+  final paper by the questions a reader needs answered, not workflow stages or
+  estimator order. Theory, mechanisms, robustness and implications earn space
+  by supporting the argument; do not impose a section for each on every paper.
 - Render economics-style **three-line** tables: coefficients, parenthesized
   standard errors, notation defined in self-contained notes, fixed effects,
   clustering and cluster count, N, dependent-variable mean where useful, and
-  a specification ladder for main results. Put required identification
-  diagnostics in the main paper.
-- Maintain a claim-to-evidence audit. Every abstract, introduction, result,
-  mechanism, and contribution claim names its table/figure, Evidence card,
-  estimate record, identifying assumption, and limitation. Distinguish
+  a specification ladder for main results. Put diagnostics needed to assess the
+  main claim in the paper; the full audit history stays internal.
+- Maintain a claim-to-evidence audit. Internally, every material abstract,
+  introduction, result,
+  mechanism, and contribution claim links to its table/figure, Evidence card,
+  result or derivation record, assumptions, and limitations as applicable. Distinguish
   descriptive, causal, structural, and exploratory claims.
-- Draft from the v2.2 assertion registry. At every substantive manuscript use,
-  register `assertion_type`, `declared_tier`, `qualifier_scope`,
-  `counterevidence_prominence`, `underlying_precision`, `scope_declaration`,
-  `power_basis`, `upgrade_justification`, `alternative_explanation`, and
-  `as_modeled`. Apply T0--T4 only to `world` assertions; keep negative,
-  methodological, discriminating, model-internal, and hypothesis sites
-  untiered. Record `alternative_explanation` only for discriminating sites and
-  `as_modeled: true` only for model-internal sites; each field is `null` or
-  absent for every other assertion type.
-- Run the writing-strength validator on registered assertion sites only. Use
-  project-extensible causal, scope-qualifying, associational, descriptive, and
-  framing semantic classes; do not turn the check into a manuscript-wide
-  banned-word scan. A positive `overclaim_residual` blocks and a negative
-  residual is INFO. Low lexical strength on a discriminating assertion is
-  neutral.
-- Enforce narrowing propagation to title, abstract, and conclusion; disclose
-  identifying-assumption counterevidence in a separate contrastive sentence
-  in the main text. Treat immediate recovery and a missing abstract/title
-  `upgrade_justification` trace as WARN, not blockers. A dedicated limitations
-  section does not replace disclosure beside the affected claim.
-- Compare `declared_tier` only among `world` sites for upgrade traces; untiered
-  sites are excluded. Keep lexical drift in declaration/residual strength
-  enforcement, and do not let a trace waive propagation or another blocker.
+- Draft from the economic question, argument, and evidence. Use the assertion
+  registry as internal traceability, not the manuscript outline. Apply
+  `references/research-writing.md` to exact propositions and their assumptions;
+  `references/writing-under-the-registry.md` explains the schema and advisory
+  checks. Prediction counts, gate language, unused-method defenses, and routine
+  repair history stay internal. Keep only reader-useful numbers in prose.
+- Treat lexical residuals and disclosure-pattern checks as review prompts, not
+  semantic verdicts. Correct an overreaching inference instead of adding a
+  stock hedge. Propagate real narrowing to standalone summaries; explain each
+  material limitation where it matters without repeating a disclaimer.
+- Reconcile main results, figures, dynamics, sensitivities, and magnitude
+  conversions using the estimand crosswalk in `references/robustness-checklists.md`.
+  Do not use a related target's sensitivity result to certify the main target.
+- Before repairing material review comments, adjudicate them against original
+  outputs and the reviewed manuscript version. For each revision, name the
+  reader judgment it should change and classify the root cause using
+  `references/operational-quality-loop.md`; repair it and inspect new repetition,
+  unnecessary numbers, claim drift, and length inflation. Check the current
+  paper story's advisor requirements, withdrawals, variable meanings, and open
+  questions. Stop homogeneous revisions once material issues are resolved.
+- After the first complete draft, obtain an independent cold read of the actual
+  manuscript version, before
+  supplying the author story, registry, or executor summary. Ask the reader to
+  identify the actors, their choices/objectives and economic conflict, then
+  explain the economic question, main finding, contribution relative to prior
+  work, and evidence boundary in their own words, with unclear passages. If
+  these cannot be answered, reconsider question selection, evidence organization,
+  or the contribution itself. More titles, discipline labels, and contribution
+  sentences are not a remedy. Record the version and review independence; a
+  self-review must be labeled and cannot be claimed as independent.
 - Verify every citation's bibliographic facts, stable source, and purpose label
   before it supports text. Match the outlet framing to the verified
   theory-source, empirical-analogue, and method-authority roles.
 - Run `bibliography-audit` on the cited bibliography before release. Treat metadata verification
   and claim support as separate checks: a valid record does not prove that the cited sentence is
   supported by the version actually read.
-- Run the selected review ladder: internal consistency, full review, referee
-  simulation, then an independent-runtime identification review before
-  submission. Record CLEAR, CONDITIONAL, or HOLD, findings, and resolution in
+- Select review depth for the unresolved risk: internal consistency, full
+  review, or referee simulation as warranted, with independent-runtime evidence
+  and identification review before submission. Do not repeat the full ladder
+  after a local repair unless a new material issue warrants it. Record CLEAR,
+  CONDITIONAL, or HOLD, findings, and resolution in
   the review record and decision log.
 - Route a focused adversarial panel through `research-council`, a complete manuscript through
   `manuscript-review`, a decision letter through `referee-response`, and the final reproducibility
@@ -101,13 +115,14 @@
 - `docs/paper_story.md` updated with final claim scope and a completed
   revision-diagnostics audit from `references/elite-is-paper-standards.md`.
 - Citation-verification record, selected outlet-positioning record, review
-  requests and findings, revision log, submission checks, relevant Evidence
+  requests and findings (including the cold read), revision decisions in the
+  decision log, submission checks, relevant Evidence
   cards, decision-log entries, and updated status.
 - A response matrix with each claimed manuscript location independently pin-verified, and a release
   checklist recording current journal policy, confidentiality disposition, safety scans, manifest,
   source revision, and archive checksum when those operations apply.
 - `docs/checkpoints/checkpoint_c.md` with the final validator command, zero
-  blocking findings, review disposition, delivery evidence, and recorded
+  mechanical blocking findings, scoped review dispositions, delivery evidence, and recorded
   proceed, revise, or pause decision.
 
 ## Red lines
@@ -115,9 +130,9 @@
 - Do not write a claim whose claim-to-evidence row is incomplete, conceal
   failed diagnostics or robustness dispositions, or report a causal claim
   broader than its identifying assumption and interference/selection scope.
-- Do not circulate an output with a positive `overclaim_residual`, an
-  unpropagated `bounded_by_*` narrowing, or identifying-assumption
-  counterevidence buried below the required prominence.
+- Do not circulate an output with an unresolved substantive overclaim,
+  unpropagated narrowing, or material counterevidence hidden from readers.
+  Lexical scores alone establish none of these; record the substantive review.
 - Do not use unverified citations, reformat tables in ways that change
   estimates, or allow a target outlet to determine the empirical conclusion.
 - A HOLD from independent-runtime identification review blocks circulation or
@@ -126,7 +141,10 @@
 
 ## Exit condition
 
-Checkpoint C has zero blocking findings. The manuscript has complete three-line economics tables, verified citations,
+Checkpoint C has zero mechanical blocking findings, and substantive and editorial
+reviews support completion. Report reproducibility, claim credibility, discussion
+readiness, and submission delivery separately; a discussion-ready draft is not a
+submission certificate. The manuscript has complete three-line economics tables, verified citations,
 and a claim-to-evidence audit in which each substantive claim traces to a
 recorded result and limitation. Independent-runtime identification review is
 CLEAR or CONDITIONAL with tracked resolution; no unresolved HOLD remains; and
@@ -138,10 +156,11 @@ the publication decision and remaining limitations are documented.
    introduction and conclusion.
 2. Complete the claim-to-evidence and citation-verification audits, including
    every number in the abstract and introduction.
-3. Run review at the required depth; give the independent runtime the
+3. Run the manuscript-only cold read, then review at the required depth; give the independent runtime the
    identification memo, diagnostic evidence, Evidence cards, and relevant
    manuscript section rather than an executor summary.
-4. Resolve findings, verify cross-references and table order, then apply the
+4. Adjudicate findings before selecting repairs; retain mistaken and partially
+   confirmed comments with evidence. Resolve affected claims, verify cross-references and table order, then apply the
    outlet formatting adapter and assemble the delivery tree.
 5. Run Checkpoint C, record its blocking count and review disposition, and only
    then document release readiness. External circulation or submission still

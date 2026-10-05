@@ -28,10 +28,12 @@
   identification precedent, competing explanation, or outlet positioning).
 - Cluster the evidence into research conversations, assess the gap as a
   falsifiable claim, and compare framing against target-outlet expectations.
-- Read `references/elite-is-paper-standards.md`. Distil the literature into one
-  prospective theoretical move rather than a list of related findings. Test
-  whether each retained conversation, construct, and empirical precedent is
-  necessary to that move.
+- Read `references/research-writing.md` for contribution and organization; use
+  `references/elite-is-paper-standards.md` when IS positioning is relevant.
+  State what the closest work establishes, the unresolved question, and what
+  this evidence could add. The increment may concern measurement, behavior,
+  institutions, theory, or decisions; do not force a theoretical move. Test
+  whether each retained conversation and precedent is needed for that argument.
 
 ## Required artifacts
 

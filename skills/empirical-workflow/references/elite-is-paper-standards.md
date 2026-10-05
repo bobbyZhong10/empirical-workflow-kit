@@ -2,26 +2,30 @@
 
 This reference adapts the operating principles in Jason Bennett Thatcher's
 *Rules for Writing Elite Information Systems Papers* to this workflow. It
-supplements, rather than replaces, the evidence registry, writing-strength
-validator, and house prose rules. Use it in Stages 2, 3, and 7.
+supplements `research-writing.md`, which governs organization, economic meaning,
+contribution, and interpretation across all branches. Use this outlet lens when
+IS positioning is relevant in Stages 2, 3, and 7; do not impose theoretical
+novelty or an IS identity on every empirical question.
 
 ## One central contribution
 
 A paper can contain several results, robustness checks, and implications, but
-it should make one central contribution. State the research move, not merely
+it should develop a coherent central contribution, possibly through complementary
+findings. Neither a result count nor a single-sentence formula establishes it. State the research move, not merely
 the topic:
 
-> Using [setting and identification], this paper shows [bounded finding]. It
+> Using [setting and evidence strategy], this paper shows [bounded finding]. It
 > changes [theoretical conversation] because [theoretical move], within [scope].
 
-Decide which result is central; cast the rest as mechanisms, boundaries, or
-supporting evidence. Do not hide multiple papers in one manuscript.
+Decide which results are central; retain other results only for their actual
+argument role. Do not recast auxiliary findings as mechanisms without evidence. Do not hide multiple papers in one manuscript.
 
 ## Contribution first and constructs first
 
-The abstract, introduction, conclusion, and opening of each major section must
-answer what is learned and why it matters. Do not make the reader wait for the
-result to infer the paper's purpose.
+The abstract, introduction, and conclusion should make clear what is learned
+and why it matters. Each major section advances that argument; it need not
+repeat a contribution sentence. A contribution anchor is not evidence of reader
+understanding. Use the manuscript-only cold read in the paper-story template.
 
 For each focal construct, record definition, theoretical role, level of
 analysis, adjacent constructs, operational proxy, and empirical unit. A proxy
@@ -46,12 +50,12 @@ practical implication.
 
 Begin every paragraph with its proposition; use the rest only to substantiate
 or qualify it. Remove throat-clearing, duplicate claims, generic importance
-language, and jargon that does not improve precision. The house prose standards
-remain binding.
+language, and jargon that does not improve precision. House prose preferences yield to accuracy and reader understanding.
 
 ## Final revision audit
 
-1. Is the contribution accurate even if the main estimate is null?
+1. Does the contribution accurately describe the evidence, including an
+   informative null or an unsupported preferred explanation where applicable?
 2. Do constructs have stable definitions, levels, and justified proxies?
 3. Does theoretical scope match the unit, variation, and identification?
 4. Does every major section advance the central contribution?

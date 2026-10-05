@@ -23,10 +23,10 @@ is only the current project snapshot.
 ## 2. Research context
 
 - Research question (one sentence):
-- Theoretical lens:
-- Mechanism (one sentence):
-- Identification strategy and its central assumption:
-- Branch: reduced form, structural, or both:
+- Explanatory lens or measurement/accounting logic:
+- Behavioral mechanism if claimed, its evidence, and unresolved alternatives:
+- Evidence strategy and central assumptions (identification for causal claims):
+- Branch: descriptive/accounting, reduced form, structural/conditional model, or combined:
 
 ## 3. Stage status
 
@@ -60,16 +60,20 @@ entry.
 
 ## 5. Key results snapshot
 
-| Hypothesis | Table and column | Coefficient | SE | N | Verdict |
-|---|---|---|---|---|---|
+| Economic question | Evidence link / main result | What was learned | What remains unresolved | Continue, narrow/delete, or stop |
+|---|---|---|---|---|
 
 Robustness evidence-matrix summary:
 Blindspot audit verdict and open flags:
 
-## 6. Current abandoned-approach constraints
+## 6. Cross-version constraints and current issues
 
-| Approach | Why abandoned | Do not revisit unless |
-|---|---|---|
+Link to paper_story.md for advisor requirements, withdrawn propositions and
+reasons, settled variable meanings and prohibited inferences, current contribution,
+main result, and open questions. Check these before each revision.
+
+| Issue / affected current claim | Active, repaired, closed by withdrawal, or disclosed limitation | Reason and evidence / decision link | Reopen only if |
+|---|---|---|---|
 
 The canonical decision and abandonment history remains in `decision-log.md`.
 This table contains only constraints relevant to the current state.
@@ -85,3 +89,20 @@ This table contains only constraints relevant to the current state.
 - Seed:
 - External dependencies and access requirements:
 - Known issues for a future reader:
+
+## 9. Separate readiness judgments
+
+| Dimension | Current judgment | Evidence, version, and unresolved issue | Next action |
+|---|---|---|---|
+| Data and code reproducibility | verified / partial / unverified | | |
+| Credibility of current research claims | supported within scope / unresolved / unsupported | | |
+| Manuscript ready for scholarly discussion | ready / revise / not assessed | Cold-read record | |
+| Submission delivery | complete / incomplete / not assessed | Applicable checkpoint and delivery record | |
+
+- Applicable checkpoint command, version, mechanical blocking count and categories:
+- Advisory pattern findings and substantive/editorial dispositions:
+- Historical failures retained and closure evidence:
+- Stop/reopen decision and the judgment any further work could change:
+
+Do not collapse these dimensions into a single blocking count. A zero mechanical
+count is neither a research-quality score nor circulation authority.

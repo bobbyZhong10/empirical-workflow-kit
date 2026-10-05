@@ -55,7 +55,7 @@ estimators after seeing results.
 | Assignment determined by a threshold on a continuous running variable | RDD; apply Q4 |
 | A variable that shifts treatment with a defensible exclusion argument | IV; apply Q5 |
 | Random or as-good-as-random assignment | Experimental estimation with covariate adjustment if precommitted |
-| None of the above, only selection on observables | OLS or fixed effects; apply Q6 and use non-causal language |
+| Conditional exchangeability or within-unit comparison | Apply Q6 and the selection-on-observables or fixed-effects pack; otherwise retain a conditional association |
 
 ### Q2. DID and event studies
 
@@ -117,8 +117,10 @@ each exposure margin.
 ### Q6. Selection on observables
 
 State the estimand and the no-unobserved-confounding assumption. Present
-coefficient stability and a bounding exercise where feasible, but do not use
-causal language unless stronger design evidence exists. Fixed effects do not
+coefficient stability and a bounding exercise where feasible. Causal wording
+requires a defensible identification argument, not balance or stability alone.
+Without it, retain a conditional association; do not treat the estimator name
+as either automatic identification or automatic disqualification. Fixed effects do not
 by themselves solve time-varying selection, spillovers, or post-treatment
 sample selection identified in Tree 0.
 

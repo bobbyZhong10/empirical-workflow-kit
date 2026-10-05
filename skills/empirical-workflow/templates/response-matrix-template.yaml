@@ -5,6 +5,7 @@ comments:
   - id: R1.1
     role: Reviewer 1
     verbatim_comment: "[FILL IN]"
+    adjudication: null  # link review finding, or verdict + checked source/version/location + claim effect
     strategy: needs_user_input
     response_status: draft
     claimed_change: null

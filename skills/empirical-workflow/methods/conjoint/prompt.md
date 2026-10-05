@@ -17,6 +17,12 @@ analysis recommendation with the assumption that licenses it, R code with calls 
 against package documentation, and a drafted methods paragraph. Bib keys live in
 ../causal-design/references.bib, the family's shared bibliography.
 
+Before interpreting results or drafting the methods paragraph, read
+`../../references/research-writing.md`. Its organization, economic-meaning,
+behavioral-inference, and contribution rules govern this pack's output; use the
+relevant evidence-strategy row. Paragraph templates below are adaptable technical
+scaffolds, not a required paper outline or a list to copy into the manuscript.
+
 ## The fork: what will the stakeholder do with the output?
 
 Ask this first (it is the marketing canon's own first question). Two answers, two tracks:

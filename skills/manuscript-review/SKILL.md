@@ -17,8 +17,13 @@ Six agents read the manuscript in parallel and return severity-tagged findings w
 evidence; the main thread consolidates them into one dated report ranked by what would sink the
 paper. Nothing in the manuscript is edited. Topology and agent roles adapted from
 [`claesbackman/AI-research-feedback`](https://github.com/claesbackman/AI-research-feedback), the
-buried-contribution gate from
+reader-understanding assessment from
 [`aspi6246/Claude-Code-Presentation`](https://github.com/aspi6246/Claude-Code-Presentation).
+
+For research organization, economic meaning, contribution, and behavioral claims,
+read `../empirical-workflow/references/research-writing.md` before synthesis or
+drafting. Apply the relevant evidence-strategy boundary; do not turn the
+operation's output format into a mandatory manuscript structure.
 
 ## Options
 
@@ -61,7 +66,7 @@ What changes:
 
 - The manuscript must be supplied as a path or a PDF. Phase 1 uses step 1 only; never glob the
   working directory or the Overleaf projects. If no path was given, ask for one.
-- Agent 6 keeps its full brief, including the buried-contribution gate, but critiques the paper
+- Agent 6 keeps its full brief, including the reader-understanding assessment, but critiques the paper
   for the editor and drops every piece of advice addressed to the author: no fallback outlets in
   part 5, no coaching on what would reach the target's bar. Its recommendation becomes one of the
   journal's conventional decisions: accept, minor revision, major revision, or reject.
@@ -116,6 +121,17 @@ abstract. If no figures turn up, tell the user they may live in a non-standard d
 re-run with an explicit path. Same for tables, adding that agent 5 will then be limited to
 captions and cross-references.
 
+## Manuscript-only cold read
+
+After the first complete draft, obtain a cold read before supplying the author
+story, registry, executive summary, or other reviewers' opinions. Reuse a current
+Stage 7 cold read if available. Give a fresh reader only the manuscript and ask
+for the actors and their objectives, economic conflict, main finding, increment
+over prior research, and evidence boundary. Preserve their own answers and
+confusing locations with the manuscript version. A reader already exposed to the
+author's account cannot supply this independent test; mark self-review or missing
+independence honestly. Quick mode may omit it and must say so.
+
 ## Phase 2: run the review lenses
 
 When authorized workers are available, dispatch all requested lenses concurrently; otherwise run
@@ -157,7 +173,8 @@ a clearer alternative; typographic consistency (hyphenation such as "long-run" v
 attributive versus predicative "high-income", em versus en dash); number formatting (under ten
 spelled out in prose, "15%" versus "15 percent" used consistently).
 
-Flag every instance of: "interestingly", "importantly", "notably", "it is worth noting",
+Inspect these patterns in context; flag only a concrete clarity or meaning problem,
+not each lexical match. Leave sound prose alone: "interestingly", "importantly", "notably", "it is worth noting",
 "obviously", "clearly" (delete, let the finding speak); tautologies ("very unique", "absolutely
 essential"); "significant" used for size or importance when it should mean statistical significance;
 "This paper contributes to the literature by" (show it); passive voice where active is natural;
@@ -172,9 +189,10 @@ example per pattern with a global fix instruction.
 Technical reviewer checking whether the paper contradicts itself.
 
 1. Numerical consistency. Every number in the text (coefficients, percentages, sample sizes,
-   years) must match the referenced table, read from the table source directly. Numbers that
-   exist only inside a figure image cannot be verified from source; skip those instead of flagging
-   them.
+   years) must agree with the referenced source under the stated rounding and units.
+   Exact backend values do not require repeated decimals in prose. Inspect rendered
+   figures when needed; if an image value cannot be checked, record it as unverified
+   rather than silently skipping it or inventing a mismatch.
 2. Abstract against body, and introduction previews ("we find X") against what the results
    section actually delivers.
 3. Terminology. List the key terms and flag any that shift meaning across sections, including
@@ -197,8 +215,9 @@ Terminology drift (term, how it varies, recommended standard); Minor inconsisten
 ### Agent 3, unsupported claims and identification integrity
 
 Skeptical econometrician enforcing claim discipline: a claim must never exceed what the
-identification allows. This agent works at the sentence level; the overall research design is
-agent 6's job.
+identification allows. Review both the overall design and sentence-level
+inferences, diagnostic decision rules, shared counterfactuals, and estimand
+consistency. Separate statistical change, equivalence, and causal attribution.
 
 1. Causal language ("causes", "leads to", "drives", "determines", "due to", "results in") applied
    to findings that are only correlational. Quote the sentence, say why it exceeds the design,
@@ -207,8 +226,10 @@ agent 6's job.
 2. Generalization past the sample: managerial or policy implications drawn from one platform,
    market, or period without an argument for why they travel.
 3. Mechanism claims asserted instead of argued.
-4. Missing caveats. Walk the obvious threats for this design (selection into the sample, reverse
-   causality, measurement error, omitted variables) and flag each one the paper never addresses.
+4. Missing inferential boundaries. Identify consequential threats to the exact claim
+   (selection, reverse causality, measurement, omitted variables), explaining the
+   bridge that fails. Do not request a generic caveat for every imaginable threat.
+   Classify the root cause before choosing repair, narrowing, deletion, or disclosure.
 5. Priority claims ("we are the first to show", "no prior study has examined"). Check with
    `<skills_root>/research-sources/scripts/paper.py resolve` or `cites`; if a counterexample
    turns up, that is `[CRITICAL]`. If the search is inconclusive, flag it as an unverified
@@ -218,9 +239,11 @@ agent 6's job.
 7. Hedging in both directions: claims stated too strongly, and strong results buried under
    excessive hedging.
 
-Output sections: Causal overclaiming (`[TAG] location | "quote" | why it overclaims | fix: weaken
-the language or add the evidence`); Generalization issues; Missing caveats (topic, where it
-belongs, suggested text); Minor language issues.
+Output sections: Unsupported inference (`[TAG] location | "quote" | failed evidence
+bridge | root cause and proportionate repair`); Generalization issues; Material
+boundaries; Expression issues. Prefer correcting or deleting an inference to adding
+hedges. Check whether a proposed repair adds repetition, unnecessary numbers, claim
+drift, or length. Do not reopen a resolved issue without new material evidence.
 
 ### Agent 4, mathematics, equations, and notation
 
@@ -293,31 +316,25 @@ beyond it? Does it settle something researchers disagree about? Does it change h
 about the topic? Rate it Transformative, Significant, Incremental, or Insufficient for the target
 journal, and justify in two or three sentences.
 
-Part 1b, buried-contribution gate. From `\begin{document}`, counting prose only (skip LaTeX
-commands, comments, and the abstract), count words until the first sentence containing "we find",
-"we show", "we document", "our main result", "the headline", "we report", "in this paper, we",
-"the contribution", or "we contribute". Report the count and the phrase that matched, or "no
-trigger found in body". Over 2500 words: `[MAJOR]`, headline finding buried deep, strong
-desk-reject risk at the UTD 24 flagships (MS, MKSCI, JMR, JCR, ISR, MISQ, OR, MSOM, AMJ, ASQ).
-Between 1500 and 2500: `[WARN]`, buried roughly
-three double-spaced pages in, a common desk-reject signal. At or under 1500: `[OK]`. If the
-abstract already delivers the headline unambiguously, downgrade `[WARN]` to `[INFO]` and note
-why. Never downgrade `[MAJOR]`: a 2500-word runway buries the finding whatever the abstract says.
+Part 1b, reader understanding. Use the manuscript-only cold read where available.
+Can a reader reconstruct the actors, choices/objectives, economic conflict, main
+finding, knowledge increment, and evidence boundary? Quote passages that cause
+confusion. Contribution-phrase counts or positions are optional navigation aids,
+never a severity rule or evidence of contribution. If the story is unclear,
+consider question selection, argument structure, or evidence organization before
+requesting a new title or another contribution sentence.
 
-Part 2, identification and credibility, judged at the design level (sentence-level claims are
-agent 3's job).
-What variation identifies the main result, is it plausibly exogenous, and what are the threats?
-Does the paper confront them or paper over them? Is the finding causal, correlational, or
-descriptive, and does the paper claim the right one? What would a skeptical econometrician say in
-a seminar, and what would it take to convince a top-journal audience?
+Part 2, knowledge increment. Separate new economic knowledge from a mechanical
+formula result. Measurement and institutional accounting can be valuable; explain
+what is learned and whether it belongs as the main contribution or background.
+Method review belongs to agent 3; do not rebrand the same design criticism as
+independent domain evidence.
 
-Part 3, analyses. Required (up to 5, absence is a blocker): robustness checks not performed,
-including any the paper claims but does not show; alternative explanations left standing; missing
-placebo or falsification tests. For each, state the analysis, why its absence undermines
-credibility, and what a positive result would do to your view. Write "None" if the paper covers
-its identification concerns. Suggested (up to 5, not blockers): mechanism tests, subgroup
-analyses, extensions, each described precisely with why it matters and whether it is feasible
-given the data the paper describes.
+Part 3, proposed next work. Include only analyses that could change a specified
+judgment, explaining the threat, possible results, feasibility, and shared
+limitations. Narrowing or deleting a claim may be the appropriate repair.
+Additional analyses are proposals pending adjudication, not automatic blockers.
+Write "None" when further internal analysis would not change a judgment.
 
 Part 4, literature positioning. Are the right papers cited, and what is obviously missing? Does
 the paper distinguish itself from the closest work? Is it over-citing minor papers and
@@ -331,7 +348,8 @@ say concretely what would reach the target's bar, and name the best fallback out
 Part 6, four to seven pointed questions aimed at the weakest points, worded as they would appear
 in a referee report.
 
-Tag every Required analysis `[CRITICAL]` and every Suggested analysis `[MAJOR]`. Output sections
+Set severity from the demonstrated consequence for a current claim, not from
+whether an analysis was requested. Output sections
 follow parts 1 through 6 in order, with part 1b inside part 1.
 
 ## Quick mode
@@ -348,6 +366,15 @@ If an agent returns nothing or malformed output, insert a placeholder section ("
 return output") and say so in the summary. Do not silently drop it and do not re-run the whole
 fanout for one failure.
 
+Before consolidation, adjudicate each important allegation using
+`../empirical-workflow/references/operational-quality-loop.md`. Inspect the
+original result or exact manuscript version/location, preserve the role's raw
+comment, and record confirmed, partly confirmed, mistaken, or unverified with
+the claim consequence. Split mixed allegations. If outputs are unavailable,
+keep the finding unverified. Do not turn role agreement into verified evidence.
+Method (3), domain (6), model (4), editorial (1 and 5), mechanical (2), and cold
+reader judgments answer different questions.
+
 In referee mode, consolidate the same way but write the report described in the referee mode
 section instead of the structure below.
 
@@ -362,10 +389,10 @@ Review standard: <journal name, or "leading field journal" for top-field>
 
 ## Overall assessment
 <Three or four sentences: what the paper does, from agent 6 part 1; its principal strength, from
-the contribution rating; the single most critical issue, from the top of the priority list. Do
-not introduce judgments the agents did not make.>
+the contribution rating; the single most critical issue, from the top of the priority list.
+Explain any change from a raw reviewer judgment using adjudication evidence.>
 
-Preliminary recommendation: <copied verbatim from agent 6 part 5, not paraphrased>
+Preliminary recommendation: <based on adjudicated findings; explain departures from raw role recommendations>
 
 ## 1. Contribution and referee assessment   <- agent 6
 ## 2. Unsupported claims and identification  <- agent 3
@@ -377,12 +404,14 @@ Preliminary recommendation: <copied verbatim from agent 6 part 5, not paraphrase
 ## Priority action items
 ```
 
-Build the priority list by collecting every tagged item across agents and ranking:
-`[CRITICAL]` from agent 3 and agent 6 part 2 first, then `[CRITICAL]` from agent 6 part 3, then
-remaining `[CRITICAL]` in agent order, then all `[MAJOR]`, then `[MINOR]`. Keep each item's
-source agent and location so the author can jump to it. A `[WARN]` from agent 6's part 1b enters
-the list as `[MINOR]` unless the reviewer upgrades it; `[OK]` and `[INFO]` stay in the report
-body and never enter the priority list.
+Build the priority list from adjudicated consequences for current claims. Rank
+confirmed substantive threats first, then material communication defects and
+local corrections. For partly confirmed comments, require repair only of the
+confirmed part. Keep mistaken findings as closed history, not repair orders;
+keep material unverified concerns pending with the evidence needed to decide.
+Do not grade contribution by phrases or order work by the number of requested
+analyses. Preserve source role, location, adjudication, and closure rationale.
 
-Then report back in chat: the report path, agent 6's recommendation, the top five action items,
-and the count of findings in each severity.
+Then report the saved path, adjudicated recommendation, most consequential next
+actions, and remaining uncertainty. Separate mechanical consistency, research
+interpretation, and reader understanding; finding counts do not measure quality.

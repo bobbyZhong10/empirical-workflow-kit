@@ -8,6 +8,12 @@ Use this pack only after the treatment, outcome, estimand, population, and pre-t
 set are locked and conditional exchangeability is substantively defensible. A sophisticated
 estimator does not repair an implausible unconfoundedness claim.
 
+Before interpreting results or drafting the methods paragraph, read
+`../../references/research-writing.md`. Its organization, economic-meaning,
+behavioral-inference, and contribution rules govern this pack's output; use the
+relevant evidence-strategy row. Paragraph templates below are adaptable technical
+scaffolds, not a required paper outline or a list to copy into the manuscript.
+
 ## Identification and overlap gates
 
 1. Draw or state the causal adjustment argument. Every adjustment variable must be measured before
@@ -17,9 +23,10 @@ estimator does not repair an implausible unconfoundedness claim.
    about: trim with a declared rule or switch to the overlap population, then rename the estimand.
 4. Default to doubly robust estimation. Cross-fit flexible nuisance functions when model complexity
    warrants it; preserve held-out discipline for heterogeneity and policy learning.
-5. Run calibrated unobserved-confounding sensitivity analysis. A result that fails under a
-   confounder comparable to an observed benchmark is a design failure, not an estimator-selection
-   prompt.
+5. Run calibrated unobserved-confounding sensitivity analysis. If a plausible
+   benchmark changes the conclusion, reassess the affected claim under the
+   recorded rule. This shows sensitivity, not that the confounder exists or the
+   effect is absent. Do not respond by switching estimators to recover significance.
 
 ## Heterogeneity boundary
 

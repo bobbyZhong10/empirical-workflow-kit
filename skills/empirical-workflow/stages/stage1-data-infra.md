@@ -17,6 +17,9 @@ analysis-ready export, its contract, or its merge audit.
 
 - Inventory every source and version; record owner, access method, coverage,
   license, refresh behavior, checksum or version identifier, and raw path.
+- Explain what a recorded unit represents and what activity or population is
+  outside coverage. Adapt panel fields to cross-sections, experiments, choice
+  tasks, or other supported data structures; retain provenance and key integrity.
 - Profile the claimed observation key and panel structure: unit count, period
   count, balancedness, observations per unit, duplicates, calendar gaps, and
   coverage breaks.
@@ -38,7 +41,8 @@ analysis-ready export, its contract, or its merge audit.
   both directions, unmatched-record characterization, and remediation.
 - `docs/entry_exit_report.md`: entry/exit tables or figures, coverage changes,
   and implications for the usable panel.
-- Numbered build scripts that follow `references/python-standards.md`, a
+- Numbered build scripts that follow `references/r-standards.md` (or the recorded
+  language exception), a
   derived-data manifest, and, for every analysis-ready export, the Parquet,
   versioned contract, and merge audit required by `references/data-contract.md`.
 - `docs/baseline_reproduction.md` when an inherited pipeline or replication

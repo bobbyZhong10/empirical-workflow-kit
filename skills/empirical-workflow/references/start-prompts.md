@@ -54,11 +54,19 @@ missing and the answer would change the design, authority, sample, outcome, or
 identifying strategy, ask one consolidated question and record the answer.
 Otherwise make only reversible, explicitly recorded assumptions.
 
+Organize research and writing by the question, economic meaning, and knowledge
+increment. Apply the common research-writing contract across method choices and
+behavioral explanations; a completed estimator or methods paragraph is not the
+research conclusion.
+
 Proceed automatically through the applicable stages, checks, literature and
 theory work, analysis, writing, and internal review needed for the objective.
 At every stage exit, update the evidence, decision log, status, validation
 result, risks, and next action. A gated milestone is complete only when its
-applicable executable checkpoint reports zero blocking findings. Do not run
+applicable executable checkpoint reports zero mechanical blocking findings and
+the relevant substantive and editorial reviews support completion. Report
+reproducibility, current-claim credibility, discussion readiness, and submission
+delivery separately. A zero count is not a research-quality certificate. Do not run
 final Checkpoint C before Stage 7 is complete.
 
 Pause only when RESEARCH_PROTOCOL.md requires it, when required access or

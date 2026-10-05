@@ -8,6 +8,12 @@ within-unit variation, and no design-specific comparison event. An adoption date
 not-yet-treated comparisons routes to `../did/prompt.md`; simultaneity or feedback requiring an
 instrument routes to `../iv/prompt.md`.
 
+Before interpreting results or drafting the methods paragraph, read
+`../../references/research-writing.md`. Its organization, economic-meaning,
+behavioral-inference, and contribution rules govern this pack's output; use the
+relevant evidence-strategy row. Paragraph templates below are adaptable technical
+scaffolds, not a required paper outline or a list to copy into the manuscript.
+
 ## Identification gate
 
 State the estimand and defend strict exogeneity conditional on the unit effect:

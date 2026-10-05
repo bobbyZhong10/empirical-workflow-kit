@@ -25,8 +25,10 @@ chosen by how much structure you are willing to impose.
   assignment (the Gamma parameter), leave the outcome association unrestricted; matched
   designs report the Gamma at which significance is lost.
 
-Failure semantics: an estimate that flips sign or loses significance under mild calibrated
-confounding indicts the design; do not respond by switching estimators. M-bias from
+Failure semantics: a sign change or interval including zero under a substantively
+plausible confounding benchmark limits the affected claim under its stated rule;
+it does not establish actual confounding or absence of an effect. Review the
+benchmark and conclusion separately; do not switch estimators to recover significance. M-bias from
 conditioning on colliders is possible in principle but has produced few clear empirical
 mistakes in economics (Imbens); the descendant rule catches the common error.
 

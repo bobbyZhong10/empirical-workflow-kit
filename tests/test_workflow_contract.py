@@ -192,26 +192,13 @@ def test_writing_strength_types_publish_and_route_conditional_fields():
     assert "`null` or absent for all other types" in normalized_interface
 
     writing = read("skills/empirical-workflow/stages/stage7-writing.md")
-    routed = " ".join(
-        writing.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
-    )
-    for field in (
-        "`assertion_type`",
-        "`declared_tier`",
-        "`qualifier_scope`",
-        "`counterevidence_prominence`",
-        "`underlying_precision`",
-        "`scope_declaration`",
-        "`power_basis`",
-        "`upgrade_justification`",
-        "`alternative_explanation`",
-        "`as_modeled`",
-    ):
-        assert field in routed
-    assert "`alternative_explanation` only for discriminating sites" in routed
-    assert "`as_modeled: true` only for model-internal sites" in routed
-    assert "Compare `declared_tier` only among `world` sites for upgrade traces" in routed
-    assert "untiered sites are excluded" in routed
+    assert "references/writing-under-the-registry.md" in writing
+    schema_reference = read("skills/empirical-workflow/references/writing-under-the-registry.md")
+    for field in ("assertion_type", "declared_tier", "qualifier_scope",
+                  "counterevidence_prominence", "underlying_precision",
+                  "scope_declaration", "power_basis", "upgrade_justification",
+                  "alternative_explanation", "as_modeled"):
+        assert f"`{field}`" in schema_reference
 
 
 def test_writing_strength_world_ladder_and_residual_severities():
@@ -323,113 +310,15 @@ def test_writing_strength_scope_scan_structural_and_stage_boundaries():
     )
 
     structural = read("skills/empirical-workflow/stages/stage6b-structural.md")
-    structural_actions = " ".join(
-        structural.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
-    )
-    structural_action_bullets = normalized_markdown_bullets(
-        structural.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0]
-    )
-    for rule in (
-        "Keep `identified` and `calibrated` lexically distinct",
-        "State identification as a property delivered by data variation and a "
-        "moment/likelihood component",
-        "state calibration as an analyst-authored setting with its fixed value and source",
-        "identified → simulated",
-        "model_internal",
-        "`as_modeled: true`",
-        "`underlying_precision.has_sampling_distribution: false`",
-    ):
-        assert rule in structural_actions
-    assert (
-        "Register every qualifier governing multiple counterfactuals as a "
-        "`scope_declaration` with an explicit manuscript coverage range. A body "
-        "declaration does not cover a title, abstract, or conclusion site outside "
-        "that range."
-    ) in structural_action_bullets
-    structural_red_lines = " ".join(
-        structural.split("## Red lines", 1)[1].split("## Exit condition", 1)[0].split()
-    )
-    assert (
-        "Never present a simulated model-internal quantity as identified empirical "
-        "evidence or use `significant` for it without a sampling distribution"
-        in structural_red_lines
-    )
-
-    assert " ".join(structural.split("## Exit condition", 1)[1].split()) == " ".join(
-        """
-        The structural analysis-readiness record shows that every parameter is identified or
-        labeled calibrated and sourced; multiple starts and uncertainty are reported;
-        targeted and untargeted fit, sensitivity, and reduced-form discipline are
-        visible; and each counterfactual has a support boundary. Every planned claim
-        traces to its Evidence card and output. This record authorizes drafting, not
-        circulation or submission.
-
-        ## 6b operating sequence
-
-        1. Lock primitives, parameter statuses, identification table, and estimation
-           plan before running the solver.
-        2. Estimate from multiple starts; record convergence, targeted and untargeted
-           fit, and parameter uncertainty.
-        3. Run sensitivity and reduced-form companion checks; return to primitives on
-           a material fit failure.
-        4. Produce bounded counterfactuals, evidence cards, three-line tables, and the
-           structural analysis-readiness record.
-        """.split()
-    )
-    assert (
-        "Pause before changing approved primitives, moments, sample, equilibrium, "
-        "estimator, or counterfactual after results are observed."
-        in " ".join(structural.split())
-    )
-
+    assert "`identified` and `calibrated` substantively distinct" in structural
+    assert "`as_modeled: true`" in structural
+    assert "analysis-readiness" in structural
     writing = read("skills/empirical-workflow/stages/stage7-writing.md")
-    writing_actions = " ".join(
-        writing.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0].split()
-    )
-    writing_action_bullets = normalized_markdown_bullets(
-        writing.split("## Automatic actions", 1)[1].split("## Required artifacts", 1)[0]
-    )
-    for route in (
-        "A positive `overclaim_residual` blocks and a negative residual is INFO",
-        "Low lexical strength on a discriminating assertion is neutral",
-    ):
-        assert route in writing_actions
-    assert (
-        "Enforce narrowing propagation to title, abstract, and conclusion; disclose "
-        "identifying-assumption counterevidence in a separate contrastive sentence "
-        "in the main text. Treat immediate recovery and a missing abstract/title "
-        "`upgrade_justification` trace as WARN, not blockers. A dedicated limitations "
-        "section does not replace disclosure beside the affected claim."
-    ) in writing_action_bullets
-    assert " ".join(writing.split("## Exit condition", 1)[1].split()) == " ".join(
-        """
-        Checkpoint C has zero blocking findings. The manuscript has complete three-line economics tables, verified citations,
-        and a claim-to-evidence audit in which each substantive claim traces to a
-        recorded result and limitation. Independent-runtime identification review is
-        CLEAR or CONDITIONAL with tracked resolution; no unresolved HOLD remains; and
-        the publication decision and remaining limitations are documented.
-
-        ## 7 operating sequence
-
-        1. Assemble evidence-backed sections and tables before drafting the
-           introduction and conclusion.
-        2. Complete the claim-to-evidence and citation-verification audits, including
-           every number in the abstract and introduction.
-        3. Run review at the required depth; give the independent runtime the
-           identification memo, diagnostic evidence, Evidence cards, and relevant
-           manuscript section rather than an executor summary.
-        4. Resolve findings, verify cross-references and table order, then apply the
-           outlet formatting adapter and assemble the delivery tree.
-        5. Run Checkpoint C, record its blocking count and review disposition, and only
-           then document release readiness. External circulation or submission still
-           requires the separately recorded authority decision.
-        """.split()
-    )
-    assert (
-        "External circulation or submission requires the protocol-required recorded "
-        "decision."
-        in " ".join(writing.split())
-    )
+    normalized = " ".join(writing.split())
+    assert "lexical residuals and disclosure-pattern checks as review prompts" in normalized
+    assert "zero mechanical blocking findings" in normalized
+    assert "independent cold read" in normalized
+    assert "External circulation or submission requires the protocol-required recorded decision." in normalized
 
 
 def test_example_config_values():
@@ -506,7 +395,7 @@ def test_canonical_validator_uses_the_bootstrapped_interpreter(tmp_path):
         check=False,
     )
     assert completed.returncode == 0, completed.stderr
-    assert completed.stdout.strip() == "empirical-workflow 2.7"
+    assert completed.stdout.strip() == "empirical-workflow 2.8"
 
     canonical = "tools/validate_registry"
     for path in ("AGENTS.md", "CLAUDE.md", "RESEARCH_PROTOCOL.md", "README.md"):
@@ -1158,3 +1047,15 @@ def test_literature_skills_degrade_portably_when_optional_capabilities_are_absen
     literature = read("skills/literature-review/SKILL.md")
     assert "If a Zotero connector is configured and available" in literature
     assert "Launch every reader with the `Agent` tool" not in literature
+
+
+def test_every_method_pack_routes_to_shared_interpretation_contract():
+    # Wiring only: this does not test prose meaning or research quality.
+    methods = ROOT / "skills/empirical-workflow/methods"
+    manifests = list(methods.glob("*/method.manifest.yaml"))
+    assert manifests
+    for manifest in manifests:
+        prompt = manifest.with_name("prompt.md")
+        route = "../../references/research-writing.md"
+        assert route in prompt.read_text(encoding="utf-8"), prompt
+        assert (prompt.parent / route).resolve().is_file()

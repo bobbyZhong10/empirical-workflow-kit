@@ -32,6 +32,13 @@ Checkpoint C blocks on it. The codes are `OUTPUT_ROOT_MISSING`,
 `OUTPUT_TABLE_EXPORT_MISSING` and `OUTPUT_FIGURE_EXPORT_MISSING`, with
 `OUTPUT_DELIVERY` as the summary report.
 
+These are submission delivery requirements. Report them separately from
+reproducibility, credibility of current claims, and readiness for scholarly
+discussion. An incomplete submission package does not by itself make a finding
+false or a draft unfit for discussion. External circulation still requires the
+recorded authority decision. File presence does not verify reproduction or PDF
+freshness: inspect the delivered version and retain its build provenance.
+
 ## `output/data`
 
 The data the paper was actually produced from — not the raw download, not an

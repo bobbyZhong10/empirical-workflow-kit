@@ -40,16 +40,49 @@ For a new invariant, add a focused regression test or fixture. A test should
 fail for the prior defect and pass for the correction. Keep generated outputs
 and expected values separate from raw inputs.
 
+## Adjudicate important review comments before repair
+
+Treat simulated and human reviews as claims to investigate. In the existing
+review finding or response record, mark each material allegation `confirmed`,
+`partly_confirmed`, or `mistaken`, with the inspected original output or exact
+manuscript version and location, rationale, and affected claim. Keep it
+`unverified` while evidence is missing; state what would resolve it. Split mixed
+allegations so a valid criticism does not validate an incorrect premise. Retain
+the original comment and the correction, including mistaken reviews, in history.
+Adjudication precedes final priority, repair strategy, and closure. A material
+unverified threat may pause the affected claim pending inspection, but is not a
+proven defect. Multiple roles repeating a criticism do not independently verify it.
+
+Keep responsibilities distinct: method review examines identification and
+diagnostic interpretation; domain review examines the knowledge increment; a
+cold reader sees only the manuscript and reconstructs its story; model review
+checks assumptions and derivations; editorial review checks length and clarity.
+Mechanical consistency findings have their own limited assurance. Role agreement
+and lexical matches cannot replace inspection of evidence.
+
 ## 4. Debug by root cause
 
 When a result, test, or validation fails:
 
-1. Preserve the failing output and reproduce it.
-2. Isolate the smallest stage, input, or assumption that changes the result.
-3. Form and test a causal explanation before patching.
-4. Make the smallest correction consistent with the explanation.
-5. Re-run the failing check and a nearby regression check; record the
-   disposition and residual risk.
+1. Preserve the failing output and reproduce it where applicable.
+2. Classify the cause before choosing a remedy:
+
+   | Cause | Repair |
+   |---|---|
+   | Calculation error | Correct the calculation and dependent outputs. |
+   | Design defect | Adjust the design with required authority or narrow/withdraw the claim. |
+   | Inferential overreach | Delete or correct the inference, rather than hedge it. |
+   | Unclear expression | Improve the argument and exhibit. |
+   | Intrinsic data limit | Disclose its consequence and decide whether to continue. |
+
+3. Test the proposed explanation on the smallest affected object.
+4. State the accurate affirmative conclusion, correcting understatement too.
+   Name the reader judgment this revision should change. Make the smallest substantive correction; consider removing repeatedly
+   defective material that does not serve the main argument. Do not default to
+   new disclaimers, robustness checks, or validators.
+5. Recheck the original issue and nearby effects, including new repetitive
+   qualifiers, unnecessary numbers, claim drift, and length inflation. Record
+   evidence and disposition; reopen only for a material unresolved issue.
 
 Do not weaken a gate, relabel a failure, or add post-result specifications just
 to make a run complete.
@@ -70,3 +103,31 @@ as the authoritative project record. Use _status.md for current state,
 decision-log.md for authorized decisions, Evidence cards for factual and
 execution evidence, and the registry for claims, figures, gates, and their
 dependencies.
+
+## Assurance boundaries
+
+Separate three types of validation in the review record:
+
+- Mechanical: numbers, files, keys, calculations, references, and declared
+  dependencies agree within stated coverage and tolerances.
+- Substantive: the source supports the interpretation and the design supports
+  the exact claim, with its assumptions and unresolved alternatives.
+- Editorial: readers understand the question, contribution, evidence, and scope
+  in a proportionate amount of text.
+
+Regexes, anchors, and lexical scores only inspect finite text patterns. Their
+findings are prompts for review, not proof of proposition meaning. A declaration
+or resolution record proves neither that a remedy works nor that a reader
+understands it. Do not report quality improvement from a growing PASS count.
+
+For every important mechanical check added or changed, demonstrate failure on a
+known bad case or targeted fault injection, alongside an unchanged valid case.
+Use an independently specified expected value or reference artifact. Comparing
+an output with itself, recomputing the same mistaken expression twice, or
+asserting an identity by construction does not test empirical correctness.
+An accounting identity may check arithmetic, never an independent mechanism.
+
+Bind verification to the artifact inspected: source revision, build command,
+output path, and checksum when reviewing a compiled artifact. Current source
+cannot attest to an older PDF. Open the actual delivered version for figure,
+layout, and cold-read claims. Missing artifacts remain unverified.

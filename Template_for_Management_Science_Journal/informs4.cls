@@ -1,63 +1,120 @@
-%% Updated to handle e-companions (EC) (see corresponding templates)
-%% 12/04/2007 fixed error in \quote
-%% 11/11/2010 added template disclaimer in \theARTICLETOP
-%% 12/20/2010 reworked type sizes ("per popular demand"); \OneAndAHalfSizedXI - default
-%% 02/23/2012 Fixed typo in "@otatefalse" (s/b "@rotatefalse")
-%% 08/09/2012 Fixed typo in a message "mansucript" (s/b "manuscript")
-\NeedsTeXFormat{LaTeX2e}[1995/12/01]
-\ProvidesClass{informs3}
-  [2012/08/09 v0.95
+%% ------------------------------------------------------------------------------------------------
+%% [circulation] informs4.cls of the INFORMS MNSC template (June 2024), modified into a format that is
+%% easier to circulate: no INFORMS logo, journal link, "Submitted to" line, journal name, volume, ISSN
+%% or red notice on the first page; the abstract across the full width; running heads with the title
+%% and "Working paper"; theorem labels in serif small capitals; links in the text font. Each change is
+%% marked [circulation], with the MNSC original kept as a comment just above it, so the class can be
+%% returned to the MNSC template by uncommenting those lines and deleting the added ones.
+%% ------------------------------------------------------------------------------------------------
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesClass{informs4}
+  [2024/06/03 v1.02
    LaTeX document class for articles submitted to INFORMS]
-
-\RequirePackage{amsmath,amssymb,ifthen,url,graphicx,color,array,theorem}
-
-%%%=============================================================================
-%%% A simplified reloading scheme for Computer Modern fonts
-%% Variation of `ot1cmr.fd',
-\DeclareFontFamily{OT1}{cmr}{\hyphenchar\font45 }
-\DeclareFontShape{OT1}{cmr}{m}{n}{<-10>gen*cmr<10->cmr10}{}
-\DeclareFontShape{OT1}{cmr}{m}{sl}{<->cmti10}{} % slanted type discouraged
-\DeclareFontShape{OT1}{cmr}{m}{it}{<5><6><7>cmti7<8>cmti8<9>cmti9<10->cmti10}{}
-\DeclareFontShape{OT1}{cmr}{m}{sc}{<5->cmcsc10}{}
-\DeclareFontShape{OT1}{cmr}{m}{ui}{<->cmu10}{}
-%%%%%%%% bold extended series
-\DeclareFontShape{OT1}{cmr}{bx}{n}{<5><6><7><8><9>gen*cmbx<10->cmbx10}{}
-\DeclareFontShape{OT1}{cmr}{bx}{sl}{<->cmbxti10}{}  % slanted type discouraged
-\DeclareFontShape{OT1}{cmr}{bx}{it}{<->cmbxti10}{}
-\DeclareFontShape{OT1}{cmr}{bx}{ui}{<->ssub*cmr/m/ui}{}
-\DeclareFontShape{OT1}{cmtt}{m}{n}{<5><6><7><8>cmtt8<9>cmtt9<10->cmtt10}{}
-%%%%%% make sure subst shapes are available
-\DeclareFontShape{OT1}{cmtt}{m}{it}{<->cmitt10}{}
-\DeclareFontShape{OT1}{cmtt}{m}{sl}{<->cmitt10}{} % slanted type discouraged
-\DeclareFontShape{OT1}{cmtt}{m}{sc}{<->cmtcsc10}{}
-\DeclareFontShape{OT1}{cmtt}{m}{ui}{<->ssub*cmtt/m/it}{}
-\DeclareFontShape{OT1}{cmtt}{bx}{n}{<->ssub*cmtt/m/n}{}
-\DeclareFontShape{OT1}{cmtt}{bx}{it}{<->ssub*cmtt/m/it}{}
-\DeclareFontShape{OT1}{cmtt}{bx}{ui}{<->ssub*cmtt/m/it}{}
-\DeclareFontShape{OT1}{cmss}{m}{n}{<->cmss10}{}
-% Font undefined, therefore substituted
-\DeclareFontShape{OT1}{cmss}{m}{it}{<->cmssi10}{}
-\DeclareFontShape{OT1}{cmss}{m}{sl}{<->cmssi10}{}
-%%%%%%% Font/shape undefined, therefore substituted
-\DeclareFontShape{OT1}{cmss}{m}{sc}{<->sub*cmr/m/sc}{}
-%%%%%%% Font/shape undefined, therefore substituted
-\DeclareFontShape{OT1}{cmss}{m}{ui}{<->sub*cmr/m/ui}{}
-%%%%%%%% semibold condensed series
-\DeclareFontShape{OT1}{cmss}{sbc}{n}{<->cmssdc10}{}
-%%%%%%%%% bold extended series
-\DeclareFontShape{OT1}{cmss}{bx}{n}{<->cmssbx10}{}
-%%%%%%% Font/shape undefined, therefore substituted
-\DeclareFontShape{OT1}{cmss}{bx}{ui}{<->sub*cmr/bx/ui}{}
-\DeclareFontShape{OML}{cmm}{m}{it}{<5><6><7><8><9>gen*cmmi<10->cmmi10}{}
-\DeclareFontShape{OML}{cmm}{b}{it}{<5><6><7><8><9>gen*cmmib<10->cmmib10}{}
-\DeclareFontShape{OML}{cmm}{bx}{it}{<->ssub*cmm/b/it}{}
-%%%%%%%%%%%%%%%%%%-AMS-msam+msbm fonts
-\DeclareFontFamily{U}{msa}{}
-\DeclareFontShape{U}{msa}{m}{n}{<-> msam10}{}
-\DeclareFontFamily{U}{msb}{}
-\DeclareFontShape{U}{msb}{m}{n}{<-> msbm10}{}
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
+%
+\RequirePackage{amsfonts,amsmath,amssymb,ifthen,url,graphicx,color,array,theorem}
+%% [circulation] added:
+\urlstyle{same}
+%% [circulation] end
+%
+%%% Journal options (Exactly ONE must be declared as option)
+\newif\if@DECA\@DECAfalse
+\newif\if@IJOC\@IJOCfalse
+\newif\if@INTE\@INTEfalse
+\newif\if@ISRE\@ISREfalse
+\newif\if@MNSC\@MNSCfalse
+\newif\if@MKSC\@MKSCfalse
+\newif\if@MOOR\@MOORfalse
+\newif\if@MSOM\@MSOMfalse
+\newif\if@OPRE\@OPREfalse
+\newif\if@ORSC\@ORSCfalse
+\newif\if@TRSC\@TRSCfalse
+\newif\if@ITED\@ITEDfalse
+\newif\if@SERV\@SERVfalse
+\newif\if@STSC\@STSCfalse
+\newif\if@STSY\@STSYfalse
+\newif\if@IJDS\@IJDSfalse
+\newif\if@IJOO\@IJOOfalse
+\DeclareOption{deca}{\@DECAtrue}
+\DeclareOption{stsy}{\@STSYtrue}
+\DeclareOption{ijoc}{\@IJOCtrue}
+\DeclareOption{inte}{\@INTEtrue}
+\DeclareOption{ijaa}{\@INTEtrue} % KGL 6/5/2024 (MS)
+\DeclareOption{isre}{\@ISREtrue}
+\DeclareOption{mnsc}{\@MNSCtrue}
+\DeclareOption{mksc}{\@MKSCtrue}
+\DeclareOption{moor}{\@MOORtrue}
+\DeclareOption{msom}{\@MSOMtrue}
+\DeclareOption{opre}{\@OPREtrue}
+\DeclareOption{orsc}{\@ORSCtrue}
+\DeclareOption{trsc}{\@TRSCtrue}
+\DeclareOption{ited}{\@ITEDtrue}
+\DeclareOption{serv}{\@SERVtrue}
+\DeclareOption{stsc}{\@STSCtrue}
+\DeclareOption{ijds}{\@IJDStrue}
+\DeclareOption{ijoo}{\@IJOOtrue}
+%
+\newif\if@COPYEDIT\@COPYEDITfalse
+\DeclareOption{copyedit}{\@COPYEDITtrue}
+%
+\newif\if@BLINDREV\@BLINDREVfalse
+\DeclareOption{blindrev}{\@BLINDREVtrue}
+\DeclareOption{dblanonrev}{\@BLINDREVtrue} % KGL 6/5/2024 (MS)
+%
+\newif\if@NONBLINDREV\@NONBLINDREVfalse
+\DeclareOption{nonblindrev}{\@NONBLINDREVtrue}
+\DeclareOption{sglanonrev}{\@NONBLINDREVtrue} % KGL 6/5/2024 (MS)
+%
+\newif\if@BIGACK\@BIGACKfalse
+\def\bigack{\@BIGACKtrue}
+%
+\DeclareOption{openbib}{%
+  \AtEndOfPackage{%
+   \renewcommand\@openbib@code{%
+      \advance\leftmargin\bibindent
+      \itemindent -\bibindent
+      \listparindent \itemindent
+      \parsep \z@
+      }%
+   \renewcommand\newblock{\par}}%
+}
+%
+\newcommand\@ptsize{}
+\newif\if@restonecol
+\newif\if@titlepage\@titlepagefalse
+\newif\if@nameyear\@nameyearfalse
+%
+%%% PAPER SIZE
+\DeclareOption{letterpaper}
+   {\setlength\paperheight{11in}\setlength\paperwidth{8.5in}}
+\DeclareOption{nameyear}{\@nameyeartrue}
+\DeclareOption{oneside}{\@twosidefalse \@mparswitchfalse}
+\DeclareOption{twoside}{\@twosidetrue  \@mparswitchtrue}
+\DeclareOption{onecolumn}{\@twocolumnfalse}
+\DeclareOption{twocolumn}{\@twocolumntrue}
+%%% TRIM options
+\DeclareOption{draft}{\setlength\overfullrule{5pt}%
+  \AtBeginDocument{\PagePositionCropYes
+    {72bp}{72bp}{36bp}{28bp}
+    {8.5in}{11in}{-1in}{-1in}}}
+\DeclareOption{final}{\setlength\overfullrule{0pt}%
+  \AtBeginDocument{\PagePositionCropNo
+    {72bp}{72bp}{36bp}{28bp}
+    {8.5in}{11in}{-1in}{-1in}}}
+\DeclareOption{finalbox}{\setlength\overfullrule{0pt}%
+  \AtBeginDocument{\PagePositionBoxYes
+    {72bp}{72bp}{36bp}{28bp}
+    {8.5in}{11in}{-1in}{-1in}}}
+%%% end_TRIM options
+\newcounter{nowappendix}
+\setcounter{nowappendix}{0}%
+%
+\ExecuteOptions{letterpaper,twoside,onecolumn,fleqn,final}
+\ProcessOptions
+%
+\renewcommand{\rmdefault}{ptm}
+\renewcommand{\sfdefault}{phv}
+\renewcommand{\ttdefault}{pcr}
+%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \DeclareOldFontCommand{\RMrm}{\rmfamily\mdseries\upshape}{\mathrm}
 \DeclareOldFontCommand{\RMit}{\rmfamily\mdseries\itshape}{\mathit}
@@ -248,8 +305,7 @@
 \DeclareMathSizes{13.0}{13.0}{9.0}{7.0}% \subsection size
 \DeclareMathSizes{14.0}{14.0}{9.0}{7.0}% \section size
 \DeclareMathSizes{20.0}{20.0}{14.0}{10.0}%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%-e-from-ffi-ti01(modified)
-
+%
 %%%=============================================================================
 %%% CROPMARKS
 \newdimen\markwidth
@@ -298,7 +354,7 @@
      \koo{0pt}{\markdistance}{\VRHDW{0pt}{\marklength}{\markwidth}}}%
    \vss}\hss}}%
 }%
-
+%
 \def\PagePositionCropNo#1#2#3#4#5#6#7#8{%
   \oddsidemargin=#1%  % [3] inner margin / gutter
   \evensidemargin=#2% % [4] outside margin
@@ -311,7 +367,7 @@
 %%%
 \def\CROPMARKS{}%
 }%
-
+%
 \def\PagePositionBoxYes#1#2#3#4#5#6#7#8{%
   \oddsidemargin=#1%  % [3] inner margin / gutter
   \evensidemargin=#2% % [4] outside margin
@@ -335,111 +391,30 @@
    \vss}\hss}}%
 }%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%end_CROPMARKS
-
-\newcommand\@ptsize{}
-\newif\if@restonecol
-\newif\if@titlepage\@titlepagefalse
-\newif\if@nameyear\@nameyearfalse
-%%% PAPER SIZE
-\DeclareOption{letterpaper}
-   {\setlength\paperheight{11in}\setlength\paperwidth{8.5in}}
-\DeclareOption{nameyear}{\@nameyeartrue}
-\DeclareOption{oneside}{\@twosidefalse \@mparswitchfalse}
-\DeclareOption{twoside}{\@twosidetrue  \@mparswitchtrue}
-\DeclareOption{onecolumn}{\@twocolumnfalse}
-\DeclareOption{twocolumn}{\@twocolumntrue}
-%%% TRIM options
-\DeclareOption{draft}{\setlength\overfullrule{5pt}%
-  \AtBeginDocument{\PagePositionCropYes
-    {72bp}{72bp}{36bp}{28bp}
-    {8.5in}{11in}{-1in}{-1in}}}
-\DeclareOption{final}{\setlength\overfullrule{0pt}%
-  \AtBeginDocument{\PagePositionCropNo
-    {72bp}{72bp}{36bp}{28bp}
-    {8.5in}{11in}{-1in}{-1in}}}
-\DeclareOption{finalbox}{\setlength\overfullrule{0pt}%
-  \AtBeginDocument{\PagePositionBoxYes
-    {72bp}{72bp}{36bp}{28bp}
-    {8.5in}{11in}{-1in}{-1in}}}
-%%% end_TRIM options
-\newcounter{nowappendix}
-\setcounter{nowappendix}{0}%
-%%% Journal options (Exactly ONE must be declared as option)
-\newif\if@DECA\@DECAfalse
-\newif\if@IJOC\@IJOCfalse
-\newif\if@INTE\@INTEfalse
-\newif\if@ISRE\@ISREfalse
-\newif\if@MNSC\@MNSCfalse
-\newif\if@MKSC\@MKSCfalse
-\newif\if@MOOR\@MOORfalse
-\newif\if@MSOM\@MSOMfalse
-\newif\if@OPRE\@OPREfalse
-\newif\if@ORSC\@ORSCfalse
-\newif\if@TRSC\@TRSCfalse
-\newif\if@ITED\@ITEDfalse
-\DeclareOption{deca}{\@DECAtrue}
-\DeclareOption{ijoc}{\@IJOCtrue}
-\DeclareOption{inte}{\@INTEtrue}
-\DeclareOption{isre}{\@ISREtrue}
-\DeclareOption{mnsc}{\@MNSCtrue}
-\DeclareOption{mksc}{\@MKSCtrue}
-\DeclareOption{moor}{\@MOORtrue}
-\DeclareOption{msom}{\@MSOMtrue}
-\DeclareOption{opre}{\@OPREtrue}
-\DeclareOption{orsc}{\@ORSCtrue}
-\DeclareOption{trsc}{\@TRSCtrue}
-\DeclareOption{ited}{\@ITEDtrue}
 %
-\newif\if@COPYEDIT\@COPYEDITfalse
-\DeclareOption{copyedit}{\@COPYEDITtrue}
-%
-\newif\if@BLINDREV\@BLINDREVfalse
-\DeclareOption{blindrev}{\@BLINDREVtrue}
-%
-\newif\if@NONBLINDREV\@NONBLINDREVfalse
-\DeclareOption{nonblindrev}{\@NONBLINDREVtrue}
-%
-\newif\if@BIGACK\@BIGACKfalse
-\def\bigack{\@BIGACKtrue}
-%
-\DeclareOption{openbib}{%
-  \AtEndOfPackage{%
-   \renewcommand\@openbib@code{%
-      \advance\leftmargin\bibindent
-      \itemindent -\bibindent
-      \listparindent \itemindent
-      \parsep \z@
-      }%
-   \renewcommand\newblock{\par}}%
-}
-\ExecuteOptions{letterpaper,twoside,onecolumn,final}
-\ProcessOptions
 %****************************************************************************
-
-%%%%%%%%%%%%%%%%%FFF
-
+%
 %%%\input{04set01.sty} % general settings of most parameters
 %%%%%%%%%%%%%%%%%%%%%%-b-Standard sizes and their versions
 \newdimen\@bls \@bls=13.2pt
 \newdimen\@em \@em=11pt
-
+%
 \def\fs.#1.#2.{\fontsize{#1}{#2}\selectfont}%
-
+%
 \def\Dskips#1#2#3#4{\abovedisplayskip #1em \@plus#2em \@minus#3em
    \abovedisplayshortskip \z@ \@plus#2em
    \belowdisplayshortskip #4em \@plus#2em \@minus#2em
    \belowdisplayskip \abovedisplayskip}%
 % standard 10pt is \Dskips{10}{3}{5}{6}%
 \Dskips{1.0}{0.3}{0.5}{0.6}%
-
-
+%
 \newcommand\TEN{\relax}%
 \newcommand\NIN{\relax}%
 \newcommand\EGT{\relax}%
 %\newcommand\normalsize{\relax}%
 \newcommand\small{\relax}%
 \newcommand\footnotesize{\relax}%
-
+%
 \def\SingleSpacedXI{%
 \renewcommand\TEN{\normalsizeXInoCE}%
 \renewcommand\NIN{\smallXnoCE}%
@@ -449,7 +424,7 @@
 \renewcommand\footnotesize{\footnotesizeIXnoCE}%
 \normalsizeXInoCE
 }
-
+%
 \def\DoubleSpacedXI{%
 \renewcommand\TEN{\normalsizeXIyesCE}%
 \renewcommand\NIN{\smallXyesCE}%
@@ -459,7 +434,7 @@
 \renewcommand\footnotesize{\footnotesizeIXyesCE}%
 \normalsizeXIyesCE
 }
-
+%
 \def\SingleSpacedXII{%
 \renewcommand\TEN{\normalsizeXIInoCE}%
 \renewcommand\NIN{\smallXnoCE}%
@@ -469,7 +444,7 @@
 \renewcommand\footnotesize{\footnotesizeIXnoCE}%
 \normalsizeXIInoCE
 }
-
+%
 \def\DoubleSpacedXII{%
 \renewcommand\TEN{\normalsizeXIIyesCE}%
 \renewcommand\NIN{\smallXyesCE}%
@@ -479,7 +454,7 @@
 \renewcommand\footnotesize{\footnotesizeIXyesCE}%
 \normalsizeXIIyesCE
 }
-
+%
 \def\OneAndAHalfSpacedXII{%
 \renewcommand\TEN{\AAnormalsizeXII}%
 \renewcommand\NIN{\AAsmallX}%
@@ -489,7 +464,7 @@
 \renewcommand\footnotesize{\AAfootnotesizeIX}%
 \AAnormalsizeXII
 }
-
+%
 \def\OneAndAHalfSpacedXI{%
 \renewcommand\TEN{\AAnormalsizeXI}%
 \renewcommand\NIN{\AAsmallX}%
@@ -499,7 +474,7 @@
 \renewcommand\footnotesize{\AAfootnotesizeIX}%
 \AAnormalsizeXI
 }
-
+%
 \def\TableSpaced{%
 \renewcommand\TEN{\TABLEnormalsizeXI}%
 \renewcommand\NIN{\TABLEsmallX}%
@@ -509,7 +484,7 @@
 \renewcommand\footnotesize{\TABLEfootnotesizeIX}%
 \TABLEnormalsizeXI
 }
-
+%
 \newcommand\AAnormalsizeXII{%
    \@setfontsize\normalsizeXI{12}{20.7}%
    \Dskips{1.0}{0.3}{0.5}{0.6}%
@@ -517,7 +492,7 @@
    \baselineskip20.7pt plus 1pt minus 1pt
 \@bls=20.7pt\@em=12pt
 \relax}
-
+%
 \newcommand\AAnormalsizeXI{%
    \@setfontsize\normalsizeXI{11}{12.66}%
    \Dskips{1.0}{0.3}{0.5}{0.6}%
@@ -525,7 +500,7 @@
    \baselineskip19pt plus 1pt minus 1pt
 \@bls=19pt\@em=11pt
 \relax}
-
+%
 \newcommand\AAsmallX{%
    \@setfontsize\smallX{10}{11.5}%
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -534,7 +509,7 @@
    \baselineskip17.25pt plus 1pt minus 1pt
 \@bls=17.25pt\@em=10pt
 \relax}
-
+%
 \newcommand\AAfootnotesizeIX{%
    \@setfontsize\footnotesizeIX\@ixpt\@xipt
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -543,7 +518,7 @@
    \baselineskip15.5pt plus 1pt minus 1pt
 \@bls=15.5pt\@em=9pt
 \relax}
-
+%
 \newcommand\normalsizeXIInoCE{%
    \@setfontsize\normalsizeXI{12}{13.80}%
    \Dskips{1.0}{0.3}{0.5}{0.6}%
@@ -551,7 +526,7 @@
    \baselineskip13.80pt plus 0.6pt minus 0.4pt
 \@bls=13.80pt\@em=12pt
 \relax}
-
+%
 \newcommand\normalsizeXInoCE{%
    \@setfontsize\normalsizeXI{11}{12.66}%
    \Dskips{1.0}{0.3}{0.5}{0.6}%
@@ -559,7 +534,7 @@
    \baselineskip12.66pt plus 0.6pt minus 0.4pt
 \@bls=12.66pt\@em=11pt
 \relax}
-
+%
 \newcommand\smallXnoCE{%
    \@setfontsize\smallX{10}{11.5}%
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -568,7 +543,7 @@
    \baselineskip11.5pt plus 0.5pt minus 0.35pt
 \@bls=11.5pt\@em=10pt
 \relax}
-
+%
 \newcommand\footnotesizeIXnoCE{%
    \@setfontsize\footnotesizeIX{9}{10.35}%
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -577,7 +552,7 @@
    \baselineskip10.35pt plus 0.4pt minus 0.3pt
 \@bls=10.35pt\@em=9pt
 \relax}
-
+%
 \newcommand\normalsizeXIIyesCE{%
    \@setfontsize\normalsizeXI{12}{27.6}%
    \Dskips{1.0}{0.3}{0.5}{0.6}%
@@ -585,7 +560,7 @@
    \baselineskip27.6pt plus 1pt minus 2pt
 \@bls=27.6pt\@em=12pt
 \relax}
-
+%
 \newcommand\normalsizeXIyesCE{%
    \@setfontsize\normalsizeXI{11}{25.32}%
    \Dskips{1.0}{0.3}{0.5}{0.6}%
@@ -593,7 +568,7 @@
    \baselineskip25.32pt plus 1pt minus 2pt
 \@bls=25.32pt\@em=11pt
 \relax}
-
+%
 \newcommand\smallXyesCE{%
    \@setfontsize\smallX{10}{23}%
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -602,7 +577,7 @@
    \baselineskip23pt plus 1pt minus 1pt
 \@bls=23pt\@em=10pt
 \relax}
-
+%
 \newcommand\footnotesizeIXyesCE{%
    \@setfontsize\footnotesizeIX{9}{20.7}
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -611,7 +586,7 @@
    \baselineskip20.7pt plus 1pt minus 1pt
 \@bls=20.7pt\@em=9pt
 \relax}
-
+%
 \newcommand\TABLEnormalsizeXI{%
    \@setfontsize\normalsizeX{10}{12}%
    \Dskips{1.0}{0.3}{0.5}{0.6}%
@@ -619,7 +594,7 @@
    \baselineskip12pt plus 0.6pt minus 0.4pt
 \@bls=12pt\@em=10pt
 \relax}
-
+%
 \newcommand\TABLEsmallX{%
    \@setfontsize\smallX{9}{11}%
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -628,7 +603,7 @@
    \baselineskip11pt plus 0.5pt minus 0.35pt
 \@bls=11pt\@em=9pt
 \relax}
-
+%
 \newcommand\TABLEfootnotesizeIX{%
    \@setfontsize\footnotesizeIX{8}{10}%
    \Dskips{0.8}{0.3}{0.5}{0.6}%
@@ -637,9 +612,7 @@
    \baselineskip10pt plus 0.4pt minus 0.3pt
 \@bls=10pt\@em=8pt
 \relax}
-
-
-
+%
 \newcommand\scriptsize{\@setfontsize\scriptsize\@viiipt{9.5}}
 \newcommand\tiny{\@setfontsize\tiny\@vipt\@viipt}
 \newcommand\large{\@setfontsize\large\@xivpt{18}}
@@ -647,23 +620,14 @@
 \newcommand\LARGE{\@setfontsize\LARGE\@xxpt{25}}
 \newcommand\huge{\@setfontsize\huge\@xxvpt{30}}
 \let\Huge=\huge
-
-%\def\TEN{\normalsizeXI}%
-%\def\NIN{\smallX}%
-%\def\EGT{\footnotesizeIX}%
 %
-%\def\normalsize{\normalsizeXI}%
-%\def\small{\smallX}%
-%\def\footnotesize{\footnotesizeIX}%
-
-
 \if@COPYEDIT
-\DoubleSpacedXI
+\DoubleSpacedXII % KGL 6/5/2024 (MS)
 \else
-\SingleSpacedXI
+\SingleSpacedXII % KGL 6/5/2024 (MS)
 \fi
-
-\OneAndAHalfSpacedXI % 12/20/2010
+%
+\OneAndAHalfSpacedXII % KGL 6/5/2024 (MS)
 
 %%%%%%%%%%%%%%%%%%%%%%-e-Standard sizes and their versions
 
@@ -900,7 +864,6 @@
 \newcommand\tablename{Table}%       <-- to be adjusted per journal
 \newcommand\refname{References}%    <-- to be adjusted per journal
 \newcommand\appendixname{Appendix}% <-- to be adjusted per journal
-%\newcommand\abstractname{Abstract:}
 %
 \newcommand\today{}
 \edef\today{\ifcase\month\or
@@ -994,6 +957,7 @@
 \global\titlefalse
 
 \def\JOURNAL#1{\gdef\theJOURNAL{#1}}\def\theJOURNAL{Journal Name}%
+\def\JOURNALshort#1{\gdef\theJOURNALshort{#1}}\def\theJOURNALshort{Journal Name}%
 \def\VOLUME#1{\gdef\theVOLUME{#1}}\def\theVOLUME{00}%
 \def\NO#1{\gdef\theNO{#1}}\def\theNO{0}%
 \def\ISSUE#1{\gdef\theISSUE{#1}}\def\theISSUE{0000}% default
@@ -1033,26 +997,30 @@
 
 \if@BLINDREV
 \long\def\ARTICLEAUTHORS#1{\gdef\theARTICLEAUTHORS{%
-  \begin{Center}\HOOKa\vspace*{0pt}{\fs.12.12.\bf (Authors' names blinded for peer review)}\vspace*{0pt}\end{Center}}}%
+%  \begin{flushleft}\HOOKa\vspace*{0pt}{\fs.12.12.\bf (Authors' names blinded for peer review)}\vspace*{0pt}\end{flushleft}}}%
+  \begin{flushleft}\HOOKa\vspace*{0pt}{\fs.12.12.\bf (Authors' names are not included for peer review)}\vspace*{0pt}\end{flushleft}}}%
 \else
 \long\def\ARTICLEAUTHORS#1{\gdef\theARTICLEAUTHORS{%
-  \begin{Center}\HOOKa\vspace*{0pt}#1\vspace*{0pt}\end{Center}}}%
+  \begin{flushleft}\HOOKa\vspace*{0pt}#1\vspace*{0pt}\end{flushleft}}}%
 \fi
 \def\theARTICLEAUTHORS{}%
 
-\long\def\ABSTRACT#1{\long\gdef\theABSTRACT{#1}}\def\theABSTRACT{}%
+\long\def\ABSTRACT#1{\long\gdef\theABSTRACT{\textsf{\textbf{Abstract.}} #1}}\def\theABSTRACT{}%
 
 \def\SEPBAR{$\mskip2.5mu|\mskip2.5mu$}
 
 \def\SUBJECTCLASSname{{\it Subject classifications\/}{\kern0.7pt}:\enskip}
 \def\AREAOFREVIEWname{{\it Area of review\/}{\kern0.7pt}:\enskip}
-\def\HISTORYname{{\it History\/}{\kern0.7pt}:\enskip}
+\def\HISTORYname{\textsf{\textbf{History\/{\kern0.7pt}:}}\enskip}
 \def\MSCCLASSname{{\it MSC2000 subject classification\/}{\kern0.7pt}:\enskip}
 \def\ORMSCLASSname{{\it OR/MS subject classification\/}{\kern0.7pt}:\enskip}
-\def\KEYWORDSname{{\it Key words\/}{\kern0.7pt}:\enskip}
+\def\KEYWORDSname{\textsf{\textbf{Key words{\kern0.7pt}:}}\enskip}
+\def\FUNDINGname{\textsf{\textbf{Funding{\kern0.7pt}:}}\enskip}
 
 \def\HISTORY#1{\gdef\theHISTORY{\endgraf\rightskip0pt plus 20pc
   \noindent\hangindent1em\HISTORYname #1\endgraf}}\def\theHISTORY{}%
+\def\FUNDING#1{\gdef\theFUNDING{\endgraf\rightskip0pt plus 20pc
+  \noindent\hangindent1em\FUNDINGname #1\endgraf}}\def\theHISTORY{}%
 \def\AREAOFREVIEW#1{\gdef\theAREAOFREVIEW{\endgraf\rightskip0pt plus 20pc
   \noindent\hangindent1em\AREAOFREVIEWname #1\endgraf}}\def\theAREAOFREVIEW{}%
 \def\SUBJECTCLASS#1{\gdef\theSUBJECTCLASS{\endgraf\rightskip0pt plus 20pc
@@ -1062,7 +1030,9 @@
 \def\ORMSCLASS#1{\gdef\theORMSCLASS{\endgraf\rightskip0pt plus 20pc
   \noindent\hangindent1em\ORMSCLASSname #1\endgraf}}\def\theORMSCLASS{}%
 \def\KEYWORDS#1{\gdef\theKEYWORDS{\endgraf\rightskip0pt plus 20pc
-  \noindent\hangindent1em\KEYWORDSname #1\endgraf}}\def\theKEYWORDS{}%
+\noindent\hangindent1em\KEYWORDSname #1\endgraf}}\def\theKEYWORDS{}%
+\def\FUNDING#1{\gdef\theFUNDING{\endgraf\rightskip0pt plus 20pc
+  \noindent\hangindent1em\FUNDINGname #1\endgraf}}\def\theFUNDING{}%
 \def\thePAGERANGE{pp.~\theFIRSTPAGE--\theLASTPAGE}% default
 \def\theRUNPAGERANGE{pp.~\theFIRSTPAGE--\theLASTPAGE}% default
 
@@ -1081,12 +1051,24 @@
   \rlap{\VRHDW{0.5pt}{0pt}{\textwidth}}&\\
   \end{tabular*}}}
 
-\RRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
-\RRHSecondLine{\fs.7.9.{\theJOURNAL} \theVOLUME(\theNO), \theRUNPAGERANGE,
-  \copyright\,{\theYEAR}\ INFORMS}% default
-\LRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
-\LRHSecondLine{\fs.7.9.{\theJOURNAL} \theVOLUME(\theNO), \theRUNPAGERANGE,
-  \copyright\,{\theYEAR}\ INFORMS}% default
+%% [circulation] MNSC original, commented out:
+%\RRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
+%\RRHSecondLine{\fs.7.9.{Article submitted to \textit{\theJOURNAL}}}% default
+%\LRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
+%\LRHSecondLine{\fs.7.9.{Article submitted to \textit{\theJOURNAL}}}% default
+%% [circulation] added:
+\RRHFirstLine{{\it\theRUNTITLE}}%
+\RRHSecondLine{\fs.7.9.{Working paper}}%
+\LRHFirstLine{{\it\theRUNTITLE}}%
+\LRHSecondLine{\fs.7.9.{Working paper}}%
+%% [circulation] end
+
+%\RRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
+%\RRHSecondLine{\fs.7.9.{\theJOURNAL} \theVOLUME(\theNO), \theRUNPAGERANGE,
+%  \copyright\,{\theYEAR}\ INFORMS}% default
+%\LRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
+%\LRHSecondLine{\fs.7.9.{\theJOURNAL} \theVOLUME(\theNO), \theRUNPAGERANGE,
+%  \copyright\,{\theYEAR}\ INFORMS}% default
 
 \def\setoddECRH{\hbox to \textwidth{\fs.7.8.\tabcolsep0pt
   \begin{tabular*}{\textwidth}[b]{l@{\extracolsep\fill}r}
@@ -1103,28 +1085,39 @@
 \ECRRHSecondLine{\fs.7.9.{\rm \theECTYPE}{\bf\theECRUNAUTHOR\theECAUpunct}{\it\theECRUNTITLE}}% default
 \ECLRHFirstLine{\relax}% default
 \ECLRHSecondLine{\fs.7.9.{\rm \theECTYPE}{\bf\theECRUNAUTHOR\theECAUpunct}{\it\theECRUNTITLE}}% default
-
-
+%
 \if@BLINDREV
-\RRHFirstLine{\bf Authors' names blinded for peer review}% default
-\RRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}; manuscript no. {\theMANUSCRIPTNO}}% default
-\LRHFirstLine{\bf Authors' names blinded for peer review}% default
-\LRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}; manuscript no. {\theMANUSCRIPTNO}}% default
+%% [circulation] MNSC original, commented out:
+%\RRHFirstLine{\bf Authors' names not included for peer review}% default
+%\RRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}}% default
+%\LRHFirstLine{\bf Authors' names not included for peer review}% default
+%\LRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}}% default
+%% [circulation] added:
+\RRHFirstLine{{\it\theRUNTITLE}}%
+\RRHSecondLine{\fs.7.9.\rm Working paper}%
+\LRHFirstLine{{\it\theRUNTITLE}}%
+\LRHSecondLine{\fs.7.9.\rm Working paper}%
+%% [circulation] end
 \fi
 
 \if@NONBLINDREV
-\RRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
-\RRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}; manuscript no. {\theMANUSCRIPTNO}}% default
-\LRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
-\LRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}; manuscript no. {\theMANUSCRIPTNO}}% default
+%% [circulation] MNSC original, commented out:
+%\RRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
+%\RRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}}% default
+%\LRHFirstLine{\bf\theRUNAUTHOR:\enskip {\it\theRUNTITLE}}% default
+%\LRHSecondLine{\fs.7.9.\rm Article submitted to {\it\theJOURNAL}}% default
+%% [circulation] added:
+\RRHFirstLine{{\it\theRUNTITLE}}%
+\RRHSecondLine{\fs.7.9.\rm Working paper}%
+\LRHFirstLine{{\it\theRUNTITLE}}%
+\LRHSecondLine{\fs.7.9.\rm Working paper}%
+%% [circulation] end
 \fi
 
 \let\savesetoddRF=\setoddRF
 \let\savesetevenRF=\setevenRF
 \let\savesetoddRH=\setoddRH
 \let\savesetevenRH=\setevenRH
-
-%%\def\ThePage{\thepage}%
 
 \def\ps@headings{%
     \def\@oddfoot{\setoddRF}%
@@ -1202,9 +1195,14 @@
   \newpage
   \theARTICLETOP
   \theARTICLETITLE
-  \theARTICLEAUTHORS
+  \theARTICLEAUTHORS\removelastskip
+%% [circulation] MNSC original, commented out:
+%\rule{\textwidth}{1pt}
+%% [circulation] added:
+\rule{\textwidth}{1pt}\par
+%% [circulation] end
   \theARTICLEABSTRACT
-  \theARTICLERULE
+%  \theARTICLERULE
 }
 
 %%%%%%%%%%%% first page details
@@ -1223,10 +1221,10 @@
 
 \def\theARTICLETITLE{%
   \HOOKtop
-  \begin{Center}
+  \begin{flushleft}
   \vspace*{0pt}%
-  \TITLEfont\HD{24}{0}\theTITLE\HD{0}{15}%
-  \end{Center}}
+  \TITLEfont\HD{24}{0}\sffamily\bfseries\theTITLE\HD{0}{15}%
+  \end{flushleft}}
 
 \def\EMAIL#1{#1}% use within AFF
 \def\URL#1{#1}% use within AFF
@@ -1234,24 +1232,24 @@
 %\def\URL#1{\href{#1}{#1}}         % when hyperref is used
 
 \def\AUTHOR#1{%
-  \begin{Center}
+  \begin{flushleft}
   \AUTHORfont\HD{15}{0}#1\HD{0}{6}\relax
-  \end{Center}}
+  \end{flushleft}}
 \def\AFF#1{%
-  \begin{Center}
+  \begin{flushleft}
   \AFFfont{#1}\relax
   \vskip1.6pt
-  \end{Center}}
+  \end{flushleft}}
 
 \def\ARTICLERULE#1{\gdef\theARTICLERULE{#1}}%
 % default is to have a rule
 \def\theARTICLERULE{%
-  \begin{Center}
+  \begin{flushleft}
   \vspace*{12pt}
   \VRHDW{1pt}{0pt}{\textwidth}
   \vspace*{4pt}
   \HOOKc
-  \end{Center}}
+  \end{flushleft}}
 
 \def\ACKname#1{\gdef\theACKname{#1}}\def\theACKname{Acknowledgments}%
 
@@ -1263,15 +1261,18 @@
   \noindent{\fs.13.15.\bf\theACKname}\endgraf\noindent{\NIN #1\endgraf}\endgraf}
 \fi
 
+\long\def\AUTHORBIO#1{#1}
+
 \if@BLINDREV
 \long\def\ACKNOWLEDGMENT#1{}%
+\long\def\AUTHORBIO#1{}%
 \fi
 
 \@BIGACKfalse
 
-\if@MOOR
-\long\def\ACKNOWLEDGMENT#1{\section*{\bf\theACKname.}{#1\endgraf}\endgraf}
-\fi
+%\if@MOOR
+%\long\def\ACKNOWLEDGMENT#1{\section*{\bf\theACKname.}{#1\endgraf}\endgraf}
+%\fi
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%%%%%%%%% -b-VARIOUS-TOOLS
@@ -1854,9 +1855,17 @@
   \def\@opargbegintheorem##1##2##3{\normalfont\ExampleTextFont
         \item[\if@OPRE\else\hspace*{1em}\fi\hskip\labelsep \theorem@headerfont {##3}]}}
 
+%% [circulation] MNSC original, commented out:
+%\def\TheoremHeaderFont{\sffamily\mdseries\scshape}
+%% [circulation] added:
 \def\TheoremHeaderFont{\mdseries\scshape}
+%% [circulation] end
 \def\TheoremTextFont{\thit}
+%% [circulation] MNSC original, commented out:
+%\def\ExampleHeaderFont{\sffamily\mdseries\scshape}
+%% [circulation] added:
 \def\ExampleHeaderFont{\mdseries\scshape}
+%% [circulation] end
 \def\ExampleTextFont{\rm}
 
 %% Use for proper proofs that end with extra space (regardless of the use
@@ -1872,18 +1881,17 @@
 
 \def\theARTICLETOP{%
   \vspace*{-57pt}
-  \begin{Center}
-  \parbox[t][60pt][t]{\textwidth}{%
-  \theARTICLETOPLEFT\hfill\theARTICLETOPRIGHT}\\[10pt]
-  \parbox{36pc}{\fs.10.11.\bf\textcolor{red}{Authors are encouraged to submit new papers to INFORMS journals by means of
-a style file template, which includes the journal title. However, use of a
-template does not certify that the paper has been accepted for publication
-in the named journal. INFORMS journal templates are for the exclusive
-purpose of submitting to an INFORMS journal and should not be used to
-distribute the papers in print or online or to submit the papers to another
-publication.}}
+%  \begin{flushleft}
+%  \parbox[t][60pt][t]{\textwidth}{%
+\noindent\begin{minipage}[t]{.45\textwidth}%
+\theARTICLETOPLEFT\end{minipage}\hfill\begin{minipage}[t]{.45\textwidth}%
+\hfill\theARTICLETOPRIGHT
+\end{minipage}
+%}\\[10pt]
+%  \parbox{36pc}{\fs.10.11.\bf\textcolor{red}{Authors are encouraged to submit new papers to INFORMS journals by means of a style file template, which includes the journal title. However, use of a template does not certify that the paper has been accepted for publication in the named journal. INFORMS journal templates are for the exclusive purpose of submitting to an INFORMS journal and should not be used to distribute the papers in print or online or to submit the papers to another publication.}}
 \vspace*{12pt}
-  \end{Center}}
+%\end{flushleft}
+}
 
 % default values
 \def\HOOKtop{\vspace*{0pt}}%
@@ -1894,59 +1902,123 @@ publication.}}
 \def\MANUSCRIPTNO#1{\gdef\theMANUSCRIPTNO{#1}}%
   \def\theMANUSCRIPTNO{(Please, provide the manuscript number!)}%{Manuscript number}%
 
-%
-\long\def\theARTICLETOPLEFT{{\tabcolsep0pt\fs.8.10.%
-\begin{tabular}[t]{l}\null\quad\null\\[0pt]
-  \fs.10.10.{\bfseries\sffamily\MakeUppercase{\theJOURNAL}}\\[1pt]
-  Vol.~\theVOLUME, No.~\theNO, \theMONTH~\theYEAR, \thePAGERANGE\\
-  {\sc issn}\,\theISSN\SEPBAR{\sc eissn}\,\theEISSN\SEPBAR
-  \theSHORTYEAR\SEPBAR\theISSUE\SEPBAR\theLONGFIRSTPAGE
+\long\def\theARTICLETOPLEFT{%
+{\tabcolsep0pt\fs.10.12.\bf\sffamily%
+\begin{tabular}[t]{@{}l}%
+%% [circulation] MNSC original, commented out:
+%\includegraphics{informs_Logo}\\[-4pt]
+%{\fontsize{7}{8}\selectfont https://pubsonline.informs.org/journal/\theJOURNALshort}\\ % KGL 14 Mar 2024
+%\HD{25}{0}Submitted to {\bi\sffamily\theJOURNAL}\\
+%% [circulation] end
+\vphantom{manuscript no. {\sffamily\theMANUSCRIPTNO}}
 \end{tabular}}}%
-\def\theARTICLETOPRIGHT{{\tabcolsep0pt\fs.8.10.%
-\begin{tabular}[t]{r}\null\quad\null\\[0pt]
-  {\fs.16.16.\bfseries\sffamily INFORMS}\\[1pt]
-  {\sc doi}\,\theDOI\\
-  \copyright\,\theYEAR~INFORMS\end{tabular}}}%
-%
+\def\theARTICLETOPRIGHT{\llap{\tabcolsep0pt\bf\sffamily%
+\begin{tabular}[t]{r@{}}%
+\text{}\\[-22pt]
+%% [circulation] MNSC original, commented out:
+%{\fs.12.14.\MakeUppercase{\theJOURNAL}}\\[0pt]
+%{\fs.7.9.Vol.~\theVOLUME, No.~\theNO, \theMONTH~\theYEAR, \thePAGERANGE}\\
+%{\fs.7.9.{ISSN}\,\theISSN,\ {EISSN}\,\theEISSN 
+%%\theSHORTYEAR\SEPBAR\theISSUE\SEPBAR\theLONGFIRSTPAGE
+%}
+%% [circulation] end
+%  {\fs.16.16.\bfseries\sffamily INFORMS}\\[1pt]
+%  {\sc doi}\,\theDOI\\
+%  \copyright\,\theYEAR~INFORMS
+  \end{tabular}}}%
+
 
 \if@BLINDREV
 %
-\long\def\theARTICLETOPLEFT{{\tabcolsep0pt\fs.12.14.\bf
-\begin{tabular}{l}\HD{25}{0}Submitted to {\bi\theJOURNAL}\\
-manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
-\def\theARTICLETOPRIGHT{}%
-%
+\long\def\theARTICLETOPLEFT{%
+{\tabcolsep0pt\fs.10.12.\bf\sffamily%
+\begin{tabular}[t]{@{}l}%
+%% [circulation] MNSC original, commented out:
+%\includegraphics{informs_Logo}\\[-4pt]
+%{\fontsize{7}{8}\selectfont https://pubsonline.informs.org/journal/\theJOURNALshort}\\
+%\HD{25}{0}Submitted to {\bi\sffamily\theJOURNAL}\\
+%% [circulation] end
+\vphantom{manuscript no. {\sffamily\theMANUSCRIPTNO}}\end{tabular}}}%
+\def\theARTICLETOPRIGHT{\llap{\tabcolsep0pt\bf\sffamily%
+\begin{tabular}[t]{r@{}}%
+\text{}\\[-22pt]
+%% [circulation] MNSC original, commented out:
+%{\fs.12.14.\MakeUppercase{\theJOURNAL}}\\[0pt]
+%{\fs.7.9.Vol.~\theVOLUME, No.~\theNO, \theMONTH~\theYEAR, \thePAGERANGE}\\
+%{\fs.7.9.{ISSN}\,\theISSN,\ {EISSN}\,\theEISSN 
+%%\theSHORTYEAR\SEPBAR\theISSUE\SEPBAR\theLONGFIRSTPAGE
+%}
+%% [circulation] end
+%  {\fs.16.16.\bfseries\sffamily INFORMS}\\[1pt]
+%  {\sc doi}\,\theDOI\\
+%  \copyright\,\theYEAR~INFORMS
+  \end{tabular}}}%
 %\def\theHISTORY{}%
 \fi
 
 \if@NONBLINDREV
 %
-\long\def\theARTICLETOPLEFT{{\tabcolsep0pt\fs.12.14.\bf
-\begin{tabular}{l}\HD{25}{0}Submitted to {\bi\theJOURNAL}\\
-manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
-\def\theARTICLETOPRIGHT{}%
+\long\def\theARTICLETOPLEFT{{\tabcolsep0pt\fs.10.12.\bf\sffamily%
+\begin{tabular}[t]{@{}l}%
+%% [circulation] MNSC original, commented out:
+%\includegraphics{informs_Logo}\\[-4pt]
+%{\fontsize{7}{8}\selectfont https://pubsonline.informs.org/journal/\theJOURNALshort}\\
+%\HD{25}{0}Submitted to {\bi\sffamily\theJOURNAL}\\
+%% [circulation] end
+\vphantom{manuscript no. {\sffamily\theMANUSCRIPTNO}}\end{tabular}}}%
+\def\theARTICLETOPRIGHT{\llap{{\tabcolsep0pt\bf\sffamily%
+\begin{tabular}[t]{r@{}}%
+\text{}\\[-22pt]
+%% [circulation] MNSC original, commented out:
+%{\fs.12.14.\MakeUppercase{\theJOURNAL}}\\[0pt]
+%{\fs.7.9.Vol.~\theVOLUME, No.~\theNO, \theMONTH~\theYEAR, \thePAGERANGE}\\
+%{\fs.7.9.{ISSN}\,\theISSN,\ {EISSN}\,\theEISSN 
+%%\theSHORTYEAR\SEPBAR\theISSUE\SEPBAR\theLONGFIRSTPAGE
+%}
+%% [circulation] end
+%  {\fs.16.16.\bfseries\sffamily INFORMS}\\[1pt]
+%  {\sc doi}\,\theDOI\\
+%  \copyright\,\theYEAR~INFORMS
+  \end{tabular}}}}%
 %
 \fi
 
 \def\ABSfont{\EGT}
 
 \def\theARTICLEABSTRACT{%
-  \begin{Center}
+%  \begin{Center}
   \HOOKb
-  \vspace*{18pt}
-  \begin{minipage}{\ABSwidth}\parindent1em
+%% [circulation] MNSC original, commented out:
+%  \vspace*{18pt}
+%% [circulation] added:
+  \vspace*{-0.8pt}
+%% [circulation] end
+%% [circulation] MNSC original, commented out:
+%  \begin{minipage}[t]{.3\textwidth}\parindent1em\ABSfont
+%  \noindent
+%  \textcolor{red}{Authors are encouraged to submit new papers to INFORMS journals by means of
+%	a style file template, which includes the journal title. However, use of a
+%	template does not certify that the paper has been accepted for publication
+%	in the named journal. INFORMS journal templates are for the exclusive purpose of submitting to an INFORMS journal and are not intended to be a true representation of the article's final published form. Use of this template to distribute papers in print or online or to submit papers to another non-INFORM publication is prohibited.}
+%  \end{minipage}\hfill  \begin{minipage}[t]{.65\textwidth}\parindent1em
+%% [circulation] added:
+  \par\noindent\begin{minipage}[t]{\textwidth}\parindent1em
+%% [circulation] end
     \ABSfont
     \noindent\theABSTRACT\endgraf
     \vskip5pt
+    \theFUNDING
     \theKEYWORDS
     \theSUBJECTCLASS
     \theAREAOFREVIEW
     \theMSCCLASS
     \theORMSCLASS
     \if@BLINDREV\else\theHISTORY\fi
-  \end{minipage}%
+  \noindent  \hrulefill
+  \end{minipage}%\par%
   \vspace*{0pt}
-  \end{Center}}
+  %\end{Center}
+  }
 
 %SSSSSSS
 
@@ -2075,15 +2147,15 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 %-------------------------------------------------
 
 \def\section{\@startsection{section}{1}{\z@}{-15pt plus -5pt minus -4pt}{0.01pt}%
-    {\fs.13.15.\bf\RAGG}}
+    {\fs.13.15.\bf\sffamily\RAGG}}
 \def\subsection{\@startsection{subsection}{2}{\z@}{-12pt plus -4pt minus -2pt}{0.01pt}
-    {\fs.11.{13.6}.\bf\RAGG}}
+    {\fs.11.{13.6}.\bf\sffamily\RAGG}}
 \def\subsubsection{\@startsection{subsubsection}{3}{10pt}{6pt plus 3pt minus 2pt}{-5pt}
-    {\fs.11.{13.6}.\bf}}
+    {\fs.11.{13.6}.\bf\sffamily}}
 \def\paragraph{\@startsection{paragraph}{4}{10pt}{0.1pt plus 0.1pt minus 0.1pt}{-0.5em}%
-    {\fs.11.{13.6}.\it}}
+    {\fs.11.{13.6}.\it\sffamily}}
 \def\subparagraph{\@startsection{subparagraph}{5}{10pt}{0.1pt plus 0.1pt minus 0.1pt}{-1em}%
-    {\fs.11.{13.6}.\it}}
+    {\fs.11.{13.6}.\it\sffamily}}
 
 %% EC subtitle (what it really is: Proofs, Technical Appendix, ...)
 \def\ECHead#1{\par\noindent{\raggedright\fs.15.18.\bf #1\endgraf}}
@@ -2106,11 +2178,11 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 \fi
 
 \if@MOOR
-\def\section{\@startsection{section}{1}{1em}{12pt plus 2pt minus 4pt}{-1em}{\bf}}%
-\def\subsection{\@startsection{subsection}{2}{1em}{12pt plus 2pt minus 2pt}{-1em}{\bf}}%
-\def\subsubsection{\@startsection{subsubsection}{3}{1em}{12pt plus 2pt minus 2pt}{-1em}{\bf}}%
-\def\paragraph{\@startsection{paragraph}{4}{1em}{6pt plus 1pt minus 2pt}{-1em}{\bi}}%
-\def\subparagraph{\@startsection{subparagraph}{5}{1em}{-0.01pt}{-1em}{\it}}%
+\def\section{\@startsection{section}{1}{1em}{12pt plus 2pt minus 4pt}{-1em}{\bf\sffamily}}%
+\def\subsection{\@startsection{subsection}{2}{1em}{12pt plus 2pt minus 2pt}{-1em}{\bf\sffamily}}%
+\def\subsubsection{\@startsection{subsubsection}{3}{1em}{12pt plus 2pt minus 2pt}{-1em}{\bf\sffamily}}%
+\def\paragraph{\@startsection{paragraph}{4}{1em}{6pt plus 1pt minus 2pt}{-1em}{\bi\sffamily}}%
+\def\subparagraph{\@startsection{subparagraph}{5}{1em}{-0.01pt}{-1em}{\it\sffamily}}%
 \fi
 
 %---
@@ -2173,6 +2245,39 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
   \HD{9}{0}\hbox{\FigureNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{0}\endgraf}
 \fi
 
+%% MJ-3/9/2015
+\if@STSC
+\long\def\@makefigurecaption#1#2{\EGT\FigureCaptionFontStyle
+  \begin{Center}\HD{9}{0}{\FigureNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{0}\endgraf\end{Center}}
+\fi
+\if@STSC
+\long\def\@makefigurecaption#1#2{\EGT\FigureCaptionFontStyle
+  \begin{Center}\HD{9}{0}{\FigureNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{0}\endgraf\end{Center}}
+\fi
+
+%% MW-11/5/2020
+\if@IJDS
+\long\def\@makefigurecaption#1#2{\EGT\FigureCaptionFontStyle
+  \begin{Center}\HD{9}{0}{\FigureNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{0}\endgraf\end{Center}}
+\fi
+\if@IJDS
+\long\def\@makefigurecaption#1#2{\EGT\FigureCaptionFontStyle
+  \begin{Center}\HD{9}{0}{\FigureNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{0}\endgraf\end{Center}}
+\fi
+
+%% MJ-8/22/2017
+\if@STSY
+\long\def\@makefigurecaption#1#2{\EGT\FigureCaptionFontStyle
+  \begin{Center}\HD{9}{0}{\FigureNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{0}\endgraf\end{Center}}
+\fi
+
+
+\if@IJOO
+\long\def\@makefigurecaption#1#2{\EGT\FigureCaptionFontStyle
+  \begin{Center}\HD{9}{0}{\FigureNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{0}\endgraf\end{Center}}
+\fi
+
+
 %% MJ-1/31/2007
 \long\def\@maketablecaption#1#2{\EGT\TableCaptionFontStyle
   \begin{Center}\HD{9}{0}{\TableNameFontStyle #1\kern16pt}\ignorespaces #2\HD{0}{5}\endgraf\end{Center}}
@@ -2183,7 +2288,6 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 \def\endrotate{\global\@rotatefalse}
 
 %*********************************************
-%\if@MNSC
 
 %************************************
 \def\FIGURE#1#2#3{%
@@ -2220,7 +2324,7 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 \fi}
 %************************************
 %************************************
-\if@IJOC
+\if@STSC
 \def\FIGURE#1#2#3{%
 \long\def\testfignote{#3}%
 \long\def\itis@empty{}%
@@ -2233,17 +2337,17 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 \if@rotate
   \setbox4=\hbox to \textheight{\vbox{\hsize\textheight
   \begin{minipage}{\textheight}
+  \caption[]{#2}%
   \begin{Center}%
   {#1}%
   \end{Center}%
-  \caption[]{#2}%
   \fignote{#3}%
   \end{minipage}}}
 \else
   \setbox4=\hbox to \hsize{\vbox{%
   \begin{minipage}{\hsize}
-  \hbox to\hsize{\hss{#1}\hss}%
   \caption[]{#2}
+  \hbox to\hsize{\hss{#1}\hss}%
   \fignote{#3}%
   \end{minipage}}}
 \fi
@@ -2255,6 +2359,117 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 \fi}
 \fi
 %************************************
+
+%************************************
+\if@IJDS
+\def\FIGURE#1#2#3{%
+\long\def\testfignote{#3}%
+\long\def\itis@empty{}%
+\ifx\testfignote\itis@empty
+  \long\def\fignote##1{\relax}%
+\else
+  \long\def\fignote##1{\par\noindent
+  \FigureNoteStyle\noindent\HD{11}{0}{\it\FigureNoteName}\enskip ##1\endgraf}%
+\fi
+\if@rotate
+  \setbox4=\hbox to \textheight{\vbox{\hsize\textheight
+  \begin{minipage}{\textheight}
+  \caption[]{#2}\vskip4pt%
+  \begin{Center}%
+  {#1}%
+  \end{Center}\vskip4pt%
+  \fignote{#3}%
+  \end{minipage}}}
+\else
+  \setbox4=\hbox to \hsize{\vbox{%
+  \begin{minipage}{\hsize}
+  \caption[]{#2}\vskip4pt
+  \hbox to\hsize{\hss{#1}\hss}\vskip4pt%
+  \fignote{#3}%
+  \end{minipage}}}
+\fi
+\if@rotate
+  \noindent\vrule width0pt height0.5\textheight depth0.5\textheight
+  \hspace*{0.5\textwidth}\rotatebox{90}{\copy4}%
+\else
+  \box4
+\fi}
+\fi
+%************************************
+%************************************
+\if@STSY
+\def\FIGURE#1#2#3{%
+\long\def\testfignote{#3}%
+\long\def\itis@empty{}%
+\ifx\testfignote\itis@empty
+  \long\def\fignote##1{\relax}%
+\else
+  \long\def\fignote##1{\par\noindent
+  \FigureNoteStyle\noindent\HD{11}{0}{\it\FigureNoteName}\enskip ##1\endgraf}%
+\fi
+\if@rotate
+  \setbox4=\hbox to \textheight{\vbox{\hsize\textheight
+  \begin{minipage}{\textheight}
+  \caption[]{#2}%
+  \begin{Center}%
+  {#1}%
+  \end{Center}%
+  \fignote{#3}%
+  \end{minipage}}}
+\else
+  \setbox4=\hbox to \hsize{\vbox{%
+  \begin{minipage}{\hsize}
+  \caption[]{#2}
+  \hbox to\hsize{\hss{#1}\hss}%
+  \fignote{#3}%
+  \end{minipage}}}
+\fi
+\if@rotate
+  \noindent\vrule width0pt height0.5\textheight depth0.5\textheight
+  \hspace*{0.5\textwidth}\rotatebox{90}{\copy4}%
+\else
+  \box4
+\fi}
+\fi
+%************************************
+%************************************
+\if@IJOO
+\def\FIGURE#1#2#3{%
+\long\def\testfignote{#3}%
+\long\def\itis@empty{}%
+\ifx\testfignote\itis@empty
+  \long\def\fignote##1{\relax}%
+\else
+  \long\def\fignote##1{\par\noindent
+  \FigureNoteStyle\noindent\HD{11}{0}{\it\FigureNoteName}\enskip ##1\endgraf}%
+\fi
+\if@rotate
+  \setbox4=\hbox to \textheight{\vbox{\hsize\textheight
+  \begin{minipage}{\textheight}
+  \caption[]{#2}\vskip4pt%
+  \begin{Center}%
+  {#1}%
+  \end{Center}\vskip4pt%
+  \fignote{#3}%
+  \end{minipage}}}
+\else
+  \setbox4=\hbox to \hsize{\vbox{%
+  \begin{minipage}{\hsize}
+  \caption[]{#2}\vskip4pt
+  \hbox to\hsize{\hss{#1}\hss}\vskip4pt%
+  \fignote{#3}%
+  \end{minipage}}}
+\fi
+\if@rotate
+  \noindent\vrule width0pt height0.5\textheight depth0.5\textheight
+  \hspace*{0.5\textwidth}\rotatebox{90}{\copy4}%
+\else
+  \box4
+\fi}
+\fi
+%************************************
+
+
 %************************************
 \if@TRSC
 \def\FIGURE#1#2#3{%
@@ -2377,15 +2592,15 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 \if@rotate
   \setbox4=\hbox to \textheight{\vbox{\hsize\textheight
   \begin{minipage}{\textheight}
-  \hbox to\hsize{\hss{#1}\hss}%
   \caption[]{#2}
+  \hbox to\hsize{\hss{#1}\hss}%
   \fignote{#3}%
   \end{minipage}}}
 \else
   \setbox4=\hbox to \hsize{\vbox{%
   \begin{minipage}{\hsize}
-  \hbox to\hsize{\hss{#1}\hss}%
   \caption[]{#2}
+  \hbox to\hsize{\hss{#1}\hss}%
   \fignote{#3}%
   \end{minipage}}}
 \fi
@@ -2406,7 +2621,7 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 %
 \def\@TABLE#1#2#3#4{%
 %%\if@COPYEDIT\ifdim\tempdimht<\TableStretchBreak\def\arraystretch{1.5}\else\def\arraystretch{1}\fi\else\fi
-\TABLESpaced
+\TableSpaced
 \long\def\testtabnote{#3}%
 \long\def\itis@empty{}%
 \ifx\testtabnote\itis@empty
@@ -2550,78 +2765,127 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 %%%%%%%%%%%%%%%%%%%%%%%%%
 
 \if@DECA
+\JOURNALshort{deca}
 \JOURNAL{Decision Analysis}%
 \ISSN{1545-8490}%
 \EISSN{1545-8504}%
 \fi
 
 \if@IJOC
+\JOURNALshort{ijoc}
 \JOURNAL{INFORMS Journal on Computing}%
 \ISSN{0899-1499}%
 \EISSN{1526-5528}%
-\OneAndAHalfSpacedXII
 \fi
 
 \if@INTE
-\JOURNAL{Interfaces}%
-\ISSN{0092-2102}%
-\EISSN{1526-551X}%
+\JOURNALshort{ijaa}% KGL 14 Mar 2024 
+\JOURNAL{INFORMS Journal on Applied Analytics}%
+\ISSN{2644-0865}% KGL 14 Mar 2024
+\EISSN{2644-0873}% KGL 14 Mar 2024
 \fi
 
 \if@ISRE
+\JOURNALshort{isre}
 \JOURNAL{Information Systems Research}%
 \ISSN{1047-7047}%
 \EISSN{1526-5536}%
 \fi
 
 \if@MNSC
+\JOURNALshort{mnsc}
 \JOURNAL{Management Science}%
 \ISSN{0025-1909}%
 \EISSN{1526-5501}%
 \fi
 
 \if@MKSC
+\JOURNALshort{mksc}
 \JOURNAL{Marketing Science}%
 \ISSN{0732-2399}%
 \EISSN{1526-548X}%
 \fi
 
 \if@MOOR
+\JOURNALshort{moor}
 \JOURNAL{Mathematics of Operations Research}%
 \ISSN{0364-765X}%
 \EISSN{1526-5471}%
 \fi
 
 \if@MSOM
+\JOURNALshort{msom}
 \JOURNAL{Manufacturing \& Service Operations Management}%
 \ISSN{1523-4614}%
 \EISSN{1526-5498}%
 \fi
 
 \if@OPRE
+\JOURNALshort{opre}
 \JOURNAL{Operations Research}%
 \ISSN{0030-364X}%
 \EISSN{1526-5463}%
 \fi
 
 \if@ORSC
+\JOURNALshort{orsc}
 \JOURNAL{Organization Science}%
 \ISSN{1047-7039}%
 \EISSN{1526-5455}%
 \fi
 
 \if@TRSC
+\JOURNALshort{trsc}
 \JOURNAL{Transportation Science}%
 \ISSN{0041-1655}%
 \EISSN{1526-5447}%
 \fi
 
 \if@ITED
+\JOURNALshort{ited}
 \JOURNAL{INFORMS Transactions on Education}%
 \ISSN{1532-0545}%
 \EISSN{1532-0545}%
 \fi
 
+\if@SERV
+\JOURNALshort{serv}
+\JOURNAL{Service Science}%
+\ISSN{2164-3962}%
+\EISSN{2164-3970}%
+\fi
+
+\if@STSC
+\JOURNALshort{stsc}
+\JOURNAL{Strategy Science}%
+\ISSN{2333-2050}%
+\EISSN{2333-2077}%
+\fi
+
+
+\if@IJDS
+\JOURNALshort{ijds}
+\JOURNAL{INFORMS Journal on Data Science}%
+\ISSN{2694-4022}%
+\EISSN{2694-4030}%
+\fi
+
+\if@STSY
+\JOURNAL{Stochastic Systems}%
+\ISSN{1946-5238}%
+\EISSN{1946-5238}%
+\fi
+
+\if@IJOO
+\JOURNALshort{ijoo}
+\JOURNAL{INFORMS Journal on Optimization}%
+\ISSN{2575-1484}%
+\EISSN{2575-1492}%
+\fi
+
+\newcommand{\THEEndNotes}{%
+\begingroup \parindent 0pt \parskip 3ex \def\enotesize{\normalsize} \theendnotes \endgroup}
+%
 \pagestyle{headings}
 \pagenumbering{arabic}
 \onecolumn\sloppy
@@ -2743,12 +3007,9 @@ manuscript {\theMANUSCRIPTNO}\end{tabular}}}%
 Proper e-companion title page, with INFORMS branding and exact metadata
 of the main paper, will be produced by the INFORMS office when the issue is being assembled.\endgraf}\clearpage}
 
-
-
-\frenchspacing
+\normalfont\normalsize\frenchspacing
 \parindent 1em
 
 \endinput
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% end of informs2.cls
-
+% end of informs4.cls

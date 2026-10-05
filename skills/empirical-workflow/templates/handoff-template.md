@@ -6,7 +6,11 @@
 - Runtime and version:
 - Timestamp and timezone:
 - Changed artifacts:
-- Validation performed and result:
+- Mechanical validation performed, scope, and blocking count:
+- Data/code reproducibility, claim credibility, discussion readiness, and submission delivery (separately):
+- Substantive and editorial reviews, including manuscript version and cold-read independence:
+- Current issue dispositions and historical closure evidence:
+- Cross-version constraints and stop/reopen decision:
 - Current Evidence card:
 - Current pipeline and claim revisions:
 - Decisions approved in this task, preserving the user's wording:

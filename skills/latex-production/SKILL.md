@@ -20,6 +20,11 @@ state schema) is in [`references/log-patterns.md`](references/log-patterns.md).
 Read it before steps 3 through 5. Diff-vs-last-compile is adapted from
 `compiledeck` in [scunning1975/MixtapeTools](https://github.com/scunning1975/MixtapeTools).
 
+Compilation and layout checks certify neither interpretation nor contribution.
+If a figure repair changes a substantive caption, claim, or magnitude, apply
+`../empirical-workflow/references/research-writing.md` and review its evidence;
+do not rewrite the economic story as part of routine formatting.
+
 ## Options
 
 | Option | Default | Meaning |

@@ -6,7 +6,10 @@ family points here rather than restating these.
 ## Estimand first, subpopulation named
 
 IV and fuzzy RDD identify complier effects. DiD and SC identify the ATT of the treated units.
-Overlap weighting identifies the overlap population. The methods template forces the clause.
+Overlap weighting identifies the overlap population. State the relevant target
+where the reader needs it; do not repeat a scope clause at every mention. Apply
+`../../references/research-writing.md` for economic meaning and behavioral
+interpretation across the family.
 
 ## Clustering
 

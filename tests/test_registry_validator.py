@@ -2986,7 +2986,7 @@ def test_writing_strength_findings_run_at_checkpoint_c_without_changing_b(tmp_pa
     report_b = validate_registry(load_registry(root), checkpoint="B")
     report_c = validate_registry(load_registry(root), checkpoint="C")
     assert "OVERCLAIM_RESIDUAL" not in report_codes(report_b)
-    assert "OVERCLAIM_RESIDUAL" in codes(report_c, "blocking")
+    assert "OVERCLAIM_RESIDUAL" in codes(report_c, "reports")
 
 
 def test_negative_site_requires_complete_power_basis_and_prohibits_rule_out(
@@ -3002,11 +3002,11 @@ def test_negative_site_requires_complete_power_basis_and_prohibits_rule_out(
         [site],
         "<!-- negative-site --> We rule out an effect on retention.\n",
     )
-    assert "NEGATIVE_POWER_BASIS_REQUIRED" in codes(report, "blocking")
-    assert "NEGATIVE_RULE_OUT_UNSUPPORTED" in codes(report, "blocking")
+    assert "NEGATIVE_POWER_BASIS_REQUIRED" in codes(report, "reports")
+    assert "NEGATIVE_RULE_OUT_UNSUPPORTED" in codes(report, "reports")
 
 
-def test_complete_negative_power_basis_licenses_exclusion_wording(tmp_path):
+def test_complete_negative_metadata_does_not_certify_exclusion_wording(tmp_path):
     site = assertion_site(
         "powered-negative-site",
         assertion_type="negative",
@@ -3049,7 +3049,7 @@ def test_model_internal_sites_require_model_marker_and_sampling_distribution(
         [site],
         "<!-- model-site --> As modeled, the simulated effect is significant.\n",
     )
-    assert expected_code in codes(report, "blocking")
+    assert expected_code in codes(report, "reports" if as_modeled else "blocking")
 
 
 def test_world_positive_and_negative_residuals_follow_derived_evidence_strength(
@@ -3078,7 +3078,7 @@ def test_world_positive_and_negative_residuals_follow_derived_evidence_strength(
         registry,
     )
     finding = next(
-        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+        item for item in report["reports"] if item["code"] == "OVERCLAIM_RESIDUAL"
     )
     assert finding["residual"] > 0
 
@@ -3136,7 +3136,7 @@ def test_evidence_strength_uses_provenance_gate_and_site_precision(
         registry,
     )
     finding = next(
-        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+        item for item in report["reports"] if item["code"] == "OVERCLAIM_RESIDUAL"
     )
     assert finding["evidence_strength"] == expected_strength
     assert expected_basis in finding["evidence_basis"]
@@ -3198,7 +3198,7 @@ def test_evidence_strength_uses_gate_status_derived_from_incomplete_coverage(
         registry,
     )
     finding = next(
-        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+        item for item in report["reports"] if item["code"] == "OVERCLAIM_RESIDUAL"
     )
     assert finding["evidence_strength"] == 0
     assert "applicable_gate_unresolved" in finding["evidence_basis"]
@@ -3227,7 +3227,7 @@ def test_narrowing_must_propagate_strength_and_scope_to_high_visibility_sites(
         "<!-- unbounded-abstract --> The intervention increases retention.\n",
         registry,
     )
-    assert "NARROWING_NOT_PROPAGATED" in codes(report, "blocking")
+    assert "NARROWING_NOT_PROPAGATED" in codes(report, "reports")
 
 
 def test_identifying_assumption_counterevidence_must_be_a_main_text_sentence(
@@ -3259,7 +3259,7 @@ def test_identifying_assumption_counterevidence_must_be_a_main_text_sentence(
         "<!-- buried-counterevidence --> Treatment increases retention, although pre-trends are imprecise.\n",
         registry,
     )
-    assert "COUNTEREVIDENCE_BURIED" in codes(report, "blocking")
+    assert "COUNTEREVIDENCE_BURIED" in codes(report, "reports")
 
 
 def test_identifying_counterevidence_declaration_must_match_contrastive_text(
@@ -3324,10 +3324,10 @@ def test_prominence_metadata_without_counterevidence_text_cannot_lower_strength(
         registry,
     )
     assert "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED" in codes(
-        report, "blocking"
+        report, "reports"
     )
     finding = next(
-        item for item in report["blocking"] if item["code"] == "OVERCLAIM_RESIDUAL"
+        item for item in report["reports"] if item["code"] == "OVERCLAIM_RESIDUAL"
     )
     assert finding["lexical_tier"] == "T0"
 
@@ -3538,7 +3538,7 @@ def test_identifying_prominence_check_covers_all_empirical_untiered_types(
         "although differential pre-trends remain imprecise.\n",
         registry,
     )
-    assert "COUNTEREVIDENCE_BURIED" in codes(report, "blocking")
+    assert "COUNTEREVIDENCE_BURIED" in codes(report, "reports")
     assert "OVERCLAIM_RESIDUAL" not in report_codes(report)
     assert "UNDERCLAIM_RESIDUAL" not in report_codes(report)
 
@@ -3663,7 +3663,7 @@ def test_project_configuration_cannot_erase_baseline_causal_enforcement(
         "<!-- protected-causal --> Treatment causes retention.\n",
         registry,
     )
-    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "reports")
     site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
     assert "cause" in site_state["_matched_lexical_classes"]["causal"]
 
@@ -3826,8 +3826,8 @@ def test_sentence_scope_does_not_leak_to_a_neighboring_causal_sentence(tmp_path)
         "<!-- neighboring-sentence --> Treatment increases retention.\n",
         registry,
     )
-    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
-    assert "NARROWING_NOT_PROPAGATED" in codes(report, "blocking")
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "reports")
+    assert "NARROWING_NOT_PROPAGATED" in codes(report, "reports")
 
 
 def test_a_following_sentence_does_not_raise_the_anchored_tier(tmp_path):
@@ -3877,7 +3877,7 @@ def test_closed_scope_must_contain_the_full_line_range_site(tmp_path):
         registry,
     )
     assert "SCOPE_DECLARATION_INVALID" in codes(report, "blocking")
-    assert "NARROWING_NOT_PROPAGATED" in codes(report, "blocking")
+    assert "NARROWING_NOT_PROPAGATED" in codes(report, "reports")
 
 
 def test_duplicate_assertion_site_for_one_claim_is_rejected(tmp_path):
@@ -3929,11 +3929,12 @@ def test_world_overclaim_and_model_internal_simulation_are_separate_failures(
         world,
     )
     world_blocking = codes(world_report, "blocking")
-    assert "OVERCLAIM_RESIDUAL" in world_blocking
-    assert "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED" not in world_blocking
+    world_advisory = codes(world_report, "reports")
+    assert "OVERCLAIM_RESIDUAL" in world_advisory
+    assert "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED" not in world_advisory
     residual = next(
         item
-        for item in world_report["blocking"]
+        for item in world_report["reports"]
         if item["code"] == "OVERCLAIM_RESIDUAL"
     )
     assert residual["lexical_strength"] == 4
@@ -3963,8 +3964,9 @@ def test_world_overclaim_and_model_internal_simulation_are_separate_failures(
         model_internal,
     )
     model_blocking = codes(model_report, "blocking")
-    assert "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED" in model_blocking
-    assert "OVERCLAIM_RESIDUAL" not in model_blocking
+    model_advisory = codes(model_report, "reports")
+    assert "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED" in model_advisory
+    assert "OVERCLAIM_RESIDUAL" not in model_advisory
     assert "UNDERCLAIM_RESIDUAL" not in codes(model_report, "reports")
 
 
@@ -4022,7 +4024,7 @@ def test_latex_comment_cannot_supply_a_counterevidence_cue(tmp_path):
     )
     report = _latex_registry(tmp_path / "comment", [site])
     assert "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED" in codes(
-        report, "blocking"
+        report, "reports"
     )
 
 
@@ -4288,7 +4290,7 @@ def test_a_misfiled_negative_is_told_which_type_it_actually_is(tmp_path):
     (root / "paper" / "manuscript.tex").write_text(MANUSCRIPT, encoding="utf-8")
     report = validate_registry(load_registry(root), "C")
     misfiled = [
-        item for item in report["blocking"]
+        item for item in report["reports"]
         if item["code"] == "NEGATIVE_POWER_BASIS_REQUIRED"
     ]
     assert misfiled and "suggested_assertion_type" in misfiled[0]
@@ -4355,7 +4357,7 @@ def test_a_registry_names_the_workflow_version_that_judged_it(tmp_path):
 
 
 def test_the_mechanical_half_of_the_house_style_is_checked_not_remembered(tmp_path):
-    """Four rules an author cannot self-police across sixteen pages."""
+    """House-style patterns remain visible as editorial advice."""
 
     registry = copy.deepcopy(base_registry())
     registry["claims"]["claims"][0]["assertion_sites"] = [
@@ -4374,7 +4376,7 @@ def test_the_mechanical_half_of_the_house_style_is_checked_not_remembered(tmp_pa
         + "The estimates are reported (Table~\\ref{tab:main}).\n",
         encoding="utf-8",
     )
-    found = codes(validate_registry(load_registry(root), "C"), "blocking")
+    found = codes(validate_registry(load_registry(root), "C"), "reports")
     for code in (
         "PROSE_EM_DASH",
         "PROSE_CONTRACTION",
@@ -4397,7 +4399,7 @@ def test_house_style_leaves_the_bibliography_alone(tmp_path):
         + "\\end{thebibliography}\n",
         encoding="utf-8",
     )
-    found = codes(validate_registry(load_registry(root), "C"), "blocking")
+    found = codes(validate_registry(load_registry(root), "C"), "reports")
     assert "PROSE_EM_DASH" not in found
 
 
@@ -4645,7 +4647,7 @@ def test_discovery_finds_an_assertion_the_registry_never_registered(tmp_path):
     report = _discovery_registry(tmp_path / "enforce")
     unregistered = [
         item
-        for item in report["blocking"]
+        for item in report["reports"]
         if item["code"] == "ASSERTION_SITE_UNREGISTERED"
     ]
     assert len(unregistered) == 1
@@ -4724,7 +4726,7 @@ def test_discovery_exclusion_requires_a_reason_and_is_counted(tmp_path):
     report = validate_registry(load_registry(root), checkpoint="C")
     unregistered = [
         item
-        for item in report["blocking"]
+        for item in report["reports"]
         if item["code"] == "ASSERTION_SITE_UNREGISTERED"
     ]
     assert [item["line"] for item in unregistered] == [3]
@@ -4853,7 +4855,7 @@ def test_hard_wrapped_sentence_is_read_to_its_end(tmp_path):
     # The commitment lives on the second physical line.
     assert "increase" in site_state["_matched_lexical_classes"].get("causal", [])
     assert site_state["_lexical_strength"] == 4
-    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "reports")
 
 
 def test_unterminated_anchored_sentence_is_rejected(tmp_path):
@@ -4893,7 +4895,7 @@ def test_omitting_the_estimate_reference_cannot_outscore_naming_one(tmp_path):
     omitted_site = omitted["state"]["claims"]["H1.r1"]["assertion_sites"][0]
 
     assert omitted_site["_evidence_strength"] < named_site["_evidence_strength"]
-    assert "OVERCLAIM_RESIDUAL" in codes(omitted, "blocking")
+    assert "OVERCLAIM_RESIDUAL" in codes(omitted, "reports")
 
 
 def _gate_registry(registry, status, **evaluation_fields):
@@ -4973,7 +4975,7 @@ def test_inapplicable_gate_does_not_score_as_a_passed_gate(tmp_path):
     site_state = report["state"]["claims"]["H1.r1"]["assertion_sites"][0]
     assert "applicable_gate_declared_inapplicable" in site_state["_evidence_basis"]
     assert site_state["_evidence_strength"] <= 2
-    assert "OVERCLAIM_RESIDUAL" in codes(report, "blocking")
+    assert "OVERCLAIM_RESIDUAL" in codes(report, "reports")
 
 
 INFORMS_SOURCE = """\\documentclass[opre]{informs3}
@@ -5136,7 +5138,7 @@ def test_a_second_sentence_on_the_anchor_line_is_not_covered_by_it(tmp_path):
         encoding="utf-8",
     )
     report = validate_registry(load_registry(root), "C")
-    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "reports")
 
 
 def test_a_sentence_may_span_a_display_equation(tmp_path):
@@ -5153,7 +5155,7 @@ def test_a_sentence_may_span_a_display_equation(tmp_path):
         "\\end{equation}\n"
         "treatment increases retention.\n",
     )
-    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "reports")
 
 
 def test_footnote_prose_is_scanned_as_its_own_stream(tmp_path):
@@ -5168,7 +5170,7 @@ def test_footnote_prose_is_scanned_as_its_own_stream(tmp_path):
     )
     unregistered = [
         item
-        for item in report["blocking"]
+        for item in report["reports"]
         if item["code"] == "ASSERTION_SITE_UNREGISTERED"
     ]
     assert unregistered
@@ -5265,7 +5267,7 @@ def test_prose_in_an_included_file_is_scanned(tmp_path):
         encoding="utf-8",
     )
     report = validate_registry(load_registry(root), "C")
-    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "reports")
 
 
 def test_a_line_range_site_may_not_stand_in_for_several_assertions(tmp_path):
@@ -5289,7 +5291,7 @@ def test_a_line_range_site_may_not_stand_in_for_several_assertions(tmp_path):
         encoding="utf-8",
     )
     report = validate_registry(load_registry(root), "C")
-    assert "ASSERTION_RANGE_COVERS_MULTIPLE_ASSERTIONS" in codes(report, "blocking")
+    assert "ASSERTION_RANGE_COVERS_MULTIPLE_ASSERTIONS" in codes(report, "reports")
 
 
 def test_an_integer_percentage_is_a_quantitative_value(tmp_path):
@@ -5347,7 +5349,7 @@ def test_ordinary_prose_does_not_report_itself_as_unregistered(
     """A check that fails closed on correct writing teaches authors to ignore it."""
 
     report = _coverage_report(tmp_path / name, manuscript)
-    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "reports")
 
 
 def test_a_reference_list_is_not_scanned_for_assertions(tmp_path):
@@ -5361,7 +5363,7 @@ def test_a_reference_list_is_not_scanned_for_assertions(tmp_path):
         "\\end{thebibliography}\n"
     )
     report = _coverage_report(tmp_path, manuscript)
-    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "reports")
 
 
 def test_a_paragraph_without_a_full_stop_is_still_examined(tmp_path):
@@ -5378,7 +5380,7 @@ def test_a_paragraph_without_a_full_stop_is_still_examined(tmp_path):
     report = _coverage_report(tmp_path, manuscript)
     unregistered = [
         item
-        for item in report["blocking"]
+        for item in report["reports"]
         if item["code"] == "ASSERTION_SITE_UNREGISTERED"
     ]
     assert unregistered and "divergence" in unregistered[0]["excerpt"]
@@ -5397,7 +5399,7 @@ def test_an_anchor_style_without_a_sentinel_still_covers_its_sentence(tmp_path):
         "\\label{site}Treatment increases retention.\n"
     )
     report = _coverage_report(tmp_path, manuscript)
-    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "reports")
 
 
 def test_an_interval_band_requires_a_numeric_observation(tmp_path):
@@ -5656,7 +5658,7 @@ def test_one_disclosure_covers_the_body_it_precedes(tmp_path):
         "<!-- disc-site --> The pattern is discussed below.\n",
         _bounded_claim_registry(),
     )
-    assert "COUNTEREVIDENCE_BURIED" not in codes(report, "blocking")
+    assert "COUNTEREVIDENCE_BURIED" not in codes(report, "reports")
     covered = [
         item
         for item in report["reports"]
@@ -5683,7 +5685,7 @@ def test_the_body_disclosure_must_come_at_the_first_body_site(tmp_path):
     )
     buried = [
         item
-        for item in report["blocking"]
+        for item in report["reports"]
         if item["code"] == "COUNTEREVIDENCE_BURIED"
     ]
     assert buried and buried[0]["site"].endswith("#intro-site")
@@ -5709,7 +5711,7 @@ def test_a_standalone_section_carries_the_qualification_itself(tmp_path, role):
     )
     buried = [
         item
-        for item in report["blocking"]
+        for item in report["reports"]
         if item["code"] == "COUNTEREVIDENCE_BURIED"
     ]
     assert buried and buried[0]["disclosure_group"] == role
@@ -6026,7 +6028,7 @@ def test_a_hypothesis_site_must_read_as_a_proposition(tmp_path):
         "<!-- finding --> Treatment increases retention.\n",
         base_registry(),
     )
-    assert "HYPOTHESIS_WITHOUT_PROPOSITION" in codes(report, "blocking")
+    assert "HYPOTHESIS_WITHOUT_PROPOSITION" in codes(report, "reports")
 
 
 def test_a_significance_level_must_be_a_significance_level(tmp_path):
@@ -6183,7 +6185,7 @@ def test_an_unrecognised_discovery_mode_is_not_a_downgrade(tmp_path, mode):
     )
     report = validate_registry(load_registry(root), "C")
     assert "DISCOVERY_MODE_INVALID" in codes(report, "blocking")
-    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "reports")
 
 
 def test_a_manuscript_source_that_does_not_resolve_blocks(tmp_path):
@@ -6300,7 +6302,7 @@ def test_a_retired_claim_does_not_cover_the_manuscript(tmp_path):
         encoding="utf-8",
     )
     report = validate_registry(load_registry(root), "C")
-    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" not in codes(report, "reports")
 
     retired = copy.deepcopy(registry)
     retired["claims"]["claims"][0]["availability"] = "retired"
@@ -6312,7 +6314,7 @@ def test_a_retired_claim_does_not_cover_the_manuscript(tmp_path):
         encoding="utf-8",
     )
     report = validate_registry(load_registry(root), "C")
-    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "blocking")
+    assert "ASSERTION_SITE_UNREGISTERED" in codes(report, "reports")
 
 
 def test_a_narrowing_cannot_be_hidden_in_the_wording_of_its_reason(tmp_path):
@@ -6443,3 +6445,106 @@ def test_markers_require_a_verbal_use(sentence, is_candidate):
 
     matched = _matched_markers(sentence, _compiled_lexical_markers({}))
     assert ("causal" in matched) is is_candidate
+
+
+def test_pattern_advice_does_not_block_cli_or_certify_research(tmp_path, capsys):
+    """A lexical candidate can be correct prose; leave its meaning to review."""
+    root = write_registry(tmp_path, deliver=True)
+    (root / "paper/manuscript.tex").write_text(
+        "The assumed mechanism causes the simulated response---within the model.\n",
+        encoding="utf-8",
+    )
+    result = main([str(root), "--checkpoint", "C", "--format", "json"])
+    report = json.loads(capsys.readouterr().out)
+    assert result == 0
+    assert report["blocking"] == []
+    for code in ("ASSERTION_SITE_UNREGISTERED", "PROSE_EM_DASH"):
+        finding = next(item for item in report["reports"] if item["code"] == code)
+        assert finding["level"] == "WARN"
+        assert finding["validation_kind"] == "pattern_only"
+    assurance = report["assurance"]
+    assert assurance["mechanical"]["blocking_count"] == 0
+    assert assurance["mechanical"]["pattern_advisory_count"] == 2
+    assert assurance["research_claim_credibility"] == "requires_substantive_review"
+    assert assurance["manuscript_discussion_readiness"] == "requires_independent_cold_read"
+    assert assurance["data_code_reproducibility"] == "not_assessed_by_registry_validator"
+    valid = next(item for item in report["reports"] if item["code"] == "REGISTRY_VALID")
+    assert valid["scope"] == "mechanical registry checks only"
+    assert "earlier PDF" in assurance["limits"]
+
+
+def test_number_fault_still_blocks_after_lexical_advice_change(tmp_path, capsys):
+    """Inject a registry error against the independent stored estimate 2.0."""
+    root = write_registry(tmp_path, deliver=True)
+    assert main([str(root), "--checkpoint", "C", "--format", "json"]) == 0
+    capsys.readouterr()
+    path = root / "reported_figures.yaml"
+    figures = yaml.safe_load(path.read_text())
+    figures["reported_figures"][0]["value"] = 999.9
+    path.write_text(yaml.safe_dump(figures))
+    assert main([str(root), "--checkpoint", "C", "--format", "json"]) == 1
+    report = json.loads(capsys.readouterr().out)
+    mismatch = next(item for item in report["blocking"]
+                    if item["code"] == "REPORTED_FIGURE_VALUE_MISMATCH")
+    assert mismatch["registered_value"] == 999.9
+    assert mismatch["artifact_value"] == 2.0
+    summary = report["assurance"]["mechanical"]
+    assert sum(summary["blocking_by_area"].values()) == summary["blocking_count"]
+    assert summary["blocking_count"] == len(report["blocking"])
+    assert "REGISTRY_VALID" not in codes(report, "reports")
+    assert main([str(root), "--checkpoint", "C"]) == 1
+    text = capsys.readouterr().out
+    assert "mechanical blocking issue(s)" in text
+    assert "claim credibility requires substantive review" in text
+    assert "BLOCKING BY AREA:" in text
+
+
+def test_disclosure_location_does_not_prescribe_contrastive_wording(tmp_path):
+    registry = base_registry()
+    _add_challenge(registry, "ER-C1", "EC-C1")
+    site = assertion_site(
+        "claim-site", declared_tier="T2",
+        counterevidence_prominence="separate_contrastive_sentence",
+        counterevidence_disclosure={
+            "path": "paper/assertions.md", "anchor": "limit",
+            "challenge_ids": ["ER-C1"],
+        },
+    )
+    report = write_assertion_registry(
+        tmp_path, [site],
+        "<!-- claim-site --> Retention differs across the observed firms.\n"
+        "<!-- limit --> The aggregate records cannot track individual movements.\n",
+        registry,
+    )
+    assert "PUBLICATION_INELIGIBLE" not in codes(report, "blocking")
+    assert "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED" not in codes(report, "blocking")
+    assert "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED" in codes(report, "reports")
+    assert report["assurance"]["research_claim_credibility"] == "requires_substantive_review"
+    # Location corruption must fail even though phrasing is advisory.
+    site["counterevidence_disclosure"]["anchor"] = "missing-limit"
+    broken = write_assertion_registry(
+        tmp_path / "broken", [site],
+        "<!-- claim-site --> Retention differs across the observed firms.\n",
+        registry,
+    )
+    assert "COUNTEREVIDENCE_DISCLOSURE_INVALID" in codes(broken, "blocking")
+    assert "PUBLICATION_INELIGIBLE" in codes(broken, "blocking")
+
+
+def test_assurance_survives_invalid_schema_and_loader_errors(tmp_path, monkeypatch, capsys):
+    registry = base_registry()
+    registry["claims"]["claims"][0]["assessment"] = "invented"
+    root = write_registry(tmp_path, registry)
+    invalid = validate_registry(load_registry(root), "C")
+    assert invalid["blocking"]
+    assert invalid["assurance"]["mechanical"]["status"] == "blocked"
+
+    def fail_load(_):
+        raise ValueError("injected loader failure")
+
+    monkeypatch.setattr("tools.validate_registry.load_registry", fail_load)
+    assert main([str(root), "--checkpoint", "C", "--format", "json"]) == 1
+    report = json.loads(capsys.readouterr().out)
+    assert "REGISTRY_VALIDATION_ERROR" in codes(report, "blocking")
+    assert report["assurance"]["mechanical"]["blocking_count"] == 1
+    assert report["assurance"]["research_claim_credibility"] == "requires_substantive_review"

@@ -1,26 +1,31 @@
 # LaTeX Manuscript Adapter (Management Science / INFORMS)
 
 Read this at Stage 7, not earlier. Resolve `<kit_root>`, `<skills_root>`, `<registry_cli>`,
-`<registry_scaffold>`, and `<figure_renderer>` from
+`<registry_scaffold>`, `<figure_renderer>`, and `<runtime_cli>` from
 `workflow.manifest.yaml:canonical_source` before using the paths below. The journal format adapter is applied only
 after the scientific content is stable; copying a template into a project
 before then invites formatting work to substitute for analysis.
 
 ## Installing the template
 
-Copy the INFORMS class, bibliography style, and template into the project's
-`paper/` directory at Stage 7:
+Copy the June 2024 INFORMS class, bibliography style, optional equation-width
+checks, and template into the project's `paper/` directory at Stage 7:
 
 ```
-cp <kit_root>/Template_for_Management_Science_Journal/informs3.cls        paper/
-cp <kit_root>/Template_for_Management_Science_Journal/informs2014.bst     paper/
-cp <kit_root>/Template_for_Management_Science_Journal/Management-Science-template.tex paper/manuscript.tex
+cp <kit_root>/Template_for_Management_Science_Journal/informs4.cls         paper/
+cp <kit_root>/Template_for_Management_Science_Journal/informs2014.bst      paper/
+cp <kit_root>/Template_for_Management_Science_Journal/eqndefns-left.sty    paper/
+cp <kit_root>/Template_for_Management_Science_Journal/eqndefns-center.sty  paper/
+cp <kit_root>/Template_for_Management_Science_Journal/informs_Logo.pdf     paper/
+cp <kit_root>/Template_for_Management_Science_Journal/INFORMS-MNSC-Template.tex paper/manuscript.tex
 cp <skills_root>/empirical-workflow/templates/claimsite.sty    paper/
 ```
 
-Use `Management-Science-template-with-ECompanion.tex` instead when the paper
-carries an online appendix. `INFORMS-Style-Instructions-2016-02-22.pdf` is the
-authority for anything this file does not state.
+The new template uses `\documentclass[mnsc,sglanonrev]{informs4}`. Change the
+review option to `dblanonrev` when double-anonymous review is required. Put an
+appendix in the same source with the template's `APPENDIX` or `APPENDICES`
+environment. `Style-Instructions.pdf` accompanies this template; check the
+current target-outlet instructions before submission.
 
 Preamble additions:
 
@@ -51,9 +56,14 @@ The validator resolves the anchor, takes the rest of that line as the assertion
 text, and **discards any trailing LaTeX comment**. A comment cannot supply a
 counterevidence cue, a scope qualifier, or anything else the checks look for.
 
+Anchors check locations, not proposition meaning. Candidate assertion discovery
+is advisory in version 2.8. A registered site's text and evidence still need
+substantive review; do not insert workflow vocabulary into the rendered paper.
+
 ## Numbers
 
-The manuscript never types a quantitative value. It calls the registry:
+Choose only numbers needed for the argument, scale, and uncertainty. For those
+reported values, generate macros from the registry rather than typing them:
 
 ```latex
 Retention rises by \figval{retention_pp} for participating firms.
@@ -131,22 +141,14 @@ an optimality claim its own text explicitly disclaims.
 
 ## Class furniture
 
-The INFORMS class prints three things that are submission apparatus rather than
-content: a banner and a red usage notice at the top of page 1, and a running
-head repeating `Article submitted to <journal>; manuscript no.` on every page
-after it. Suppress all three in the preamble:
+The supplied `informs4.cls` has `[circulation]` edits. They remove the journal
+banner and red notice and set the running head to `Working paper`. The original
+class lines remain commented beside each edit. Review those marked changes
+against the outlet's requirements before using this class for a submission.
 
-```latex
-\makeatletter
-\def\theARTICLETOP{\vspace*{-24pt}}
-\makeatother
-\RRHFirstLine{}\RRHSecondLine{}
-\LRHFirstLine{}\LRHSecondLine{}
-```
-
-Heading fonts come from the class option. `mnsc` uses the body serif; `opre`
-sets `\if@OPRE` and imposes sans-serif headings. If subsection headings look
-wrong against the body text, check the option before touching the class.
+Heading fonts come from the class option and its marked circulation edits. If
+subsection headings look wrong against the body text, check both before
+changing manuscript-level formatting.
 
 ### Bibliography
 
@@ -205,12 +207,15 @@ reaches zero.
 ```bash
 <registry_cli> . --checkpoint C --format json > build/registry.json
 python3 <figure_renderer> . --output paper/figures.tex
-cd paper && pdflatex manuscript && bibtex manuscript && pdflatex manuscript && pdflatex manuscript
+<runtime_cli> doctor
+<runtime_cli> run latexmk -- -cd -pdf -interaction=nonstopmode -halt-on-error paper/manuscript.tex
 ```
 
 The order is binding. The submission export gate runs first; the figure macros
-are regenerated second; the PDF is produced last. A build that starts from a
-stale `figures.tex` is not a submission build.
+are regenerated second; the PDF is produced last. `latexmk` runs BibTeX when
+the manuscript uses `\bibliography{...}` and leaves the template's manual
+`thebibliography` alone. A build that starts from a stale `figures.tex` is not
+a submission build.
 
 ## What this adapter does not do
 

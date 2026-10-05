@@ -418,9 +418,19 @@ tools/validate_registry <registry.yaml> --checkpoint C
 
 The registry ties pipelines, claims, evidence, figures, acceptance gates,
 applicability decisions, and reconciliation records to the running kit version.
-A stage or release is complete only when the required checkpoint exits with
-zero blocking findings. Packaging a directory is not a reproduction
-certificate, and local possession of data is not redistribution authority.
+A gated milestone requires zero mechanical blocking findings from the applicable
+checkpoint, plus the relevant substantive and editorial reviews. Version 2.8
+reports mechanical scope and blocking areas separately from reproducibility,
+claim credibility, discussion readiness, and submission delivery. Lexical and
+house-style findings are advisory; neither a regex nor an anchor verifies a
+proposition. Packaging a directory is not a reproduction certificate, and local
+possession of data is not redistribution authority.
+
+Progress is organized around question, evidence, and inference in existing
+Evidence cards. Draft from the economic argument, not prediction IDs or gate
+counts. Retain historical failures with reasoned closure; stop repeated revision
+when core defects are repaired and further work would not change a judgment.
+See [the 2.8 migration and acceptance record](docs/workflow-2.8-migration.md).
 
 ## Language and portability rules
 

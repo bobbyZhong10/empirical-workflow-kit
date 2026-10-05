@@ -24,6 +24,12 @@ fails its gate is a verdict, not an obstacle.
 Refresh path: run literature-review on quasi-experimental methods in marketing since the canon date,
 then propose additions to canon.md as flagged addenda.
 
+Before interpreting results or drafting the methods paragraph, read
+`../../references/research-writing.md`. Its organization, economic-meaning,
+behavioral-inference, and contribution rules govern this pack's output; use the
+relevant evidence-strategy row. Paragraph templates below are adaptable technical
+scaffolds, not a required paper outline or a list to copy into the manuscript.
+
 ## The triage: four questions in order
 
 1. Was assignment randomized, or as good as (lottery, randomized rollout)? Yes:

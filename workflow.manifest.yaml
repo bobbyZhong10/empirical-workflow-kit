@@ -9,7 +9,7 @@
 # tests/test_runtime_views.py and scripts/verify_runtime_parity.py both check.
 
 schema_version: 1
-workflow_version: "2.7"
+workflow_version: "2.8"
 
 canonical_source:
   kit_root: .

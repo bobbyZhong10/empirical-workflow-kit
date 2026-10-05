@@ -2,7 +2,7 @@
 
 <!-- shared-contract: generated, identical in CLAUDE.md and AGENTS.md -->
 
-**Workflow version: 2.7.** Every project registry records `kit_version`, and the
+**Workflow version: 2.8.** Every project registry records `kit_version`, and the
 validator named by `workflow.manifest.yaml:canonical_source.registry_validator`
 blocks at Checkpoint C when the two disagree. In the kit checkout that file is
 `tools/validate_registry.py`. Check with the manifest-named `registry_cli` and
@@ -31,8 +31,11 @@ Two registry checkpoints are executable through the manifest-named command:
 <registry_cli> <registry> --checkpoint C   # final writing and delivery
 ```
 
-A gated milestone is not complete until its checkpoint returns zero blocking
-findings. Report the count, not an impression of it. Stage 6 instead exits
+A gated milestone requires zero mechanical blocking findings from its applicable
+checkpoint. Report the count and scope, not an impression of research quality.
+Separately report reproducibility, current-claim credibility, discussion readiness,
+and submission delivery. Pattern checks cannot certify proposition meaning;
+substantive review and independent cold reading remain necessary. Stage 6 instead exits
 through the analysis-readiness record; final Checkpoint C follows Stage 7.
 
 The canonical skill tree named by `workflow.manifest.yaml:canonical_source.skills_root`

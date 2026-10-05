@@ -33,6 +33,11 @@ Deck architecture and the review-before-the-talk discipline are adapted from
 the `slide-excellence` orchestrator and its review agents in Pedro Sant'Anna's
 `pedrohcgs/claude-code-my-workflow`.
 
+For research organization, economic meaning, contribution, and behavioral claims,
+read `../empirical-workflow/references/research-writing.md` before synthesis or
+drafting. Apply the relevant evidence-strategy boundary; do not turn the
+operation's output format into a mandatory manuscript structure.
+
 ## Read next to this file
 
 - `references/closing-slide.md`: the thank-you slide, the QR slot, how the
@@ -79,7 +84,9 @@ and put the claim in the body and the voiceover instead. Ask which the deck
 wants when it is not your own. Either way: one or two lines, and if the title
 needs three, the point is not sharp yet.
 
-The deck is one argument. A paper has four contributions and a talk has one.
+The deck develops one coherent argument. Select findings for the audience's
+understanding of the question, economic meaning, and contribution; neither a
+paper nor a talk has a required contribution count.
 Pick the claim that can be defended in the slot and move the rest to the
 appendix. Deciding what the talk is not about is most of the work. One idea per
 slide; a slide with two jobs also tends to be the slide that overflows.

@@ -9,11 +9,19 @@
   contract.
 
 Read `references/data-contract.md` and `references/r-standards.md` before
-validating or consuming the Python analysis export. Lock the expected contract
+validating or consuming the analysis export. Lock the expected contract
 identity fields in `research.yaml` before validation.
+
+Non-causal work retains source and measurement validation. Apply treatment,
+pre-period, and clustering obligations only where the question and inference use
+them; record why an obligation is inapplicable rather than manufacture a design.
 
 ## Automatic actions
 
+- Apply `references/research-writing.md` to construct and behavioral claims.
+  Reliability, prediction accuracy, or agreement between labels does not by
+  itself establish construct validity or identify motives. Record who/what is
+  observed, missing, selected, or aggregated and the strongest supported meaning.
 - Write a proxy justification for every core construct: what it captures and
   misses, expected bias direction, limits, and prior-use citation.
 - Choose the main treatment and outcome functional forms on substantive grounds
@@ -32,7 +40,8 @@ identity fields in `research.yaml` before validation.
 ## Required artifacts
 
 - `docs/measurement_validity.md`: proxy justifications, citations, limitations,
-  bias-direction assessment, and validity conclusions.
+  bias-direction assessment, inferential limits of records versus real activity,
+  and validity conclusions.
 - `docs/functional_form_lock.md`: locked treatment and outcome forms, rationale,
   date, and predeclared alternative forms.
 - `docs/data_contract_validation.md`: executable validation results, input data

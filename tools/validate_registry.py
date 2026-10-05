@@ -192,8 +192,23 @@ ANALYTICAL_SITE_TYPES = {"model_internal", "hypothesis"}
 # this program: whoever runs it, the same registry produces the same verdict.
 # A project records the version it was validated against, and a mismatch is a
 # finding rather than a silent difference in behaviour.
-KIT_VERSION = "2.7"
+KIT_VERSION = "2.8"
 
+# These findings depend on finite lexical patterns or editorial preferences.
+# Preserve their diagnostics without treating them as semantic or release verdicts.
+ADVISORY_FINDING_CODES = frozenset({
+    "OVERCLAIM_RESIDUAL", "NARROWING_NOT_PROPAGATED",
+    "COUNTEREVIDENCE_BURIED", "COUNTEREVIDENCE_PROMINENCE_UNCORROBORATED",
+    "HYPOTHESIS_WITHOUT_PROPOSITION", "NEGATIVE_POWER_BASIS_REQUIRED",
+    "NEGATIVE_RULE_OUT_UNSUPPORTED", "NEGATIVE_UNHEDGED_WITHOUT_POWER",
+    "MODEL_INTERNAL_SIGNIFICANT_UNSUPPORTED",
+    "ASSERTION_SITE_UNREGISTERED", "ASSERTION_RANGE_COVERS_MULTIPLE_ASSERTIONS",
+    "PROSE_EM_DASH", "PROSE_CONTRACTION", "PROSE_NAMED_POSSESSIVE",
+    "PROSE_PARENTHETICAL_REFERENCE",
+})
+
+# Legacy mode values remain readable. Neither makes lexical discovery a
+# substantive verdict; numeric provenance and malformed records still block.
 DISCOVERY_MODES = {"enforce", "report"}
 # Parts a reader consumes on their own. A qualification met in the body is met
 # for the whole body, because the body is read in sequence; these three are
@@ -4341,11 +4356,10 @@ def _disclosure_location_resolves(
 
 
 def _challenge_is_disclosed(claim_id: str, registry: dict, claim: dict) -> bool:
-    """Has the reader been told, next to the claim, what is wrong with it?
+    """Check declared challenge coverage and resolvable text, not its meaning.
 
-    Relation- and site-level disclosures both carry stable challenge identities.
-    Corroborating one generic site sentence proves only that some qualification
-    exists; it cannot stand in for set inclusion across every live challenge.
+    Both relation and site records carry stable challenge identities. Substantive
+    review must judge whether the text explains each challenge adequately.
     """
 
     live_challenges = set(claim.get("_live_challenge_ids", []))
@@ -4359,7 +4373,7 @@ def _challenge_is_disclosed(claim_id: str, registry: dict, claim: dict) -> bool:
         )
     }
     for site in claim.get("assertion_sites", []) or []:
-        if site.get("_counterevidence_corroborated") is not True:
+        if site.get("_counterevidence_location_resolved") is not True:
             continue
         disclosure = site.get("counterevidence_disclosure")
         if isinstance(disclosure, dict):
@@ -4457,8 +4471,8 @@ def _publication_checks(
             ):
                 reasons.append(
                     f"challenge_undisclosed:{claim_id}"
-                    " (record it once: either a corroborated"
-                    " counterevidence_prominence on an assertion site, or a"
+                    " (record it once: either a resolvable"
+                    " counterevidence_disclosure on an assertion site, or a"
                     " disclosure block on the challenging relation)"
                 )
         for figure_id_value in output.get("reported_figure_ids", []) or []:
@@ -5683,6 +5697,7 @@ def _writing_strength_checks(
                 )
 
             disclosure_text = None
+            disclosure_location_resolved = False
             try:
                 disclosure_text = _resolved_counterevidence_disclosure(
                     registry,
@@ -5692,6 +5707,7 @@ def _writing_strength_checks(
                     end_line,
                     source_cache,
                 )
+                disclosure_location_resolved = bool(disclosure_text)
             except (OSError, UnicodeError, ValueError) as error:
                 blocking.append(
                     _issue(
@@ -5726,6 +5742,7 @@ def _writing_strength_checks(
                 )
             )
             site_state = state["claims"][claim_id]["assertion_sites"][site_index]
+            site_state["_counterevidence_location_resolved"] = disclosure_location_resolved
             site_state["_lexical_tier"] = lexical_tier
             site_state["_lexical_strength"] = lexical_strength
             site_state["_matched_lexical_classes"] = matched
@@ -6019,9 +6036,11 @@ def _writing_strength_checks(
                             )
                         )
                 elif upgrade is not None:
-                    blocking.append(
+                    reports.append(
                         _issue(
                             "ASSERTION_FIELD_NOT_APPLICABLE",
+                            level="WARN",
+                            validation_kind="pattern_only",
                             field="upgrade_justification",
                             assertion_type="world",
                             **item["identity"],
@@ -7250,6 +7269,75 @@ def _initial_state(registry: dict) -> dict:
     return state
 
 
+def _validation_report(
+    checkpoint: str,
+    blocking: list[dict],
+    reports: list[dict],
+    derived: list[dict],
+    state: dict,
+) -> dict:
+    """Report mechanical findings separately from unassessed research judgment."""
+    mechanical = []
+    advisory = []
+    for item in blocking:
+        if item["code"] in ADVISORY_FINDING_CODES:
+            advisory.append({**item, "level": "WARN", "validation_kind": "pattern_only"})
+        else:
+            mechanical.append(item)
+    reports = [
+        {**item, "level": "WARN", "validation_kind": "pattern_only"}
+        if item["code"] in ADVISORY_FINDING_CODES else item
+        for item in reports
+    ] + advisory
+    # Keep the API code for compatibility, with an explicit limited meaning.
+    if not mechanical and not any(item["code"] == "REGISTRY_VALID" for item in reports):
+        reports.append(_issue("REGISTRY_VALID", checkpoint=checkpoint,
+                              scope="mechanical registry checks only"))
+    for item in reports:
+        if item["code"] == "REGISTRY_VALID":
+            item["scope"] = "mechanical registry checks only"
+    groups: dict[str, int] = defaultdict(int)
+    for item in mechanical:
+        code = item["code"]
+        if code.startswith(("GATE_", "APPLICABILITY_")):
+            group = "gate_and_applicability_records"
+        elif code.startswith(("OUTPUT_", "MANUSCRIPT_SOURCE", "SUBMISSION_")):
+            group = "delivery_records"
+        elif code.startswith(("FIGURE_", "REPORTED_FIGURE_", "QUANTITATIVE_", "UNDERLYING_PRECISION")):
+            group = "numeric_and_precision_records"
+        else:
+            group = "registry_and_dependency_records"
+        groups[group] += 1
+    return {
+        "checkpoint": checkpoint,
+        "blocking": mechanical,
+        "reports": reports,
+        "derived": derived,
+        "state": state,
+        "assurance": {
+            "mechanical": {
+                "status": "blocked" if mechanical else "passed",
+                "blocking_count": len(mechanical),
+                "blocking_by_area": dict(sorted(groups.items())),
+                "scope": "declared registry, linked artifacts, and implemented checks only",
+                "pattern_advisory_count": sum(
+                    item.get("validation_kind") == "pattern_only" for item in reports
+                ),
+            },
+            "data_code_reproducibility": "not_assessed_by_registry_validator",
+            "research_claim_credibility": "requires_substantive_review",
+            "manuscript_discussion_readiness": "requires_independent_cold_read",
+            "submission_delivery": (
+                "mechanical_checks_only; separate review and release authority required"
+                if checkpoint == "C" else "not_assessed_at_checkpoint_B"
+            ),
+            "limits": "Regexes and anchors do not verify proposition meaning. "
+                      "Current source does not attest to an earlier PDF. "
+                      "PASS counts are not research-quality scores.",
+        },
+    }
+
+
 def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     """Validate loaded data (or a registry directory) and return derived state."""
 
@@ -7269,13 +7357,9 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     if schema_valid:
         references_valid = _identity_reference_checks(registry, blocking)
     if not schema_valid or not references_valid:
-        return {
-            "checkpoint": checkpoint,
-            "blocking": blocking,
-            "reports": reports,
-            "derived": derived,
-            "state": _initial_state(registry),
-        }
+        return _validation_report(
+            checkpoint, blocking, reports, derived, _initial_state(registry)
+        )
     state = _initial_state(registry)
     prevalidated_revalidations = _preflight_revalidations(
         registry, state, blocking
@@ -7315,16 +7399,7 @@ def validate_registry(registry: dict | Path, checkpoint: str) -> dict:
     _pipeline_binding_checks(registry, blocking, state)
     invalid_outputs = _output_checks(state, blocking)
     _publication_checks(registry, state, invalid_outputs, checkpoint, blocking)
-    if not blocking:
-        reports.append(_issue("REGISTRY_VALID", checkpoint=checkpoint))
-
-    return {
-        "checkpoint": checkpoint,
-        "blocking": blocking,
-        "reports": reports,
-        "derived": derived,
-        "state": state,
-    }
+    return _validation_report(checkpoint, blocking, reports, derived, state)
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -7343,18 +7418,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         report = validate_registry(load_registry(args.registry_dir), args.checkpoint)
     except Exception as error:  # Defensive JSON boundary for arbitrary registry input.
-        report = {
-            "checkpoint": args.checkpoint,
-            "blocking": [
-                _issue(
-                    "REGISTRY_VALIDATION_ERROR",
-                    detail=f"{type(error).__name__}: {error}",
-                )
-            ],
-            "reports": [],
-            "derived": [],
-            "state": {},
-        }
+        report = _validation_report(args.checkpoint, [
+            _issue("REGISTRY_VALIDATION_ERROR", detail=f"{type(error).__name__}: {error}")
+        ], [], [], {})
     report["kit_version"] = KIT_VERSION
     if args.format == "json":
         json.dump(report, sys.stdout, indent=2, sort_keys=True, default=str)
@@ -7362,8 +7428,13 @@ def main(argv: list[str] | None = None) -> int:
     else:
         print(
             f"empirical-workflow {KIT_VERSION} | checkpoint {report['checkpoint']}: "
-            f"{len(report['blocking'])} blocking issue(s)"
+            f"{len(report['blocking'])} mechanical blocking issue(s)"
         )
+        print("ASSURANCE: mechanical checks only; claim credibility requires substantive "
+              "review; discussion readiness requires independent cold reading; "
+              "reproducibility is not certified.")
+        print("BLOCKING BY AREA: " + json.dumps(
+            report["assurance"]["mechanical"]["blocking_by_area"], sort_keys=True))
         for item in report["blocking"]:
             print(f"BLOCK {item['code']}: {json.dumps(item, sort_keys=True, default=str)}")
         for item in report["reports"]:

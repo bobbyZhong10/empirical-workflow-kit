@@ -1,6 +1,6 @@
 ---
 name: empirical-workflow
-description: Contract-driven workflow for panel-data empirical research, from source inventory through paper review. Use for empirical papers, causal identification, quasi-experiments, estimation, robustness, and research-stage planning.
+description: Question-driven workflow for empirical research, from source inventory through paper review. Use for measurement, descriptive and institutional analysis, experiments, causal identification, structural and behavioral interpretation, economic significance, contribution, estimation, and research writing.
 ---
 
 # Empirical Workflow
@@ -8,7 +8,8 @@ description: Contract-driven workflow for panel-data empirical research, from so
 This file is the canonical Empirical Workflow Kit implementation. Runtime views
 defined in `workflow.manifest.yaml` link here; edit only the canonical tree.
 
-This skill runs empirical research as a chain of documented contracts. The
+This skill advances empirical research through question, evidence, and inference.
+Documented contracts preserve that reasoning and its provenance. The
 repository, not the conversation, is the source of truth. Communicate in the
 primary language used in the user's first substantive request, unless the user
 explicitly asks to switch, and write durable repository artifacts in English.
@@ -41,6 +42,28 @@ performing that stage; do not preload the stage directory.
 | 6b. Structural | `stages/stage6b-structural.md` |
 | 7. Paper writing and review | `stages/stage7-writing.md` |
 
+## Module contract
+
+Before each analysis module, use the existing Evidence card to state the economic
+question, why it matters, competing explanations, what is observed, what the
+design can distinguish, and the result that would change the judgment. Close
+with what was learned, what remains indistinguishable, and whether to continue,
+demote to background, narrow/delete, or stop. Before estimation, ask whether even
+a successful estimate would yield only a mechanical fact and what knowledge it
+would add to this paper. Read `references/execution-discipline.md` for this work-value
+and stopping rule. Do not create a new tracker or equate coefficients, prediction
+counts, or checkpoint verdicts with knowledge gained.
+
+Description, measurement, institutional accounting, and conditional models are
+valid branches. Apply identification obligations to causal claims, not to every
+useful finding. Keep internal audit records separate from reader-facing prose.
+
+Before interpreting or writing results in any branch, read
+`references/research-writing.md`: question-led organization, economic meaning,
+contribution, and behavioral inference apply across all methods. The selected
+pack adds technical obligations; it cannot turn its methods paragraph into the
+paper's organizing principle or make a passed diagnostic a contribution.
+
 ## Mandatory-pause routing
 
 Proceed automatically through routine, reversible work that stays within the
@@ -52,8 +75,10 @@ before every sub-step.
 
 Changes to the main specification, estimation sample, clustering level, or
 identifying strategy always require a Mandatory pause and a `decision-log.md`
-entry before execution. A failed exit condition returns work to the responsible
-earlier stage; it cannot be converted into a final caveat.
+entry before execution. A current unresolved exit failure returns work to the responsible stage.
+Record whether it remains active, is repaired, closes with claim withdrawal, or
+is retained as a disclosed limitation that the remaining claim can bear. Preserve
+the failed record and closure evidence; a caveat alone cannot rescue a claim.
 
 ## Reference files
 
@@ -71,17 +96,17 @@ Read a reference only when the selected stage calls for it:
   analysis data across one.
 - `references/delivery-contract.md`: what `output/` must contain before a
   submission is finished; read at Stage 7 and before Checkpoint C.
-- `references/writing-standards.md`: the house prose style, four rules of which
-  are checked; read before drafting and before the final pass.
+- `references/writing-standards.md`: the house prose style, with four advisory pattern checks; read before drafting and before the final pass.
 - `references/elite-is-paper-standards.md`: contribution, construct, argument,
-  and exhibit discipline for elite IS papers; read in Stages 2, 3, and 7.
+  and exhibit discipline for elite IS papers; read in Stages 2, 3, and 7 when
+  IS positioning is relevant. The shared research-writing contract applies to all.
 - `templates/paper-story-template.md`: contribution-to-evidence planning
   template; complete in Stage 3 and update in Stage 7.
 - `references/blindspot-audit.md`: four-quadrant audit and verdict rule.
 - `references/latex-manuscript-adapter.md`: Stage 7 LaTeX binding of the
   manuscript to the registry; read only when the format adapter is applied.
-- `references/writing-under-the-registry.md`: how to satisfy a writing check in
-  the paper's own voice; read when a finding asks you to change prose.
+- `references/writing-under-the-registry.md`: how to interpret advisory writing checks without turning
+  internal records into prose; read when a finding asks you to change prose.
 - `references/operational-quality-loop.md`: planning, baseline reproduction,
   progressive validation, debugging, and completion evidence; read before
   changing research scripts, pipelines, validators, or registry logic.
@@ -138,18 +163,22 @@ Stage 6 exits through a documented analysis-readiness review so evidence-backed
 writing can begin without pretending that the not-yet-written submission has
 already passed its final gate. A checkpoint requires its stated evidence, a
 status update, and a recorded proceed, revise, or pause decision. A passing A
-or B authorizes its next analysis phase; a passing C authorizes completion and
-release readiness. Run independent review where the protocol or project
+or B authorizes its next analysis phase; a passing C satisfies mechanical release requirements only. Completion also
+requires substantive and editorial review and the recorded release decision.
+Report reproducibility, claim credibility, discussion readiness, and submission
+delivery separately in `_status.md`; a single blocking count cannot replace them. Run independent review where the protocol or project
 configuration requires it.
 
 ### Checkpoint A: research design is answerable
 
 1. The question can be answered with data actually in hand.
-2. The identification strategy and its central assumption are stated in one
-   sentence a skeptical reader could attack.
-3. Each hypothesis has a precommitted specification, sample, and expected sign.
-4. At least two competing explanations have a plan for empirical distinction.
-5. The contribution remains interesting if the primary hypothesis is null.
+2. The evidence strategy and its central assumptions are stated; causal claims
+   also name identifying variation and a challengeable identifying assumption.
+3. Confirmatory hypotheses have prospective specifications and interpretation
+   rules. Description and accounting define the target and measurement rules.
+4. Plausible competing explanations have a plan for distinction, or an explicit
+   account of what the available data cannot distinguish.
+5. The question has value even if the preferred explanation is unsupported.
 
 ### Checkpoint B: construction quality
 
@@ -163,13 +192,17 @@ configuration requires it.
 
 ### Checkpoint C: results are defensible and delivered
 
-1. The identification assumption is paired with diagnostic evidence.
-2. The baseline estimate is stable across the required diagnostic set.
-3. Each hypothesis maps to a specific table and column.
+1. Each important claim has a checked inferential bridge; causal claims pair
+   their identifying assumptions with diagnostic evidence and its interpretation.
+2. Main results, figures, dynamics, sensitivities, and magnitude conversions
+   target compatible objects, or explain differences and their consequences.
+3. Each retained claim maps internally to evidence that answers the question;
+   instability narrows the conclusion rather than triggering a search for stability.
 4. The robustness evidence matrix reports every required, omitted, and failed
    check with its identifying threat, implication, severity, and disposition.
 5. The blindspot audit verdict and flags are recorded.
-6. The draft states what evidence would change the conclusion.
+6. An independent cold reader can explain the question, main finding, contribution,
+   and evidence boundary; unresolved substantive issues remain explicit.
 7. The delivery contract is met: `output/` carries `data/` with its merge note,
    `code/`, `result/` with a PNG per figure and a CSV or markdown per table,
    and `LaTeX/` with the compiled PDF. See
@@ -179,9 +212,9 @@ configuration requires it.
 
 | Trigger | Required action |
 |---|---|
-| Parallel trends rejected | Return to Stage 4 or 5; reconsider comparison group, window, or treatment definition. Do not proceed with DID. |
+| Pre-trend evidence challenges the design | Pause the affected causal claim; inspect the diagnostic target, rule, power, and implication. Reconsider the design or narrow the claim with a recorded decision. |
 | Weak first stage | Report it; use weak-instrument-robust inference or reconsider the design. |
-| RDD density or covariate continuity fails | Stop and report; the cutoff is not valid. |
+| RDD density or covariate continuity raises a concern | Pause the affected causal claim and investigate sorting, measurement, and specification; a test alone does not establish cutoff validity or invalidity. |
 | Structural fit fails a targeted moment | Return to Stage 6b primitives before reparameterizing. |
 | Review flags a material issue | Stabilize the current result before adding new work. |
 | Primary result is null | Report it and assess the null as a contribution; do not search for a preferred result. |
