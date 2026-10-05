@@ -4,7 +4,7 @@
 - Producer runtime: Codex
 - Created at: 2026-10-04
 - Claim supported: The kit contains the supplied June 2024 template, and its Stage 7 installation compiles.
-- Source artifact: Supplied June 2024 template distribution; repository copy in `Template_for_Management_Science_Journal/`. The external delivery location is omitted from the public record.
+- Source artifact: Supplied June 2024 template distribution; repository copy in `Template_for_Management_Science_Journal/`.
 - Output paths: `Template_for_Management_Science_Journal/`, `skills/empirical-workflow/references/latex-manuscript-adapter.md`.
 - Method: Compared the names and SHA-256 content of all 12 supplied files with the kit copy. Copied the adapter-listed files into an isolated `paper/` directory, then built `manuscript.tex` with the manifest-named runtime CLI and configured `latexmk`.
 - Observation: All 12 files matched byte for byte. `latexmk` exited 0 and generated a six-page PDF. The build log had no fatal errors; it reported font size substitutions and one oversized sample float (27.14 pt).

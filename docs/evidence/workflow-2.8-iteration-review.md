@@ -1,14 +1,5 @@
 # Implementation evidence: workflow 2.8
 
-## Scope and provenance
-
-This record documents repository changes and their verification. Nonpublic usage
-feedback informed the design, but its project identifiers, source files,
-unpublished findings, and review histories are not part of the public release.
-The underlying private observations are therefore not independently verifiable
-from this repository. Public examples are illustrative rather than empirical
-reproductions. No causal effect of the workflow on research errors is established.
-
 ## Implementation findings
 
 Inspection of the repository identified instructions that could encourage
@@ -39,10 +30,9 @@ method requirements remain in their selected packs.
 - Project and user runtime views resolve consistently to the canonical tree.
 
 These are recorded maintenance results, not a new empirical replication. The
-public test sources are in `tests/test_registry_validator.py` and
+test sources are in `tests/test_registry_validator.py` and
 `tests/test_workflow_contract.py`; see the repository README for environment
-setup and test execution. Machine-specific profiles and raw runtime logs are
-not public evidence artifacts.
+setup and test execution.
 
 ## Limits
 

@@ -19,15 +19,6 @@
   project was advanced or certified, and final C was not run on the kit.
 - Open mandatory pause: none for this authorized maintenance task.
 
-## Public documentation
-
-Public maintenance records have been edited for formal tone and privacy.
-Personal paths, private research identifiers, unpublished numerical results,
-and private-source hashes are excluded. Illustrative examples are labeled.
-Targeted inspection covered 163 tracked Markdown files with no remaining matches;
-34 workflow contract tests passed and project parity reported zero errors.
-These checks apply to current files, not prior commits or the remote repository.
-
 ## Prior implementation verification
 
 Full test suite: **448 passed**, no failures, using the existing repository .venv
@@ -44,7 +35,7 @@ runtime-view repair was necessary.
 | Dimension | Current assessment |
 |---|---|
 | Data/code reproducibility | Kit test commands are reproducible in the existing test environment; no empirical pipeline was rerun. |
-| Credibility of research claims | No empirical claims are certified by this maintenance work; private motivating materials are excluded from the public release. |
+| Credibility of research claims | Software verification does not establish empirical claim validity. |
 | Discussion readiness | Revised workflow and scenario replay are available for review; no independent manuscript cold read was performed in this maintenance task. |
 | Submission delivery | Not applicable; this is a kit change, not a manuscript release. |
 

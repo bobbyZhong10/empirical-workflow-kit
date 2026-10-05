@@ -1,9 +1,8 @@
 # Workflow 2.8 migration and interpretation guide
 
 Version 2.8 strengthens question-led progression, evidence interpretation, and
-reader-facing organization. This guide describes behavior and compatibility;
-it does not publish private research histories or establish a measured reduction
-in rework. Verification scope is documented in
+reader-facing organization. This guide describes behavior and compatibility.
+Verification scope is documented in
 [the implementation evidence record](evidence/workflow-2.8-iteration-review.md).
 
 ## What changes in use

@@ -19,6 +19,9 @@ stage, artifacts changed, open risks, next action, and any pause that remains
 unresolved. Raw data is never overwritten: preserve the received source and
 write cleaned or derived data to separate, documented artifacts. Conversation
 context is never a substitute for these files.
+Use repository-relative paths in documentation. Exclude personal locations and
+confidential project details from reusable examples and maintenance records.
+Write records around decisions and outcomes, not the editing conversation.
 
 ## Roles
 
@@ -187,18 +190,6 @@ Create an Evidence card for every material factual claim, design choice, data
 source, diagnostic, and result used to support a conclusion. Each card links to
 its source artifact, records the method and date, distinguishes observation
 from inference, and identifies any limitation or unresolved uncertainty.
-
-## Public documentation boundary
-
-Public repository documentation records publishable decisions and verification
-using repository-relative paths. Do not copy personal filesystem locations,
-private project identifiers, unpublished findings, reviewer correspondence, or
-private-source hashes into public logs, examples, status files, or handoffs.
-Keep necessary restricted provenance in an appropriate private project record,
-not a public appendix. Label hypothetical examples and disclose when motivating
-inputs are unavailable to public readers; do not present them as reproducible
-public evidence. Preserve decision substance when authorized privacy redaction
-is needed, and record the redaction without reproducing the removed details.
 
 ## Independent review
 

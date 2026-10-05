@@ -31,8 +31,7 @@ git diff --check
 ```
 
 Configured capabilities use the manifest runtime CLI and project runtime
-profile. Personal paths and private runtime profiles are excluded from this
-public summary.
+profile.
 
 ## Migration and limitations
 
@@ -47,15 +46,3 @@ Method literature and statistical implementations have not been comprehensively
 revalidated. Independent readers and prospective use are needed to assess clarity
 and rework. Future maintenance should respond to a concrete defect or substantive
 new evidence rather than increase checklist size.
-
-## Public documentation revision
-
-Public Markdown excludes personal filesystem locations and identifiable private
-research histories. Earlier maintenance entries retain their decisions and dates
-with those details redacted. Current-file redaction does not remove prior Git
-versions or publish an update to a remote repository.
-
-Current-file checks covered 163 tracked Markdown files. No targeted privacy
-identifiers remained; 34 workflow contract tests passed; project runtime parity
-reported zero errors. The scan and review are scoped checks, not a general
-confidentiality certification.

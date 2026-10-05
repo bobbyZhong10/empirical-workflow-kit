@@ -30,7 +30,3 @@ Version 2.8 changes validator reporting and severity semantics; existing researc
 registries require an explicit migration decision. No external research project
 is migrated automatically. Method canons and estimation implementations are not
 revalidated by this documentation revision.
-
-Public maintenance records contain publishable implementation rationale and
-repository-relative references. Private research materials and machine-specific
-configuration are outside the public documentation boundary.

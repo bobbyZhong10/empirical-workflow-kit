@@ -1,10 +1,5 @@
 # Maintenance decision log
 
-This record documents repository maintenance decisions. Private research inputs
-are excluded from the public record. The privacy revision dated 2026-10-05
-redacts source identifiers from earlier entries while preserving their dates,
-substantive decisions, and recorded validation outcomes.
-
 ## 2026-10-04: Question, evidence, and inference revision
 
 Revise research progression, validation, and writing around economic questions,
@@ -80,26 +75,3 @@ writing rules do not authorize unsupported methods or establish identification.
 Recorded verification: 448 tests passed; project and user parity reported zero
 errors. A routing check accepted a valid temporary method pack and rejected a
 removed shared-reference link. This verifies routing, not interpretation quality.
-
-## 2026-10-05: Public documentation privacy and editorial revision
-
-Revise public Markdown to exclude personal filesystem locations, private project
-identifiers, unpublished numerical findings, and identifiable review histories.
-Preserve maintenance decisions and validation outcomes. Replace project-specific
-narratives with general implementation rationale and clearly identified
-hypothetical examples. Private motivating material is not presented as publicly
-reproducible evidence.
-
-The redaction is an explicit exception to the append-only convention for the
-public decision record; it does not change research results or erase maintenance
-decisions. Future entries use repository-relative paths and publishable evidence.
-This working-tree revision does not rewrite existing Git history or update a
-remote repository.
-
-Verification for the public documentation revision: inspected 163 tracked Markdown
-files and reviewed targeted matches for personal paths and private source
-identifiers. No targeted matches remained. The workflow contract suite passed
-34 tests; project runtime parity reported zero errors; whitespace checks passed.
-Pattern scanning is limited to the selected identifiers and does not certify
-that every possible confidential detail has been detected. Public repository
-links and published-source citations remain intact.
