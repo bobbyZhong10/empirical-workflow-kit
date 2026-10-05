@@ -55,9 +55,9 @@ explain itself. `README.md` in this directory must say:
 - which derived columns exist and how each is computed;
 - any field whose name does not mean what it says.
 
-That last one is not hypothetical. A column named for the platform's commission
-rate that in fact holds the driver's share of the fare will be read backwards by
-every person who opens the file, and the note is the only place that gets fixed.
+For example, a hypothetical field named `net_amount` may contain a gross value.
+Document the actual definition and correct misleading metadata so downstream
+users can interpret the field consistently.
 
 ## `output/code`
 

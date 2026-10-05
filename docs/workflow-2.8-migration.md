@@ -1,9 +1,10 @@
-# Workflow 2.8: question, evidence, and inference
+# Workflow 2.8 migration and interpretation guide
 
-This revision addresses failure modes observed during congestion-pricing work.
-It does not establish that the skill caused all errors in that project. The
-source record and limits of the review are in
-[the evidence card](evidence/workflow-2.8-iteration-review.md).
+Version 2.8 strengthens question-led progression, evidence interpretation, and
+reader-facing organization. This guide describes behavior and compatibility;
+it does not publish private research histories or establish a measured reduction
+in rework. Verification scope is documented in
+[the implementation evidence record](evidence/workflow-2.8-iteration-review.md).
 
 ## What changes in use
 
@@ -70,79 +71,25 @@ unsupported claim remains a substantive problem even when mechanical validation
 passes. Missing closure records remain record defects, rather than being reported
 as evidence that every historical research finding is still wrong.
 
-## Acceptance replay on the same material
+## Review adjudication examples
 
-This is a documented manual scenario review of historical passages, not a
-controlled comparison of researchers and not an independent cold read. The
-executable tests verify only the claimed mechanical behavior. Each scenario
-below names the earlier intervention and a bounded next action.
+These hypothetical examples illustrate the rules. They are not quotations,
+empirical findings, or reports about a particular research project.
 
-| Material / failure mode | Intervention under the revised workflow | Continue, revise, or stop |
-|---|---|---|
-| PROMPT section 80: theory organized by registered predictions | At module entry, ask what economic question the predictions distinguish. At drafting, choose the argument and supporting exhibits; retain prediction IDs internally. | Revise organization, without new regressions solely to complete a list. |
-| Aggregate records described as individual migration or real supply | At variable mapping and claim review, separate recorded units from individual transitions and available service. | Correct the inference; acquire linked transitions or availability measures only if that distinction is central. |
-| Inverted quantities or formula payment scenarios treated as mechanisms, income, or welfare | Trace whether the result is an identity, derivation, or conditional calculation and name the additional behavioral assumptions. | Keep useful institutional accounting; delete unsupported behavioral or welfare upgrades. |
-| Relative platform gap, own-platform change, and related dynamic sensitivity conflated | Fill outcome, sample, treatment/comparison, window, reference period, weights, aggregation, and target for each exhibit before interpretation. | Align objects or explain their distinct questions. Run a main-target sensitivity only if it changes the main judgment. |
-| Null estimate plus MDE treated as absence; sensitivity threshold treated as causal validity | Review the diagnostic rule and estimand, interval, economically meaningful bound, and remaining alternatives separately from execution. | Correct interpretation; compute a missing relevant bound only when needed for an absence claim. |
-| PROMPT M3 second reading: a misspecified gate target | Inspect the rule's omitted statutory component before declaring a design failure. Preserve the old verdict and timing when correcting the rule. | Repair the target/specification with required authority; do not add a caveat to an incorrect verdict. |
-| PROMPT section 113: repair adds defensive prose | Classify the issue, correct/delete the failed inference, then check the revised passage for repeated qualifiers and length. | Prefer deletion or one necessary condition over accumulating disclaimers. |
-| HISTORY: mechanical blockers reflect historical gates or missing build files | Inspect current dependency and closure evidence separately from delivery files and research conclusions. | Repair records/files or keep active claim concerns visible; never erase a failed result for a smaller count. |
-| Positioning anchors present but reader cannot describe the contribution | Give the actual manuscript to an independent reader without the author story; ask the four reader questions. | Reconsider question, evidence organization, or contribution; relabeling the title is insufficient. |
-| Fourth-revision review: sensitivity wording repaired, intrinsic identification limits remain | Preserve the closed issue and exact remaining boundary; ask what another internal round could change. | Stop homogeneous revisions and seek authorized external substantive feedback on interest. |
+| Example | Appropriate decision |
+|---|---|
+| A reviewer equates a period-level estimate with a change between periods. | Check the contrasts and covariance. Preserve distinct supported tests; do not count a reparameterization as independent evidence. |
+| A reviewer treats a decline in one accounting component as a necessary decline in the total. | Inspect the identity and other components. Reject the necessity claim unless those components are fixed; retain any valid criticism about independent evidence. |
+| A nonsignificant estimate is described as equivalence. | Assess the interval against a meaningful bound and appropriate test; retain the estimate without claiming equivalence by non-rejection. |
+| An exploratory result is marked supported in an internal record. | Preserve its exploratory provenance; the status does not supply confirmatory timing or causal identification. |
+| A revision adds qualifiers without changing the underlying inference. | Repair or remove the unsupported inference and stop repetitive wording changes that do not affect reader judgment. |
 
-For example, the drafting correction is from an internal account such as
-"The gate passes, but this descriptive result should be treated with caution"
-to an evidence-bearing sentence such as "Recorded platform counts fell; the
-aggregate data do not identify individual transitions." This is an illustrative
-rewrite, not a quotation or a new claim about the project's results. The registry
-retains its original verdict and supporting artifacts.
+Numerical consistency tests should reject a deliberately corrupted value, and
+source checks should reject an unresolved source or anchor. Such checks establish
+only the tested mechanical behavior. They cannot establish proposition meaning,
+contribution, or reader understanding.
 
-## What acceptance does not claim
-
-No rule count, test count, lexical score, or zero-blocking result measures the
-quality of the paper. Tests show that specified mechanical defects remain
-detectable and that wording patterns no longer force compliance prose. The
-scenario review shows where the revised rules direct attention and when they
-stop work. Actual reductions in rework and better reader understanding require
-prospective use and independent reader feedback; they have not been measured
-by this maintenance task.
-
-## Follow-up manual decision replay
-
-This is an implementer-led application of the revised rules to inspected history,
-not a new independent review or execution of the congestion-pricing pipeline.
-The first four rows demonstrate why adjudication must precede repair.
-
-| Concrete historical input | Adjudication under the revised path | Different decision |
-|---|---|---|
-| R9-01 says early level and late-minus-early change are the same test; D-0910-031 distinguishes their contrasts. | Partly confirmed: the same-contrast reparameterization adds no independent test; the claim that distinct level/change tests are identical is mistaken. | Preserve the change estimate; remove the independent-validation claim; assess causal attribution separately. Do not demote all results to description. |
-| R9-05 treats non-rejection as support for recoupling; the recorded late-period interval includes meaningful deviations from zero. | Confirmed inferential problem: non-rejection does not establish equivalence. | Remove the recoupling/equivalence assertion unless an appropriate bound and test support it; preserve the observed change. |
-| R9-06 asserts a floor decline guarantees a payment decline. | Mistaken premise: in change(pay) = change(floor) + change(residual), the residual need not be fixed. An equal offset leaves payment unchanged. Partial valid concern: accounting is not independent mechanism evidence. | Retract the guaranteed-fall criticism; keep the payment estimate as an auxiliary benchmark if useful, without promoting the identity to a second mechanism. |
-| R9-10 worries exploratory cards marked supported imply confirmatory evidence. | Confirmed boundary problem where prose makes that upgrade; a status alone does not establish what prose claims. Inspect the actual sentence. | Retain exploratory provenance and correct any upgrade, without falsifying the recorded estimate or changing history. |
-| Own DiD and gap DDD share annual comparison; city-week covariance changes dependence handling. | Distinct targets can coexist; neither shared counterfactual nor policy endogeneity is independently validated by the extra result. | State what each diagnostic changes. Do not count them as independent causal confirmations or discard one solely because they share inputs. |
-| Main spring/fall estimate and adjacent dynamic sensitivity have different windows/baselines/weights. | The related target cannot certify the main target. | Align the sensitivity if it could change the claim, or explicitly limit its scope; no cosmetic threshold reassurance. |
-| Formula outputs are estimated precisely, but the principal rejects them as this paper's main contribution. | Successful estimation may yield background institutional accounting. | Choose background or stop at module exit; do not manufacture a causal design or claim measurement is never valuable. |
-| Net driver counts, backsolved login hours, and waiting among completed trips. | Units and shared inputs cannot establish individual movement, independent logins, or all-rider welfare. | Write the strongest supported positive sentence; seek genuinely new evidence only if those broader claims remain central. |
-| Contribution anchors exist but a cold reader cannot identify actors or the economic conflict. | Editorial/argument problem, not a failed phrase-count test. | Reorganize the question and evidence; actor objectives and conflict enter the first-complete-draft cold read. |
-| PROMPT section 113 repairs introduce six of eight defensive sentences; section 126 limits further precision edits. | Confirmed revision failure as recorded; no claim this fraction generalizes. | Require a reader judgment before editing; correct exhibits/backend, but stop equivalent wording or decimal changes that do not change interpretation. |
-| A numeric wildcard accepts 9.999; an identity accepts wrong posted rates. | Historical mechanical checks have inadequate failure sensitivity. | Require known-error/fault evidence and an external expected value; do not claim semantic assurance. Existing 2.8 corrupted-number tests remain applicable. |
-
-The changes use existing module cards, review findings, response matrices, and
-story records. Confirmed/partly confirmed/mistaken are substantive dispositions,
-not automated semantic verdicts. Missing evidence stays unverified. No mandatory
-new analysis follows from a review request alone; no known false number may be
-left in a paper under the stopping rule.
-
-Intrinsic limits remain: aggregate counts cannot track individuals; reconstructed
-hours are not independently observed hours; completed trips omit unmet demand;
-a single policy episode and shared cross-year comparison leave coincident shocks
-and endogenous timing unresolved; a policy bundle does not isolate a component;
-a formula scenario does not identify equilibrium earnings or welfare. Resolving
-these may require new data, variation, or assumptions. Clear writing can bound or
-withdraw claims, but cannot create that missing evidence. Whether the bounded
-contribution is interesting requires external readers, not another internal PASS.
-
-## Cross-method organization and interpretation replay
+## Illustrative cross-method scenarios
 
 The common writing contract now applies before interpreting results, not merely
 at final prose editing. The nine existing method packs link directly to it, as
@@ -171,7 +118,6 @@ method validations. They test the decisions the instructions now prescribe:
 
 Routing checks verify that each installed method path reaches the common contract;
 they cannot establish that an agent will reason correctly in every future case.
-The transfer replay is implementer-led. Independent reader feedback and actual
+The scenario assessment is implementer-led. Independent reader feedback and actual
 use are still needed to evaluate clarity and rework. Existing identification and
 data limits remain; no writing rule manufactures behavioral or causal evidence.
-

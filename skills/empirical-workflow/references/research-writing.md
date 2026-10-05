@@ -209,9 +209,9 @@ as well as overstatement; prefer the accurate affirmative finding. Apply these b
 
 | Evidence in hand | Unsupported leap | Defensible statement or evidence needed |
 |---|---|---|
-| Aggregate net changes | Individuals migrated between platforms | Describe net changes; individual migration needs linked transitions and coverage assumptions. |
-| A variable inverted from the outcome or an identity, such as login hours reconstructed from trips and utilization | Independent mechanism confirmation or direct login records | State the reconstruction and shared inputs; mechanism evidence needs independent variation or measurement. |
-| Waiting time among completed trips | Welfare of all potential riders | Describe the observed trips; requests, cancellations, abandonment, selection, and valuation require additional evidence or explicit assumptions. |
+| Aggregate net changes | Individuals moved between organizations | Describe net changes; individual migration needs linked transitions and coverage assumptions. |
+| A variable inverted from the outcome or an identity, such as capacity reconstructed from output and utilization | Independent mechanism confirmation or direct capacity measurements | State the reconstruction and shared inputs; mechanism evidence needs independent variation or measurement. |
+| Service time among completed transactions | Welfare of all potential customers | Describe the observed transactions; requests, cancellations, abandonment, selection, and valuation require additional evidence or explicit assumptions. |
 | Changes in administrative records | Changes in real available supply | Describe recorded units; establish duplication, coverage, and availability before claiming supply. |
 | Formula payment under a counterfactual input | Identified income or welfare losses | State a conditional payment calculation and fixed inputs; earnings and welfare need behavioral, hours, cost, and equilibrium assumptions as applicable. |
 | A contemporaneous policy bundle | Effect of a single component or information channel | Interpret the bundle unless variation separates its components. |

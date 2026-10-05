@@ -22,7 +22,7 @@
 - R owns the end-to-end analysis pipeline by default. Python may own ingestion or export only as an explicitly recorded project exception; R still validates the boundary before formal analysis.
 - Never silently change a locked specification, sample, clustering level, or identifying strategy.
 - Never overwrite raw data.
-- The current Git top-level is /Users/bobbyzhong, not this workspace. Do not run git add or git commit unless git rev-parse --show-toplevel equals the workspace path exactly.
+- Verify the Git top-level before staging or committing. Do not run git add or git commit unless git rev-parse --show-toplevel equals the intended repository root.
 - Each task must pass its stated validation before the next task begins.
 
 ---

@@ -29,8 +29,8 @@ Code `PROSE_EM_DASH`.
 **No possessive on a named thing.** A firm, a method, a model, or a system does
 not own anything. Prefer `of`, a noun modifier, or the passive.
 
-> ~~the margin of Uber's response~~ → the Uber margin response
-> ~~Lyft's driver-pay share~~ → the driver-pay share on Lyft
+> ~~the margin of Firm A's response~~ → the response margin for Firm A
+> ~~Firm B's revenue share~~ → the revenue share of Firm B
 > ~~the estimator's standard error~~ → the standard error of the estimator
 
 Code `PROSE_NAMED_POSSESSIVE`. The bibliography is exempt.
@@ -83,12 +83,9 @@ A policy, a price, a start date, a company statement, or a public dataset is
 cited in a footnote with a link and one plain sentence, not in the reference
 list. The reference list is for scholarship.
 
-```latex
-\footnote{The per-trip charge is set by the Metropolitan Transportation
-Authority at \$1.50 for high-volume for-hire vehicles and \$0.75 for taxis.
-See \url{https://congestionreliefzone.mta.info/tolling}, accessed 16 August
-2026.}
-```
+Use the relevant primary-source URL and actual access date. Do not insert
+personal project examples, unpublished institutional details, or invented
+source particulars into a public template.
 
 Give the accessed date for anything that can change. Prefer the most durable
 form of a source: a numbered agency notice over a campaign microsite, a data

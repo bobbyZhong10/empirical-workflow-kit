@@ -174,12 +174,12 @@ valid ranges. Revisions can coexist for non-overlapping date ranges.
 
 ```yaml
 semantic_fact:
-  fact_key: SEM-driver_pay-definition
-  fact_revision_id: SEM-driver_pay-definition.r2
-  supersedes: SEM-driver_pay-definition.r1
+  fact_key: SEM-base_amount-definition
+  fact_revision_id: SEM-base_amount-definition.r2
+  supersedes: SEM-base_amount-definition.r1
   revision_reason: corrected
-  field: driver_pay
-  statement: "Base driver compensation excluding tips."
+  field: base_amount
+  statement: "Base transaction amount excluding additional fees."
   valid_range: [2024-01-01, null]
   authority: {status: sourced, source: docs/methodology.pdf}
   verification:
