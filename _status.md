@@ -12,8 +12,9 @@
   structural/noncausal stage paths; see migration transfer cases.
 - Econometric workflow integration: identification review, rendered figures,
   research-code correctness and replication diagnosis; see upstream audit.
-- Latest maintenance: scoped upstream writing and instruction adaptation;
-  source and disposition in docs/upstream-absorption-audit.md.
+- Latest maintenance: README scope, installation and verification descriptions
+  aligned with the implementation; upstream acknowledgments added.
+  Validation: 34 contract tests passed; project parity reported zero errors.
 - Current evidence: docs/evidence/workflow-2.8-iteration-review.md.
 - Migration and illustrative scenarios: docs/workflow-2.8-migration.md.
 - Handoff: docs/workflow-2.8-handoff.md.

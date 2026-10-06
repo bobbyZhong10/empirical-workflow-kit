@@ -1,14 +1,16 @@
 # Empirical Workflow Kit
 
-Empirical Workflow Kit is a portable research operating system for Claude Code
-and Codex. It turns an empirical project into a staged chain of contracts,
-evidence, decisions, diagnostics, and release gates. Both runtimes discover the
-same canonical skills and apply the same validator, so switching tools does not
-fork the research method or the project record.
+Empirical Workflow Kit supports empirical research in Claude Code and Codex,
+from an economic question through evidence, interpretation, and a clear paper.
+Shared stage contracts preserve reproducibility and research decisions. Both
+runtimes discover the same canonical skills and use the same mechanical
+validator; substantive judgment and reader review remain separate.
 
-The kit is designed for panel-data, causal-inference, experimental, and
-structural research in information systems, economics, and quantitative
-marketing. Its conventions transfer to other empirical fields.
+The kit supports measurement, descriptive and institutional analysis,
+observational causal designs, experiments, and structural or conditional models
+in information systems, economics, and quantitative marketing. Method-specific
+implementations cover the packs listed below; broader research and writing
+principles also apply to other empirical work.
 
 ## One workflow, two runtimes
 
@@ -24,15 +26,15 @@ skills/                                      canonical skill source
 ```
 
 `workflow.manifest.yaml` inventories every managed skill, records the workflow
-version, names the upstream commit that was inspected, and declares all runtime
+version, identifies the primary upstream baseline, and declares all runtime
 views. The files under `.claude/skills/` and `.agents/skills/` are discovery
 views only. Never edit them. A change to `skills/` is immediately visible to
 both runtimes.
 
-Verify this invariant at any time:
+After installing the Python dependencies below, verify this invariant with:
 
 ```bash
-python3 scripts/verify_runtime_parity.py --project --all --repo .
+.venv/bin/python scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
 The command fails on missing links, wrong targets, broken links, copied
@@ -80,18 +82,23 @@ time.
 |---|---|---|
 | 1. Dataset infrastructure | Establish source identity, keys, coverage, and lineage | inventories, merge audits, panel dimensions, versioned exports |
 | 2. Literature map | Build a verified map of constructs, theories, methods, and open questions | source records, synthesis, evidence cards |
-| 3. Theory and hypotheses | Define the mechanism, alternatives, and prospective tests | theory map, hypotheses, preregistration inputs |
+| 3. Theory and hypotheses | Define the question, alternatives, and evidence strategy | question-to-evidence map, applicable hypotheses and prospective tests |
 | 4. Variables map | Bind constructs to fields, transformations, and samples | variable registry, sample rules, analysis contract |
 | 5. Measurement and validity | Test construct quality and lock the main specification | validity evidence, attrition record, Checkpoint B inputs |
-| 6a. Reduced form | Select and execute one causal or associational design | estimates, diagnostics, robustness matrix, blindspot audit |
-| 6b. Structural | Define primitives, identification, estimation, and fit checks | model contract, targeted moments, counterfactual limits |
-| 7. Writing and review | Trace every claim to evidence and prepare release | manuscript, review findings, response matrix, release record |
+| 6a. Reduced form and description | Execute the selected design or descriptive/accounting analysis | results, interpreted diagnostics, analysis-readiness record |
+| 6b. Structural and conditional models | Define primitives, parameter status, fit, and counterfactual assumptions | model contract, targeted/untargeted fit, bounded scenarios |
+| 7. Writing and review | Explain the question, economic meaning, and contribution with supported claims | manuscript, adjudicated reviews, cold read, release record |
 
-Three checkpoints prevent stage completion by assertion alone:
+Three checkpoints structure progression:
 
 - Checkpoint A asks whether the design is answerable.
 - Checkpoint B asks whether construction and measurement are defensible.
-- Checkpoint C asks whether the results and release claims are defensible.
+- Checkpoint C combines mechanical release checks with separate substantive and
+  editorial assessments.
+
+B and C have executable registry checks. Stage 6 exits through an
+analysis-readiness record; final Checkpoint C follows Stage 7. A validator pass
+does not certify identification, economic contribution, or reader understanding.
 
 Material changes to the identifying strategy, main specification, estimation
 sample, clustering level, or post-result interpretation trigger a mandatory
@@ -99,7 +106,7 @@ pause and a recorded decision.
 
 ## Method packs
 
-Stage 6a selects exactly one pack under
+For a supported causal or associational design, Stage 6a selects one pack under
 `skills/empirical-workflow/methods/`. Each mature pack separates four kinds of
 material:
 
@@ -119,7 +126,9 @@ Each pack has a machine-readable `method.manifest.yaml` with its review date,
 refresh query, refresh interval, software boundary, and canonical source files.
 Thin skills such as `skills/did/SKILL.md` and `skills/rdd/SKILL.md` make named
 methods directly discoverable without copying their prompts. Every facade
-routes through Stage 6a and the common mandatory-pause contract.
+routes through Stage 6a and the common mandatory-pause contract. Noncausal
+measurement and accounting retain evidence and interpretation discipline without
+selecting an irrelevant causal pack.
 
 Short `SKILL.md` files are intentional only when declared in
 `workflow.manifest.yaml` as compatibility aliases or when they are method
@@ -164,13 +173,16 @@ or forking the underlying prompts.
 
 ## Install the kit checkout
 
-Clone the repository and keep its canonical tree intact:
+Clone the repository and install the Python dependencies before running the
+management commands (Python 3.11 or newer):
 
 ```bash
 git clone https://github.com/bobbyZhong10/empirical-workflow-kit.git
 cd empirical-workflow-kit
-python3 scripts/install_runtime_views.py --project --all --repo .
-python3 scripts/verify_runtime_parity.py --project --all --repo .
+python3 -m venv .venv
+.venv/bin/python -m pip install -r requirements-dev.txt
+.venv/bin/python scripts/install_runtime_views.py --project --all --repo .
+.venv/bin/python scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
 The committed project views normally make the installation command a no-op.
@@ -182,8 +194,8 @@ directory.
 To repair only one runtime:
 
 ```bash
-python3 scripts/install_runtime_views.py --project --claude --repo .
-python3 scripts/install_runtime_views.py --project --codex --repo .
+.venv/bin/python scripts/install_runtime_views.py --project --claude --repo .
+.venv/bin/python scripts/install_runtime_views.py --project --codex --repo .
 ```
 
 The installer does not overwrite a regular file or directory. If a previous
@@ -198,8 +210,8 @@ Project-level discovery is the recommended setup because it pins each project
 to its checkout. To expose this checkout in every project on the machine:
 
 ```bash
-python3 scripts/install_runtime_views.py --user --all --repo .
-python3 scripts/verify_runtime_parity.py --user --all --repo .
+.venv/bin/python scripts/install_runtime_views.py --user --all --repo .
+.venv/bin/python scripts/verify_runtime_parity.py --user --all --repo .
 ```
 
 User-level links are absolute links to the selected canonical checkout. Run
@@ -213,7 +225,7 @@ hide this repository's project view. Run the user-level parity check when a
 runtime appears to use old instructions. If the installer reports `UNMANAGED`,
 archive or rename that third-party skill only after confirming its ownership;
 the installer will not make that decision for you. See the
-[Claude Code skill-scope documentation](https://code.claude.com/docs/en/slash-commands#where-skills-live).
+[Claude Code skill-scope documentation](https://code.claude.com/docs/en/skills#resolve-skills-that-share-a-name).
 
 Do not install by copying `skills/*` separately into `~/.claude/skills` and
 `~/.agents/skills`. Independent copies are the split-brain condition this
@@ -225,7 +237,7 @@ Keep the project's current data, code, results, and instructions in place. From
 the kit checkout, attach the canonical workflow to that project:
 
 ```bash
-python3 scripts/bootstrap_project.py /absolute/path/to/research-project --claude
+.venv/bin/python scripts/bootstrap_project.py /absolute/path/to/research-project --claude
 ```
 
 Use `--all` when both Claude Code and Codex will work in the project. The
@@ -266,12 +278,14 @@ records and runtime-view links, but never commit `.workflow/kit` itself.
 3. Resolve and diagnose that profile:
 
    ```bash
-   python3 scripts/ewf.py env
-   python3 scripts/ewf.py doctor
+   .venv/bin/python scripts/ewf.py env
+   .venv/bin/python scripts/ewf.py doctor
    ```
 
-4. Create `_status.md`, `decision-log.md`, and the first evidence records from
-   the templates routed by `empirical-workflow`.
+4. For an attached project, use the generated state files. For work directly in
+   a dedicated kit checkout, initialize project state from the templates without
+   overwriting existing records. The kit's own maintenance status and decision
+   log are not a new research project's state.
 5. Start Claude Code or Codex at the repository root. The runtime adapter reads
    the same protocol, manifest, router, and project state.
 
@@ -319,9 +333,9 @@ Run configured commands through the logical tool runner so the profile affects
 execution rather than documentation alone:
 
 ```bash
-python3 scripts/ewf.py run rscript --vanilla analysis.R
-python3 scripts/ewf.py run quarto render talk.qmd
-python3 scripts/ewf.py run node presentation-tooling/deck-check.mjs fit talk.html
+.venv/bin/python scripts/ewf.py run rscript --vanilla analysis.R
+.venv/bin/python scripts/ewf.py run quarto render talk.qmd
+.venv/bin/python scripts/ewf.py run node presentation-tooling/deck-check.mjs fit talk.html
 ```
 
 See `docs/runtime-recipes/` for Claude Code and Codex discovery, handoff,
@@ -358,7 +372,7 @@ state.
 
 Prerequisites:
 
-- Python 3
+- Python 3.11 or newer
 - R 4.1 or newer
 - network access during dependency bootstrap
 - Node 22 or newer for presentation gates
@@ -371,19 +385,20 @@ Create the repository-local test environment:
 bash tests/bootstrap_test_environment.sh
 ```
 
-The bootstrap creates `.venv`, installs pinned Python dependencies, and
+The bootstrap creates `.venv`, installs the dependencies specified in
+`requirements-dev.txt` (a mix of version ranges and unpinned packages), and
 installs `arrow`, `yaml`, `fixest`, and `modelsummary` into `.r-lib`. The test
 runner never silently falls back to a system Python or installs packages during
 a workflow test.
 
-Run the complete automated suite:
+Run the automated checks required for the affected components:
 
 ```bash
 .venv/bin/python -m pytest -q
 bash tests/run_contract_tests.sh
 bash tests/smoke/run_smoke.sh
 bash tests/smoke/run_presentation_smoke.sh
-python3 scripts/verify_runtime_parity.py --project --all --repo .
+.venv/bin/python scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
 The smoke runner intentionally invokes several failing cases. Those cases pass
@@ -399,13 +414,19 @@ set `EWF_NODE_COMMAND` to a working Node 22+ executable or configure
 The absorption mapping is executable:
 
 ```bash
-python3 scripts/audit_upstream.py --offline
-python3 scripts/audit_upstream.py --fail-on-change
+.venv/bin/python scripts/audit_upstream.py --offline
+.venv/bin/python scripts/audit_upstream.py --fail-on-change
 ```
 
 The offline command verifies that every destination declared in
 `upstream.lock.yaml` exists. The online command compares the pinned Git object
-IDs with upstream `HEAD` and reports only changed or missing source families.
+IDs with the primary upstream's `HEAD`, reporting unchanged, changed, missing,
+or inconsistent source objects alongside local destination checks. The lock
+tracks the original absorption baseline; subsequent selective adaptations and
+additional sources are documented in
+[the upstream audit](docs/upstream-absorption-audit.md). Consequently,
+`--fail-on-change` can report differences even when selected parts were reviewed.
+It does not audit every reference repository listed below.
 
 ## Release validation
 
@@ -430,7 +451,7 @@ Progress is organized around question, evidence, and inference in existing
 Evidence cards. Draft from the economic argument, not prediction IDs or gate
 counts. Retain historical failures with reasoned closure; stop repeated revision
 when core defects are repaired and further work would not change a judgment.
-See [the 2.8 migration and acceptance record](docs/workflow-2.8-migration.md).
+See [the 2.8 migration and interpretation guide](docs/workflow-2.8-migration.md).
 
 ## Language and portability rules
 
@@ -445,12 +466,27 @@ See [the 2.8 migration and acceptance record](docs/workflow-2.8-migration.md).
 
 ## Design principles
 
-- Checkpoints are executable gates, not narrative summaries.
+- Mechanical checkpoint checks and substantive review have distinct roles.
 - Main specifications are locked before result interpretation.
-- Claims contract when diagnostics fail; caveats do not convert a failed gate
-  into a pass.
+- Diagnostic concerns require interpretation and adjudication. Correct the
+  calculation, reconsider the design, or narrow the claim as the evidence requires.
 - Every material claim points to evidence, a result, a citation, or an explicit
   argument.
 - Limitations appear beside the choice or result they constrain.
 - Status, evidence, and decisions survive a runtime switch because they live in
   files, not chat history.
+
+## Acknowledgments
+
+Parts of this kit draw on and adapt the following repositories:
+
+- [ericluo04/claude-academic-workflow](https://github.com/ericluo04/claude-academic-workflow):
+  research skills, method packs, writing guidance, review workflows, and presentation tooling.
+- [pedrohcgs/claude-code-my-workflow](https://github.com/pedrohcgs/claude-code-my-workflow):
+  identification review, empirical figures, research-code review, and replication practices.
+
+Additional lineage inherited through these workflows is documented in
+[Attribution](docs/upstream-attribution.md). See
+[Third-Party Notices](THIRD_PARTY_NOTICES.md) for licenses and
+[the upstream audit](docs/upstream-absorption-audit.md) for source revisions and
+adaptation decisions.

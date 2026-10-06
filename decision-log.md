@@ -106,3 +106,17 @@ the design and output. Attribution and deliberate exclusions are recorded in
 Verification: 34 workflow contract tests passed; project runtime parity reported
 zero errors; whitespace checks passed. This validates contract compatibility,
 not a new empirical implementation or the statistical claims of the source.
+
+## 2026-10-05: README alignment and acknowledgments
+
+Align the README with the current research scope, stage exits, mechanical
+validation limits, installation dependencies, and upstream audit coverage.
+Distinguish the locked upstream baseline from selective later adaptations.
+Add acknowledgments for the academic and econometric workflow sources, linked
+to detailed attribution and license records. Correct a historical attribution
+entry for a retired contribution gate.
+
+Verification: 34 workflow contract tests passed; project runtime parity reported
+zero errors. README local link targets and whitespace checks passed. Installation
+commands were checked against the implementation; a fresh installation was not
+performed.
