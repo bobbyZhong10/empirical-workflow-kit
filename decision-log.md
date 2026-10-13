@@ -120,3 +120,42 @@ Verification: 34 workflow contract tests passed; project runtime parity reported
 zero errors. README local link targets and whitespace checks passed. Installation
 commands were checked against the implementation; a fresh installation was not
 performed.
+
+## 2026-10-13: Public repository hygiene
+
+Exclude local reading copies, the journal template package, and the obsolete
+PR body from the public source tree while preserving every file locally.
+The journal package includes explicit TNQ distribution restrictions; no
+redistribution authorization is recorded for the reading corpus. Add credential,
+environment, editor, cache, and LaTeX auxiliary ignore rules while retaining
+examples, test fixtures, runtime links, and licensed presentation dependencies.
+Update setup instructions to identify the journal assets as a local dependency.
+
+Evidence: `docs/evidence/public-repository-audit-2026-10-13.md`. Ignore checks,
+local-copy preservation, project parity, and whitespace validation passed.
+No empirical checkpoint applies. No commit, push, or history rewrite is part
+of this maintenance action; prior commits retain excluded files.
+
+## 2026-10-13: GitHub documentation entry points
+
+Reorganize the README around purpose, setup, capabilities, and documentation
+navigation. Preserve detailed instructions in setup, workflow, and development
+guides. Add a documentation index and contribution instructions. Recommend a
+separate research directory and distinguish kit maintenance records from project
+state. Align runtime recipes with the installed repository Python environment.
+
+Evidence: `docs/evidence/github-documentation-2026-10-13.md`. All 34 workflow
+contract tests passed, 63 local links and anchors checked successfully, project
+parity reported zero errors, and whitespace checks passed. This documentation
+change does not modify research rules or certify a fresh installation. No
+commit or publication was performed.
+
+## 2026-10-13: Expand the public README overview
+
+Restore moderate detail to the landing page while retaining its quick-start
+structure. Add focused skill links, checkpoint purposes, project records,
+delivery layout, and profile/validator examples. Detailed guides remain the
+reference for setup and maintenance. Verification: 34 contract tests passed,
+38 README links and anchors passed, project parity reported zero errors, and
+whitespace checks passed. Evidence remains in
+`docs/evidence/github-documentation-2026-10-13.md`. No publication performed.

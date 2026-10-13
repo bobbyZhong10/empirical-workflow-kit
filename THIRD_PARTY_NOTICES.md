@@ -1,5 +1,14 @@
 # Third-Party Notices
 
+## Local journal assets and reading copies
+
+`Classic Paper/` and `Template_for_Management_Science_Journal/` are excluded
+from the current public source tree. Reading copies have no recorded
+redistribution authorization in this kit. The local journal package includes
+TNQ style files with explicit copying, modification, and distribution
+restrictions. Obtain journal assets separately; the kit license does not
+grant rights to those files. Historical commits may still contain these assets.
+
 ## claude-academic-workflow
 
 This repository includes adapted prompts, method-reference structures,

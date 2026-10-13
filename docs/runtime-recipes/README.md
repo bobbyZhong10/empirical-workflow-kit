@@ -1,5 +1,9 @@
 # Runtime recipes
 
+Run these commands from the kit checkout after completing the
+[installation steps](../getting-started.md#install-the-kit-checkout). For an
+attached research project, run `.workflow/bin/ewf doctor` in that project.
+
 These recipes bind the portable research contract to one machine without
 putting machine-specific paths, credentials, or interaction preferences into a
 canonical skill. The research protocol, method prompts, checkpoints, and
@@ -12,8 +16,8 @@ Copy `runtime-profile.example.yaml` to the ignored
 run:
 
 ```bash
-python3 scripts/ewf.py doctor
-python3 scripts/ewf.py env
+.venv/bin/python scripts/ewf.py doctor
+.venv/bin/python scripts/ewf.py env
 ```
 
 `doctor` reports `PASS`, `WARN`, and `BLOCK` findings. Missing required
@@ -25,9 +29,9 @@ variable exists; they never print its value.
 Use the command wrapper whenever a workflow invokes a configured tool:
 
 ```bash
-python3 scripts/ewf.py run rscript --vanilla analysis.R
-python3 scripts/ewf.py run quarto render talk.qmd
-python3 scripts/ewf.py run node presentation-tooling/deck-check.mjs fit talk.html
+.venv/bin/python scripts/ewf.py run rscript --vanilla analysis.R
+.venv/bin/python scripts/ewf.py run quarto render talk.qmd
+.venv/bin/python scripts/ewf.py run node presentation-tooling/deck-check.mjs fit talk.html
 ```
 
 This makes the command in `runtime-profile.yaml` operational. A temporary
@@ -37,7 +41,7 @@ changing a tracked file. Prefer a profile entry for stable configuration.
 If a tool cannot use the wrapper, load shell-safe bindings explicitly:
 
 ```bash
-eval "$(python3 scripts/ewf.py env)"
+eval "$(.venv/bin/python scripts/ewf.py env)"
 ```
 
 Review the emitted bindings before evaluating them when the profile came from

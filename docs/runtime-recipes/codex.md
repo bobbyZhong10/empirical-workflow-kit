@@ -1,5 +1,9 @@
 # Codex runtime recipe
 
+Run these commands from the kit checkout after completing the
+[installation steps](../getting-started.md#install-the-kit-checkout). For an
+attached research project, run `.workflow/bin/ewf doctor` in that project.
+
 Codex reads the thin repository adapter in `AGENTS.md` and discovers the
 canonical skills through `.agents/skills/`. Those entries are relative
 symlinks; do not edit them.
@@ -7,15 +11,15 @@ symlinks; do not edit them.
 ## Verify discovery
 
 ```bash
-python3 scripts/install_runtime_views.py --project --codex --repo .
-python3 scripts/verify_runtime_parity.py --project --codex --repo .
+.venv/bin/python scripts/install_runtime_views.py --project --codex --repo .
+.venv/bin/python scripts/verify_runtime_parity.py --project --codex --repo .
 ```
 
 For optional personal discovery across projects:
 
 ```bash
-python3 scripts/install_runtime_views.py --user --codex --repo .
-python3 scripts/verify_runtime_parity.py --user --codex --repo .
+.venv/bin/python scripts/install_runtime_views.py --user --codex --repo .
+.venv/bin/python scripts/verify_runtime_parity.py --user --codex --repo .
 ```
 
 The project view is preferred because it pins the task to the checkout being
@@ -23,7 +27,7 @@ edited. Use the user view only when one canonical checkout is intentionally
 shared across projects.
 
 For an existing external research repository, run
-`python3 scripts/bootstrap_project.py /absolute/path/to/project --codex` from
+`.venv/bin/python scripts/bootstrap_project.py /absolute/path/to/project --codex` from
 the kit checkout. This installs project-local relative discovery links through
 an ignored `.workflow/kit` binding and initializes only missing project records.
 It does not copy prompts or overwrite existing research configuration.

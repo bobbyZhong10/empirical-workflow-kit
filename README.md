@@ -1,180 +1,51 @@
 # Empirical Workflow Kit
 
-Empirical Workflow Kit supports empirical research in Claude Code and Codex,
-from an economic question through evidence, interpretation, and a clear paper.
-Shared stage contracts preserve reproducibility and research decisions. Both
-runtimes discover the same canonical skills and use the same mechanical
-validator; substantive judgment and reader review remain separate.
+A shared research workflow for **Claude Code and Codex**, from the research
+question and data to analysis, interpretation, writing, and review.
 
-The kit supports measurement, descriptive and institutional analysis,
-observational causal designs, experiments, and structural or conditional models
-in information systems, economics, and quantitative marketing. Method-specific
-implementations cover the packs listed below; broader research and writing
-principles also apply to other empirical work.
+The kit provides reusable skills, method guides, project templates, and a
+mechanical validator. Research decisions and evidence stay in your project
+files, so work can resume across sessions and runtimes. It is intended for
+empirical researchers in information systems, economics, and quantitative
+marketing.
 
-## One workflow, two runtimes
+[Quick start](#quick-start) · [Workflow](#research-workflow) ·
+[Skills](#focused-skills) · [Project records](#project-records-and-delivery) ·
+[Documentation](docs/README.md) · [Contributing](CONTRIBUTING.md)
 
-There is exactly one editable implementation:
+## What you can do
 
-```text
-skills/                                      canonical skill source
-├── empirical-workflow/                     staged research workflow
-└── <focused-operation>/                    literature, review, release, slides
-       │
-       ├── .claude/skills/<name>            committed relative symlink
-       └── .agents/skills/<name>            committed relative symlink
-```
+- Organize data sources, variable definitions, evidence, and research decisions.
+- Read papers, build literature maps, and audit citations.
+- Work through observational designs, experiments, descriptive analysis, and
+  structural or conditional models with explicit evidence boundaries.
+- Draft and review manuscripts, prepare referee responses, and assemble
+  replication packages.
+- Build research talks, teaching lectures, and Quarto course sites.
 
-`workflow.manifest.yaml` inventories every managed skill, records the workflow
-version, identifies the primary upstream baseline, and declares all runtime
-views. The files under `.claude/skills/` and `.agents/skills/` are discovery
-views only. Never edit them. A change to `skills/` is immediately visible to
-both runtimes.
+Both runtimes use the same canonical files under `skills/`. Claude Code
+uses `.claude/skills/empirical-workflow`; Codex uses
+`.agents/skills/empirical-workflow`. The repository includes workflow
+instructions and supporting tools; you supply the research question, data,
+runtime access, and tools needed for the selected task.
 
-After installing the Python dependencies below, verify this invariant with:
+You can attach the kit to an existing data project, start a new study in an
+empty research directory, or use a focused operation such as bibliography
+auditing or slide review. The full workflow supports measurement, descriptive
+and institutional analysis as well as causal research. It organizes work around
+the question and available evidence rather than requiring every study to use
+the same estimator or make a causal claim.
 
-```bash
-.venv/bin/python scripts/verify_runtime_parity.py --project --all --repo .
-```
+## Quick start
 
-The command fails on missing links, wrong targets, broken links, copied
-implementations, stale managed entries, and version mismatches.
+Use a separate research directory so your project records do not replace this
+kit's maintenance records. The commands below use a POSIX shell and symlinks.
 
-## Repository map
+### 1. Install the kit
 
-```text
-RESEARCH_PROTOCOL.md                 portable research contract and red lines
-workflow.manifest.yaml               canonical-source and runtime-view manifest
-research.example.yaml                project configuration template
-runtime-profile.example.yaml         machine-specific tool and path template
-upstream.lock.yaml                   machine-readable upstream source ledger
-CLAUDE.md                            thin Claude Code runtime adapter
-AGENTS.md                            thin Codex runtime adapter
-skills/empirical-workflow/
-├── SKILL.md                         stage and operation router
-├── stages/                          stage input/output contracts
-├── methods/                         identification-specific prompt packs
-├── references/                      shared standards and decision rules
-├── scripts/                         governance checks
-└── templates/                       durable project records
-skills/*/                            focused operations outside the stage core
-agents/tikz-reviewer.md              rendered-figure review contract
-presentation-tooling/                Quarto theme, staging, and visual gates
-tools/validate_registry.py           shared checkpoint validator
-scripts/                             runtime-view installation and verification
-scripts/bootstrap_project.py         safe attachment for an existing project
-scripts/ewf.py                       runtime profile loader, doctor, and tool runner
-examples/                            executable talk and lecture acceptance fixtures
-tests/                               contracts, validators, scanners, and smoke test
-THIRD_PARTY_NOTICES.md               licenses and imported-source notices
-docs/upstream-absorption-audit.md    upstream-to-canonical absorption record
-```
-
-The repository is the source of truth for project state. Conversation history
-is not a research record.
-
-## Research lifecycle
-
-The router in `skills/empirical-workflow/SKILL.md` selects one stage file at a
-time.
-
-| Stage | Purpose | Representative outputs |
-|---|---|---|
-| 1. Dataset infrastructure | Establish source identity, keys, coverage, and lineage | inventories, merge audits, panel dimensions, versioned exports |
-| 2. Literature map | Build a verified map of constructs, theories, methods, and open questions | source records, synthesis, evidence cards |
-| 3. Theory and hypotheses | Define the question, alternatives, and evidence strategy | question-to-evidence map, applicable hypotheses and prospective tests |
-| 4. Variables map | Bind constructs to fields, transformations, and samples | variable registry, sample rules, analysis contract |
-| 5. Measurement and validity | Test construct quality and lock the main specification | validity evidence, attrition record, Checkpoint B inputs |
-| 6a. Reduced form and description | Execute the selected design or descriptive/accounting analysis | results, interpreted diagnostics, analysis-readiness record |
-| 6b. Structural and conditional models | Define primitives, parameter status, fit, and counterfactual assumptions | model contract, targeted/untargeted fit, bounded scenarios |
-| 7. Writing and review | Explain the question, economic meaning, and contribution with supported claims | manuscript, adjudicated reviews, cold read, release record |
-
-Three checkpoints structure progression:
-
-- Checkpoint A asks whether the design is answerable.
-- Checkpoint B asks whether construction and measurement are defensible.
-- Checkpoint C combines mechanical release checks with separate substantive and
-  editorial assessments.
-
-B and C have executable registry checks. Stage 6 exits through an
-analysis-readiness record; final Checkpoint C follows Stage 7. A validator pass
-does not certify identification, economic contribution, or reader understanding.
-
-Material changes to the identifying strategy, main specification, estimation
-sample, clustering level, or post-result interpretation trigger a mandatory
-pause and a recorded decision.
-
-## Method packs
-
-For a supported causal or associational design, Stage 6a selects one pack under
-`skills/empirical-workflow/methods/`. Each mature pack separates four kinds of
-material:
-
-- `prompt.md`: the operational procedure and questions the runtime follows.
-- `canon.md`: what the cited methodological literature settles.
-- `details.md`: implementation details, diagnostics, and package behavior.
-- `template.R`: an executable reference implementation.
-
-Available packs cover causal-design triage, selection on observables, fixed
-effects, difference-in-differences, instrumental variables, regression
-discontinuity, synthetic control, field experiments, and conjoint experiments.
-The shared method-governance rules require current literature, maintained
-implementations, explicit judgment when the literature does not settle a
-choice, and a recorded reason for every non-obvious default.
-
-Each pack has a machine-readable `method.manifest.yaml` with its review date,
-refresh query, refresh interval, software boundary, and canonical source files.
-Thin skills such as `skills/did/SKILL.md` and `skills/rdd/SKILL.md` make named
-methods directly discoverable without copying their prompts. Every facade
-routes through Stage 6a and the common mandatory-pause contract. Noncausal
-measurement and accounting retain evidence and interpretation discipline without
-selecting an irrelevant causal pack.
-
-Short `SKILL.md` files are intentional only when declared in
-`workflow.manifest.yaml` as compatibility aliases or when they are method
-discovery facades. Contract tests require every other managed skill to remain a
-single substantive canonical implementation and reject duplicate frontmatter
-names.
-
-## Focused operations
-
-| Need | Canonical skill |
-|---|---|
-| Read one known paper, DOI, title, or author | `research-sources` |
-| Search and synthesize a topic | `literature-review` |
-| Audit an existing BibTeX database | `bibliography-audit` |
-| Draft a prospective preregistration | `preregister` |
-| Convene independent critics | `research-council` |
-| Simulate a full manuscript review | `manuscript-review` |
-| Verify and draft a referee response | `referee-response` |
-| Build a sanitized replication release | `replication-release` |
-| Compile LaTeX and inspect TikZ figures | `latex-production` |
-| Build a research talk | `research-talk` |
-| Build a teaching lecture | `teaching-lecture` |
-| Audit rendered slides | `slide-review` |
-| Build a Quarto course site | `course-site` |
-
-Focused operations write into the same evidence, decision, status, and
-governance records. They cannot bypass a checkpoint or mandatory pause.
-
-The literature workflow centralizes venue coverage in
-`skills/literature-review/references/journal-scope.md`. Its current scope covers
-every UTD 24 and FT 50 journal, prioritizes information systems, operations
-management, marketing, and management and organization science, and adds top
-economics and industrial-organization venues. List membership controls the
-coverage audit, not a paper's relevance or evidentiary weight.
-
-All 20 skill names from the inspected upstream workflow remain directly
-discoverable. Renamed operations use thin compatibility aliases—`bibcheck`,
-`compile-latex`, `council`, `litreview`, `reading-papers`,
-`replication-package`, and `review-paper`—that route to the canonical skills in
-the table above. The aliases retain familiar invocation names without copying
-or forking the underlying prompts.
-
-## Install the kit checkout
-
-Clone the repository and install the Python dependencies before running the
-management commands (Python 3.11 or newer):
+You need Git, Python 3.11+, and Claude Code or Codex. R 4.1+ is required for
+the default empirical workflow. Presentation and LaTeX tools are needed only
+for those operations; see [dependencies](docs/development.md#development-environment).
 
 ```bash
 git clone https://github.com/bobbyZhong10/empirical-workflow-kit.git
@@ -185,308 +56,226 @@ python3 -m venv .venv
 .venv/bin/python scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
-The committed project views normally make the installation command a no-op.
-It is useful after an archive tool or file transfer has stripped symlinks.
-Claude Code discovers `.claude/skills/empirical-workflow`; Codex discovers
-`.agents/skills/empirical-workflow`. Both paths resolve to the same canonical
-directory.
+The last command should report `PARITY OK`. Keep this checkout available:
+attached projects link to its canonical skills.
 
-To repair only one runtime:
+### 2. Attach your research directory
 
-```bash
-.venv/bin/python scripts/install_runtime_views.py --project --claude --repo .
-.venv/bin/python scripts/install_runtime_views.py --project --codex --repo .
-```
-
-The installer does not overwrite a regular file or directory. If a previous
-Empirical Workflow Kit copy must be replaced, use `--replace-managed`; the
-installer first moves it to a timestamped sibling backup. A directory that
-does not carry this kit's ownership markers is reported as `UNMANAGED` and is
-left untouched.
-
-## Optional user-level discovery
-
-Project-level discovery is the recommended setup because it pins each project
-to its checkout. To expose this checkout in every project on the machine:
+From the kit checkout, replace the example path with an existing project
+folder. For a new project, create an empty folder first.
 
 ```bash
-.venv/bin/python scripts/install_runtime_views.py --user --all --repo .
-.venv/bin/python scripts/verify_runtime_parity.py --user --all --repo .
-```
-
-User-level links are absolute links to the selected canonical checkout. Run
-the installer again with `--replace-managed` after moving the checkout. The
-installer changes only names listed in `workflow.manifest.yaml` and refuses to
-replace another package that happens to use the same skill name.
-
-Claude Code gives a personal skill priority over a project skill with the same
-name. A pre-existing regular directory under `~/.claude/skills` can therefore
-hide this repository's project view. Run the user-level parity check when a
-runtime appears to use old instructions. If the installer reports `UNMANAGED`,
-archive or rename that third-party skill only after confirming its ownership;
-the installer will not make that decision for you. See the
-[Claude Code skill-scope documentation](https://code.claude.com/docs/en/skills#resolve-skills-that-share-a-name).
-
-Do not install by copying `skills/*` separately into `~/.claude/skills` and
-`~/.agents/skills`. Independent copies are the split-brain condition this
-repository prevents.
-
-## Attach an existing research project
-
-Keep the project's current data, code, results, and instructions in place. From
-the kit checkout, attach the canonical workflow to that project:
-
-```bash
-.venv/bin/python scripts/bootstrap_project.py /absolute/path/to/research-project --claude
-```
-
-Use `--all` when both Claude Code and Codex will work in the project. The
-bootstrapper performs a collision preflight before writing, preserves an
-existing `research.yaml`, and appends a bounded workflow adapter to an existing
-`CLAUDE.md` or `AGENTS.md`. It creates project-owned protocol, status, decision,
-evidence, profile, and manifest files. Runtime discovery links remain relative
-and resolve through the ignored local `.workflow/kit` binding, so both runtimes
-execute this checkout's one canonical skill tree rather than copied prompts.
-
-Then enter the research project, complete `research.yaml`, and diagnose it:
-
-```bash
+.venv/bin/python scripts/bootstrap_project.py /absolute/path/to/research-project --all
 cd /absolute/path/to/research-project
 .workflow/bin/ewf doctor
 ```
 
-The bootstrap also creates `WORKFLOW_START.md`, a relative link to the kit's
-canonical startup prompts. Commit the link with the project; it gives Claude
-Code and Codex the same entry instructions without copying a prompt into both
-runtime adapters.
+Use `--codex` or `--claude` instead of `--all` for a single runtime. The
+bootstrap preserves existing research configuration and adds workflow records,
+runtime links, and local command wrappers after checking for collisions.
 
-On another machine, check out the project's recorded kit version and rerun the
-same bootstrap command to recreate the ignored local binding. Commit the project
-records and runtime-view links, but never commit `.workflow/kit` itself.
+Edit `research.yaml` for your research question and approved scope, and
+`runtime-profile.yaml` for machine-specific tools and paths. The doctor reports
+missing capabilities; resolve required-tool blocks before relying on them.
+See [setup and usage](docs/getting-started.md) for profile configuration,
+user-level discovery, and moving a project to another machine.
 
-## Start a research project
+### 3. Start or resume work
 
-1. For work inside the kit checkout, copy `research.example.yaml` to
-   `research.yaml`. For an external existing project, use the bootstrap command
-   above. Fill in the observation unit, designs, authority, languages, and
-   analysis-input contract.
-2. Inside the kit checkout, copy `runtime-profile.example.yaml` to
-   `runtime-profile.yaml`; the external bootstrapper creates the corresponding
-   file automatically. Enter machine-specific paths and optional tool
-   availability. Never embed personal paths in a skill, prompt, adapter, or
-   protocol.
-3. Resolve and diagnose that profile:
+Open the research directory in Claude Code or Codex. Open the generated
+`WORKFLOW_START.md`, choose a startup prompt, and fill in its project header:
 
-   ```bash
-   .venv/bin/python scripts/ewf.py env
-   .venv/bin/python scripts/ewf.py doctor
-   ```
+- **`AUTONOMOUS_WITH_RED_LINES`** starts or continues the remaining workflow.
+- **`TAKEOVER_AND_RESUME`** reconstructs progress from existing project records.
 
-4. For an attached project, use the generated state files. For work directly in
-   a dedicated kit checkout, initialize project state from the templates without
-   overwriting existing records. The kit's own maintenance status and decision
-   log are not a new research project's state.
-5. Start Claude Code or Codex at the repository root. The runtime adapter reads
-   the same protocol, manifest, router, and project state.
+The [research protocol](RESEARCH_PROTOCOL.md) governs both modes. Routine work
+can proceed autonomously; material design changes and external publication
+require recorded authority. R is the default analysis language, with justified
+exceptions recorded in the project decision log.
 
-## Start or resume a workflow
+## Research workflow
 
-Open `WORKFLOW_START.md` in an attached external project. When working directly
-inside the kit checkout, open the manifest-named canonical file at
-`skills/empirical-workflow/references/start-prompts.md`. Copy one prompt, fill
-only its short project-specific header, and send it to Claude Code or Codex.
+| Stage | Main task |
+|---|---|
+| 1. Data infrastructure | Establish sources, keys, coverage, and lineage |
+| 2. Literature | Map prior evidence, constructs, methods, and open questions |
+| 3. Theory and hypotheses | Define the question, alternatives, and evidence strategy |
+| 4. Variables | Connect constructs to fields, transformations, and sample rules |
+| 5. Measurement | Check validity and lock the main specification |
+| 6a / 6b. Analysis | Run reduced-form, descriptive, structural, or conditional analysis |
+| 7. Writing and review | Explain findings, assess claims, and prepare delivery |
 
-### New project or automatic completion
+Method packs cover causal-design triage, selection on observables, fixed
+effects, difference-in-differences, instrumental variables, regression
+discontinuity, synthetic control, field experiments, and conjoint experiments.
+See the [workflow guide](docs/workflow-guide.md) for stage outputs, focused
+skills, and checkpoint rules.
 
-Use `AUTONOMOUS_WITH_RED_LINES` when starting a new project or asking the
-workflow to carry an existing project through all remaining stages. For an
-existing data project, set the priority explicitly, for example:
+The shared `tools/validate_registry` command checks registry requirements at
+Checkpoints B and C. Stage 6 exits through analysis readiness; final Checkpoint C
+follows Stage 7. **A mechanical pass does not establish causal validity,
+research contribution, or publication readiness.** Substantive review and
+independent reading remain necessary.
+
+### Methods and checkpoints
+
+Each method pack combines an operational prompt, methodological references,
+implementation guidance, and a manifest recording its review date and software
+boundary. Packs include R reference implementations where applicable. The
+workflow asks for the identifying assumptions, diagnostic evidence, economic
+meaning, and limits of an estimate, alongside its numerical results.
+
+| Milestone | What it establishes |
+|---|---|
+| Checkpoint A, after Stage 3 | The question is answerable with the available data and evidence strategy |
+| Checkpoint B, after Stage 5 | Construction, measurement, sample rules, and the main specification are ready for analysis |
+| Analysis readiness, after Stage 6 | Results and their interpretation are sufficiently documented to begin writing |
+| Checkpoint C, after Stage 7 | Mechanical delivery requirements are met, with separate substantive and editorial assessments |
+
+Failed diagnostics remain part of the research record. A changed sample,
+identifying strategy, or main specification requires a recorded decision;
+exploratory work remains distinguishable from prospective tests. Current claims
+must reflect the evidence and limitations, including results that narrow or
+contradict the original hypothesis.
+
+## Focused skills
+
+The stage router can invoke focused operations as the project needs them.
+These skills also provide entry points for a specific task:
+
+| Task | Skill |
+|---|---|
+| Read a known paper, title, or DOI | [research-sources](skills/research-sources/SKILL.md) |
+| Search and synthesize literature | [literature-review](skills/literature-review/SKILL.md) |
+| Check a BibTeX database | [bibliography-audit](skills/bibliography-audit/SKILL.md) |
+| Prepare a prospective preregistration | [preregister](skills/preregister/SKILL.md) |
+| Examine a research plan or argument from multiple perspectives | [research-council](skills/research-council/SKILL.md) |
+| Review a manuscript and prepare referee responses | [manuscript-review](skills/manuscript-review/SKILL.md), [referee-response](skills/referee-response/SKILL.md) |
+| Assemble a replication release | [replication-release](skills/replication-release/SKILL.md) |
+| Compile and inspect LaTeX output | [latex-production](skills/latex-production/SKILL.md) |
+| Build talks and teaching materials | [research-talk](skills/research-talk/SKILL.md), [teaching-lecture](skills/teaching-lecture/SKILL.md) |
+| Review rendered slides or build a course site | [slide-review](skills/slide-review/SKILL.md), [course-site](skills/course-site/SKILL.md) |
+
+Named method skills such as `did`, `iv`, and `rdd` route to the canonical
+Stage 6a packs. Compatibility names such as `bibcheck`, `litreview`, and
+`review-paper` route to their current equivalents. Focused operations retain
+the same evidence and authority requirements as the full workflow.
+
+## Project records and delivery
+
+Attaching a project creates missing workflow records while preserving existing
+research configuration. The main files have distinct roles:
+
+| File or directory | Purpose |
+|---|---|
+| `research.yaml` | Research scope, stage, approved designs, and analysis contract |
+| `runtime-profile.yaml` | Local commands, paths, and optional capabilities |
+| `_status.md` | Current progress, checks, risks, and next action |
+| `decision-log.md` | Append-only decisions and deviations |
+| `evidence/` | Source, design, diagnostic, and result evidence cards |
+| `WORKFLOW_START.md` | Shared prompts for starting or resuming work |
+| `workflow.manifest.yaml` | Canonical workflow paths and version |
+
+During a handoff, the receiving runtime reads the protocol, research
+configuration, status, relevant evidence, and recent decisions before continuing.
+This lets Claude Code and Codex share research state without depending on either
+runtime's conversation history. The conversation follows the user's language;
+durable repository artifacts are written in English.
+
+A completed submission uses the following delivery layout, populated during the
+research workflow rather than by the initial bootstrap:
 
 ```text
-Objective: Reproduce and verify the existing data work, then complete the
-literature review, theory development, analysis, manuscript, and internal review.
-Starting point: The project already contains substantially complete data work.
-Priority: Reproduce the data pipeline before relying on any existing result.
-Constraints: Preserve existing data, code, results, project instructions, and
-user-authored README content.
+output/
+├── data/     final analysis data and an assembly note
+├── code/     code that reproduces the empirical work
+├── result/   PNG figures and CSV or Markdown table exports
+└── LaTeX/    manuscript sources and the compiled PDF
 ```
 
-This is the highest-autonomy mode: routine reversible work continues without
-step-by-step approval, while mandatory pauses and external-action authority
-remain binding.
+The [delivery contract](skills/empirical-workflow/references/delivery-contract.md)
+defines the requirements. Packaging alone does not establish reproducibility
+or authorize redistribution of data.
 
-### Take over work already in progress
+## Configuration and validation
 
-Use `TAKEOVER_AND_RESUME` after a Claude/Codex handoff, context compaction,
-interruption, or partial run. Point it at the latest handoff when one exists.
-The runtime reconstructs state from the protocol, project configuration,
-status, current evidence, and decision log, validates that record against the
-actual files, and resumes from the first unverified atomic task. It does not
-create a fresh project state or blindly rerun completed work.
-
-The two modes change only how work begins and resumes. They use the same stages,
-evidence records, checkpoints, language policy, R-first rule, and mandatory
-pauses. Switching between Claude Code and Codex therefore does not require a
-different prompt or a separate project version.
-
-Run configured commands through the logical tool runner so the profile affects
-execution rather than documentation alone:
+The runtime profile declares Python and R commands, cache locations, and optional
+document, browser, scholarly-source, and presentation capabilities. In an attached
+research project, use the generated wrapper to inspect or run those bindings:
 
 ```bash
-.venv/bin/python scripts/ewf.py run rscript --vanilla analysis.R
-.venv/bin/python scripts/ewf.py run quarto render talk.qmd
-.venv/bin/python scripts/ewf.py run node presentation-tooling/deck-check.mjs fit talk.html
+.workflow/bin/ewf doctor
+.workflow/bin/ewf env
+.workflow/bin/ewf run rscript --vanilla code/01_ingest.R
 ```
 
-See `docs/runtime-recipes/` for Claude Code and Codex discovery, handoff,
-browser, document, secret, and optional-capability guidance.
+The script path above is an example; substitute a script from your project.
+`doctor` reports required-tool blocks and optional-capability warnings. Keep API
+keys in the environment variables named by the profile. For slides, configure
+Node 22+ and Quarto 1.10+; LaTeX production uses `latexmk` with a TeX installation.
 
-At every cross-runtime handoff, the receiver reads, in order:
-
-1. `RESEARCH_PROTOCOL.md`
-2. `research.yaml`
-3. `_status.md`
-4. the most relevant current evidence card
-5. the tail of `decision-log.md`
-
-The sender records the completed stage, changed artifacts, checks run, open
-risks, next action, and unresolved pause.
-
-## Analysis-data contract
-
-R is the default language for ingestion, cleaning, joins, construction,
-estimation, inference, tables, and figures. A project may retain or introduce
-Python only when the protocol's exception criteria are met and the reason is
-recorded in `decision-log.md`. Any producer writes a versioned Parquet file
-plus a contract that records project identity, data version, producing script,
-row count, schema, primary key, and merge audit.
-
-The smoke test deliberately exercises the supported Python-to-R exception. It
-creates a deterministic 96-row staggered-treatment panel in Python, validates
-identity and row-count failures, reads the Parquet artifact in R, estimates a
-fixed-effects event study, writes a simulated-results table, tests mandatory-pause behavior after
-a failed identifying diagnostic, and reconstructs a handoff from durable
-state.
-
-## Development environment
-
-Prerequisites:
-
-- Python 3.11 or newer
-- R 4.1 or newer
-- network access during dependency bootstrap
-- Node 22 or newer for presentation gates
-- Quarto 1.10 or newer for deck rendering
-- TeX Live or MacTeX with `latexmk` for LaTeX production
-
-Create the repository-local test environment:
+When a project reaches an applicable checkpoint, run its registry through the
+same validator used by both runtimes:
 
 ```bash
-bash tests/bootstrap_test_environment.sh
+.workflow/bin/validate_registry <registry.yaml> --checkpoint B
+.workflow/bin/validate_registry <registry.yaml> --checkpoint C
 ```
 
-The bootstrap creates `.venv`, installs the dependencies specified in
-`requirements-dev.txt` (a mix of version ranges and unpinned packages), and
-installs `arrow`, `yaml`, `fixest`, and `modelsummary` into `.r-lib`. The test
-runner never silently falls back to a system Python or installs packages during
-a workflow test.
+Replace `<registry.yaml>` with the project's registry path and run only the
+checkpoint appropriate to its stage. Reports identify mechanical blocking
+findings; reproducibility, claim credibility, discussion readiness, and
+submission delivery are assessed separately.
 
-Run the automated checks required for the affected components:
+## Documentation
+
+| Looking for | Start here |
+|---|---|
+| Installation, configuration, and handoffs | [Setup and usage](docs/getting-started.md) |
+| Stages, methods, focused skills, and validation | [Workflow guide](docs/workflow-guide.md) |
+| Claude Code or Codex configuration | [Runtime recipes](docs/runtime-recipes/README.md) |
+| Architecture, tests, and upstream updates | [Development guide](docs/development.md) |
+| Slides and course materials | [Presentation tooling](presentation-tooling/README.md) |
+| Adopting workflow 2.8 | [Migration guide](docs/workflow-2.8-migration.md) |
+| Changes and bug reports | [Contributing](CONTRIBUTING.md) |
+
+The [documentation index](docs/README.md) distinguishes current guides from
+historical design and maintenance records.
+
+## Public repository contents
+
+The repository includes skills, tools, synthetic test fixtures, and licensed
+presentation dependencies. Local reading PDFs and journal template downloads
+are excluded. Obtain journal assets separately before using the
+[LaTeX adapter](skills/empirical-workflow/references/latex-manuscript-adapter.md).
+Environment files, credentials, runtime profiles, and common caches are ignored.
+
+Keep confidential research data and manuscripts in an appropriately controlled
+project repository. Ignore rules prevent accidental additions for matched paths;
+they do not remove files already present in Git history.
+
+## Development
+
+After the Python setup above, run the contract checks and runtime parity check:
 
 ```bash
-.venv/bin/python -m pytest -q
 bash tests/run_contract_tests.sh
-bash tests/smoke/run_smoke.sh
-bash tests/smoke/run_presentation_smoke.sh
 .venv/bin/python scripts/verify_runtime_parity.py --project --all --repo .
 ```
 
-The smoke runner intentionally invokes several failing cases. Those cases pass
-only when the workflow blocks them with the documented errors.
+The [development guide](docs/development.md#development-environment) covers the
+full test suite and dependency bootstrap. The empirical smoke test,
+`tests/smoke/run_smoke.sh`, requires R packages as well as Python dependencies.
 
-The presentation smoke renders both neutral examples and then runs the fit,
-staging, and offline gates. If the default Node installation is unavailable,
-set `EWF_NODE_COMMAND` to a working Node 22+ executable or configure
-`presentation.node_command` in the ignored runtime profile.
+## License and acknowledgments
 
-## Upstream update audit
+The kit is available under the [MIT License](LICENSE). Bundled third-party
+components retain their own licenses; see [Third-Party Notices](THIRD_PARTY_NOTICES.md).
 
-The absorption mapping is executable:
-
-```bash
-.venv/bin/python scripts/audit_upstream.py --offline
-.venv/bin/python scripts/audit_upstream.py --fail-on-change
-```
-
-The offline command verifies that every destination declared in
-`upstream.lock.yaml` exists. The online command compares the pinned Git object
-IDs with the primary upstream's `HEAD`, reporting unchanged, changed, missing,
-or inconsistent source objects alongside local destination checks. The lock
-tracks the original absorption baseline; subsequent selective adaptations and
-additional sources are documented in
-[the upstream audit](docs/upstream-absorption-audit.md). Consequently,
-`--fail-on-change` can report differences even when selected parts were reviewed.
-It does not audit every reference repository listed below.
-
-## Release validation
-
-`tools/validate_registry.py` is shared by both runtimes:
-
-```bash
-tools/validate_registry <registry.yaml> --checkpoint B
-tools/validate_registry <registry.yaml> --checkpoint C
-```
-
-The registry ties pipelines, claims, evidence, figures, acceptance gates,
-applicability decisions, and reconciliation records to the running kit version.
-A gated milestone requires zero mechanical blocking findings from the applicable
-checkpoint, plus the relevant substantive and editorial reviews. Version 2.8
-reports mechanical scope and blocking areas separately from reproducibility,
-claim credibility, discussion readiness, and submission delivery. Lexical and
-house-style findings are advisory; neither a regex nor an anchor verifies a
-proposition. Packaging a directory is not a reproduction certificate, and local
-possession of data is not redistribution authority.
-
-Progress is organized around question, evidence, and inference in existing
-Evidence cards. Draft from the economic argument, not prediction IDs or gate
-counts. Retain historical failures with reasoned closure; stop repeated revision
-when core defects are repaired and further work would not change a judgment.
-See [the 2.8 migration and interpretation guide](docs/workflow-2.8-migration.md).
-
-## Language and portability rules
-
-- Communicate in the primary language used in the user's first substantive
-  request, unless the user explicitly asks to switch.
-- Keep repository artifacts in English.
-- Keep raw data read-only and write derived data separately.
-- Keep secrets outside the repository.
-- Resolve optional tools and personal paths through `runtime-profile.yaml`.
-- Verify time-sensitive journal, registry, and release policies against current
-  official sources before external circulation.
-
-## Design principles
-
-- Mechanical checkpoint checks and substantive review have distinct roles.
-- Main specifications are locked before result interpretation.
-- Diagnostic concerns require interpretation and adjudication. Correct the
-  calculation, reconsider the design, or narrow the claim as the evidence requires.
-- Every material claim points to evidence, a result, a citation, or an explicit
-  argument.
-- Limitations appear beside the choice or result they constrain.
-- Status, evidence, and decisions survive a runtime switch because they live in
-  files, not chat history.
-
-## Acknowledgments
-
-Parts of this kit draw on and adapt the following repositories:
-
-- [ericluo04/claude-academic-workflow](https://github.com/ericluo04/claude-academic-workflow):
-  research skills, method packs, writing guidance, review workflows, and presentation tooling.
-- [pedrohcgs/claude-code-my-workflow](https://github.com/pedrohcgs/claude-code-my-workflow):
-  identification review, empirical figures, research-code review, and replication practices.
-
-Additional lineage inherited through these workflows is documented in
-[Attribution](docs/upstream-attribution.md). See
-[Third-Party Notices](THIRD_PARTY_NOTICES.md) for licenses and
-[the upstream audit](docs/upstream-absorption-audit.md) for source revisions and
-adaptation decisions.
+This work adapts research skills and presentation tooling from
+[ericluo04/claude-academic-workflow](https://github.com/ericluo04/claude-academic-workflow)
+and econometric review practices from
+[pedrohcgs/claude-code-my-workflow](https://github.com/pedrohcgs/claude-code-my-workflow).
+[Attribution](docs/upstream-attribution.md) and the
+[upstream audit](docs/upstream-absorption-audit.md) record source revisions and
+adaptation scope.

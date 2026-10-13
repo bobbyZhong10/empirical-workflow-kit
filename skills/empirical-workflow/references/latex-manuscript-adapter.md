@@ -8,6 +8,12 @@ before then invites formatting work to substitute for analysis.
 
 ## Installing the template
 
+The journal template is a local dependency and is not distributed with this
+kit. Obtain it from the journal's author resources and place the files in
+`<kit_root>/Template_for_Management_Science_Journal/`, which Git ignores.
+Confirm that the required files below exist before copying them. Historical
+template maintenance records describe a local copy, not a bundled download.
+
 Copy the June 2024 INFORMS class, bibliography style, optional equation-width
 checks, and template into the project's `paper/` directory at Stage 7:
 

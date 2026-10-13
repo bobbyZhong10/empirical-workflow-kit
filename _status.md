@@ -1,6 +1,23 @@
 # Kit maintenance status
 
-- Updated: 2026-10-05.
+- Updated: 2026-10-13.
+- README follow-up: expanded the landing page to 281 lines with focused skills,
+  checkpoint purposes, project records, delivery layout, and configuration
+  examples. Verification: 34 contract tests, 38 README links/anchors, zero
+  project parity errors, and clean whitespace checks.
+- Latest documentation: shortened the GitHub landing page, added setup,
+  workflow, and development guides, a documentation index, and contribution
+  instructions. Runtime recipes now use the installed repository environment.
+- Documentation verification: 34 contract tests passed, 63 local links and
+  anchors checked, project parity has zero errors, and whitespace checks pass.
+- Documentation evidence: docs/evidence/github-documentation-2026-10-13.md.
+- Latest maintenance: public repository hygiene. Removed 14 reading PDFs,
+  12 journal-package files, and one obsolete PR draft from the index while
+  retaining local copies; expanded ignore rules and documented local assets.
+- Hygiene evidence and handoff: docs/evidence/public-repository-audit-2026-10-13.md.
+- Hygiene validation: local-copy preservation and ignore-rule checks passed;
+  project parity has zero errors. No commit, push, or history rewrite performed.
+- Remaining release issue: prior commits still contain excluded assets.
 - Workflow: 2.8, consistent across validator, manifest, and runtime adapters.
 - Completed task: revise progression, validation, and writing rules around
   question, evidence, and inference across supported research methods.
